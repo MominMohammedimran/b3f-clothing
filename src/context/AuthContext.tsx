@@ -289,7 +289,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   
                 setUserProfile(newProfile);
               } catch (error) {
-                console.error('Error creating profile :', error);
+                console.error('Error creating profile:', error);
               }
             } else {
               setUserProfile(profile);

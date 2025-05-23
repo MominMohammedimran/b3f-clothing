@@ -73,7 +73,7 @@ const ProductPage = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="container-custom py-8">
+        <div className="container-custom py-8 mt-10">
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
           </div>
@@ -85,7 +85,7 @@ const ProductPage = () => {
   if (!product) {
     return (
       <Layout>
-        <div className="container-custom py-8">
+        <div className="container-custom py-8 mt-10">
           <div className="text-center">
             <h2 className="text-2xl font-bold">Product not found</h2>
             <p className="mt-2 text-gray-600">The product you're looking for doesn't exist or has been removed.</p>
@@ -97,7 +97,7 @@ const ProductPage = () => {
 
   return (
     <Layout>
-      <div className="container-custom px-18 py-5" >
+      <div className="container-custom px-18 py-5 mt-10" >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <ProductImage 
             image={product.image} 

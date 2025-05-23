@@ -103,6 +103,9 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
       return 'N/A';
     }
   };
+  const reroute=()=>{
+  navigate(`/account`)
+  }
   
   return (
     <div className="mb-8 p-6 bg-white rounded-lg shadow-sm">
@@ -121,12 +124,14 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
           </div>
         </div>
         
-        <div className="flex space-x-3 w-full md:w-auto">
+        
+      </div>
+      <div className="flex space-x-5 w-full justify-center mt-6  md:w-auto">
           {onEdit && (
             <Button 
               variant="outline"
-              onClick={onEdit}
-              className="flex items-center"
+              onClick={reroute}
+              className="flex items-center text-xl"
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit Profile
@@ -136,14 +141,13 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
           <Button 
             variant="destructive"
             onClick={handleSignOut}
-            className="flex items-center"
+            className="flex items-center text-xl"
             disabled={signingOut || localSigningOut}
           >
             <LogOut className="h-4 w-4 mr-2" />
             {signingOut || localSigningOut ? 'Signing Out...' : 'Sign Out'}
           </Button>
         </div>
-      </div>
     </div>
   );
 };

@@ -84,7 +84,7 @@ const ProductDesigner = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 pb-24 max-w-4xl">
+      <div className="container mx-auto px-4 pb-24 mt-10 max-w-4xl">
         <div className="flex items-center justify-between mb-6 bg-white rounded-lg shadow-sm p-3">
           <Link to="/" className="flex items-center text-blue-600 hover:text-blue-800">
             <ArrowLeft className="mr-1" size={20} />

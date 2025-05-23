@@ -5,18 +5,41 @@ import RazorpayCheckout from './RazorpayCheckout';
 interface PaymentProcessorProps {
   paymentMethod: string;
   orderData: any;
+  onSuccess?: (data: any) => void;
+  onFailure?: () => void;
 }
 
-const PaymentProcessor: React.FC<PaymentProcessorProps> = ({ paymentMethod, orderData }) => {
-  // This component is a placeholder for any payment processing logic that needs to happen
-  // outside of the main payment form, like loading payment SDK scripts, etc.
+const PaymentProcessor: React.FC<PaymentProcessorProps> = ({ 
+  paymentMethod, 
+  orderData,
+  onSuccess = () => {},
+  onFailure = () => {} 
+}) => {
+  if (!orderData) return null;
   
-  // Currently it doesn't render anything, but could be extended to include:
-  // - Payment script loaders
-  // - Payment status indicators
-  // - Additional payment method specific components
-  
-  return null;
+  // Handle different payment methods
+  switch (paymentMethod.toLowerCase()) {
+    case 'razorpay':
+      return (
+        <RazorpayCheckout
+          amount={orderData.total || 0}
+          orderId={orderData.id || orderData.order_number || 'order-id'}
+          onSuccess={onSuccess}
+          onFailure={onFailure}
+        />
+      );
+    
+    case 'upi':
+      // Placeholder for UPI payment handling
+      return null;
+    
+    case 'cod':
+      // Placeholder for Cash on Delivery handling
+      return null;
+    
+    default:
+      return null;
+  }
 };
 
 export default PaymentProcessor;

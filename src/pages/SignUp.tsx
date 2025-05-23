@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../context/AuthContext';
-import SignUpForm from '../components/auth/SignUpForm';
+import SignupForm from '../components/auth/SignupForm';
 import VerificationForm from '../components/auth/VerificationForm';
 
 const SignUp = () => {
@@ -23,7 +23,7 @@ const SignUp = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-md px-4 pb-24">
+      <div className="container mx-auto max-w-md px-4 pb-24 mt-10">
         <div className="bg-white rounded-lg shadow-sm p-6 mt-8">
           <h1 className="text-2xl font-bold text-center mb-6 bg-blue-600 text-white py-2 rounded">
             Sign Up
@@ -37,7 +37,7 @@ const SignUp = () => {
               onBack={() => setIsOtpSent(false)}
             />
           ) : (
-            <SignUpForm 
+            <SignupForm 
               onVerificationSent={(email, password, data) => {
                 setUserEmail(email);
                 setUserPassword(password);

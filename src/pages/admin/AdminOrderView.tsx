@@ -269,7 +269,7 @@ const AdminOrderView = () => {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8  mt-10">
           <div className="flex items-center mb-6">
             <Button
               variant="ghost"
@@ -299,7 +299,7 @@ const AdminOrderView = () => {
   if (!order) {
     return (
       <AdminLayout>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 mt-10">
           <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
             <div className="flex">
               <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
@@ -324,7 +324,7 @@ const AdminOrderView = () => {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 mt-10">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <Button

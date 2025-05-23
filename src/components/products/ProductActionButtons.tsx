@@ -25,6 +25,12 @@ const ProductActionButtons = ({ product, selectedSize }: ProductActionButtonsPro
       return;
     }
     
+    // Validate size selection
+    if (!selectedSize) {
+      toast.error('Please select a size before adding to cart');
+      return;
+    }
+    
     if (product) {
       addToCart({
         ...product,
@@ -39,6 +45,12 @@ const ProductActionButtons = ({ product, selectedSize }: ProductActionButtonsPro
     if (!currentUser) {
       toast.error('Please sign in to place an order');
       navigate('/signin');
+      return;
+    }
+    
+    // Validate size selection
+    if (!selectedSize) {
+      toast.error('Please select a size before placing your order');
       return;
     }
     

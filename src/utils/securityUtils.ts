@@ -1,119 +1,121 @@
 
 /**
- * Security Utility Functions
+ * Security utility functions for the application
  */
 
-// Function to check password strength
-export const checkPasswordStrength = (password: string) => {
-  // Initialize score and feedback
-  let strength = 'weak';
-  let message = 'Password is too weak';
+/**
+ * Enforces HTTPS in production environments
+ * Should be called at application startup
+ */
+export const enforceHttps = (): void => {
+  if (
+    typeof window !== 'undefined' && 
+    window.location.protocol === 'http:' &&
+    process.env.NODE_ENV === 'production'
+  ) {
+    window.location.href = window.location.href.replace('http:', 'https:');
+  }
+};
+
+/**
+ * Verifies SSL certificate integrity
+ * This is a browser-compatible check
+ */
+export const verifySslCertificate = (): boolean => {
+  // In a browser environment, this is handled by the browser itself
+  // This function serves as a placeholder for server environments
+  // where additional checks could be implemented
+  return process.env.NODE_ENV === 'production' ? true : true;
+};
+
+/**
+ * Check session security
+ * Verifies that session storage is secure
+ */
+export const checkSessionSecurity = async (): Promise<boolean> => {
+  // Basic check for secure context
+  const isSecureContext = window.isSecureContext;
   
-  // If password is empty, return default weak status
+  // Check for https in production
+  const isHttps = window.location.protocol === 'https:' || process.env.NODE_ENV !== 'production';
+  
+  return isSecureContext && isHttps;
+};
+
+/**
+ * Sets security headers for the application
+ * This would normally be done on the server side
+ */
+export const setSecurityHeaders = (): void => {
+  // This is mainly for demonstration, as browsers don't allow setting 
+  // these headers from client side JavaScript
+  // These headers should be set by the server/deployment platform
+  
+  // Content Security Policy
+  // Strict Transport Security
+  // X-Frame-Options
+  // X-Content-Type-Options
+  // Referrer-Policy
+};
+
+/**
+ * Simple API rate limiting implementation
+ * Should be used server-side, this is a placeholder
+ */
+export const applyRateLimit = async (
+  key: string, 
+  limit: number, 
+  timeWindow: number
+): Promise<boolean> => {
+  // This implementation would need to be on the server side
+  // It's included here for documentation purposes
+  
+  // In a real implementation:
+  // 1. Store request counts in a database or cache
+  // 2. Check if the current key has exceeded its limit
+  // 3. Return true if request is allowed, false if rate limited
+  
+  return true; // Always allow in client-side implementation
+};
+
+/**
+ * Check password strength
+ * Returns an object with strength level and a message
+ */
+export const checkPasswordStrength = (password: string): { strength: 'weak' | 'medium' | 'strong'; message: string } => {
   if (!password) {
-    return { strength, message };
+    return { strength: 'weak', message: 'Enter a password' };
   }
-  
-  // Check password length
-  if (password.length < 8) {
-    return { strength, message: 'Password should be at least 8 characters long' };
-  }
-  
-  // Check for uppercase, lowercase, numbers, and special characters
+
   const hasUpperCase = /[A-Z]/.test(password);
   const hasLowerCase = /[a-z]/.test(password);
   const hasNumbers = /\d/.test(password);
-  const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
   
-  // Calculate score based on criteria
+  // Calculate score
   let score = 0;
-  if (password.length >= 8) score++;
-  if (password.length >= 12) score++;
-  if (hasUpperCase) score++;
-  if (hasLowerCase) score++;
-  if (hasNumbers) score++;
-  if (hasSpecialChars) score++;
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (hasUpperCase) score += 1;
+  if (hasLowerCase) score += 1;
+  if (hasNumbers) score += 1;
+  if (hasSpecialChar) score += 1;
   
-  // Set strength and message based on score
-  if (score >= 5) {
-    strength = 'strong';
-    message = 'Strong password';
-  } else if (score >= 3) {
-    strength = 'medium';
-    message = 'Medium-strength password';
+  // Determine strength level based on score
+  if (score < 3) {
+    return { 
+      strength: 'weak', 
+      message: 'Password is weak. Include uppercase, lowercase, numbers and special characters.' 
+    };
+  } else if (score < 5) {
+    return { 
+      strength: 'medium', 
+      message: 'Password is medium strength. Try adding more variety.' 
+    };
+  } else {
+    return {
+      strength: 'strong',
+      message: 'Password is strong!'
+    };
   }
-  
-  // Add specific feedback
-  if (!hasUpperCase) message += ', add uppercase letters';
-  if (!hasLowerCase) message += ', add lowercase letters';
-  if (!hasNumbers) message += ', add numbers';
-  if (!hasSpecialChars) message += ', add special characters';
-  
-  return { strength, message };
-};
-
-// Function to sanitize user inputs (prevent XSS)
-export const sanitizeInput = (input: string): string => {
-  if (!input) return '';
-  return input
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
-};
-
-// Function to validate email format
-export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return emailRegex.test(email);
-};
-
-// Function to prevent SQL injection in search queries
-export const sanitizeSearchQuery = (query: string): string => {
-  if (!query) return '';
-  // Remove SQL commands and special characters
-  return query
-    .replace(/[;'"\\]/g, '')
-    .replace(/--/g, '')
-    .replace(/\/\*/g, '')
-    .replace(/\*\//g, '');
-};
-
-// Generate a CSRF token
-export const generateCSRFToken = (): string => {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
-};
-
-// Function to check session security (added to fix build error)
-export const checkSessionSecurity = async (): Promise<boolean> => {
-  // This function would validate the security of the current session
-  // In a real app, this would check for token validity, expiration, etc.
-  try {
-    // Check for token existence in localStorage
-    const hasToken = localStorage.getItem('supabase.auth.token') !== null;
-    return hasToken;
-  } catch (error) {
-    console.error('Session security check failed:', error);
-    return false;
-  }
-};
-
-// Function to enforce HTTPS (added to fix build error)
-export const enforceHttps = (): boolean => {
-  if (typeof window !== 'undefined') {
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-      window.location.href = window.location.href.replace('http:', 'https:');
-      return false;
-    }
-  }
-  return true;
-};
-
-// Function to verify SSL certificate (added to fix build error)
-export const verifySslCertificate = (): boolean => {
-  // In a browser environment, this is handled automatically
-  // This is a placeholder function to satisfy the type requirements
-  return true;
 };

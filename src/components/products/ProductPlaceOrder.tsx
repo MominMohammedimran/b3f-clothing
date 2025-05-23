@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
@@ -32,6 +33,12 @@ const ProductPlaceOrder: React.FC<ProductPlaceOrderProps> = ({
     if (!currentUser) {
       toast.error('Please sign in to place an order');
       navigate('/signin');
+      return;
+    }
+    
+    // Check if size is selected
+    if (!selectedSize && (!selectedSizes || selectedSizes.length === 0)) {
+      toast.error('Please select a size before placing your order');
       return;
     }
     

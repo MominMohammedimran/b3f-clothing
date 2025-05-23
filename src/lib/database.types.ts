@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -349,10 +348,19 @@ export interface Database {
         }
         Relationships: []
       }
-    }
-    Views: {}
-    Functions: {}
-    Enums: {}
-    CompositeTypes: {}
-  }
+    };
+    Views: {};
+    Functions: {
+            is_admin: {
+            Args: {
+              user_email: string;
+             };
+               Returns: boolean;
+          };
+  // other functions...
+};
+
+    Enums: {};
+    CompositeTypes: {};
+  };
 }

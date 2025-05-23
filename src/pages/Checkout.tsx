@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Layout from '../components/layout/Layout';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import OrderSummaryComponent from '../components/checkout/OrderSummaryComponent';
@@ -39,18 +40,23 @@ const Checkout = () => {
     window.scrollTo(0, 0);
 
     if (!currentUser) {
-      toast.warning({
-        title: "Warning",
-        description: 'Please sign in to checkout'
-      });
+      toast.error('Please sign in to checkout');
       navigate('/signin?redirectTo=/checkout');
+      return;
+    }
+
+    // Check if cart is empty
+    if (!cartItems || cartItems.length === 0) {
+      toast.error('Your cart is empty');
+      navigate('/cart');
       return;
     }
 
     const loadOrderData = async () => {
       if (currentUser && supabase) {
         try {
-          const { data: existingOrder } = await supabase
+          // Try to get any existing pending order for this user
+          const { data: existingOrder, error } = await supabase
             .from('orders')
             .select('*')
             .eq('user_id', currentUser.id)
@@ -58,15 +64,20 @@ const Checkout = () => {
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
+            
+          if (error) {
+            console.error('Error checking existing orders:', error);
+          }
 
           if (existingOrder) {
             setCurrentOrder(existingOrder);
+            console.log('Found existing order:', existingOrder);
           } else {
-            createNewOrder();
+            await createNewOrder();
           }
         } catch (error) {
           console.error('Error loading order data:', error);
-          createNewOrder();
+          await createNewOrder();
         }
       }
     };
@@ -74,11 +85,15 @@ const Checkout = () => {
     const loadUserData = async () => {
       if (currentUser && supabase) {
         try {
-          const { data: profile } = await supabase
+          const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', currentUser.id)
-            .single();
+            .maybeSingle();
+
+          if (error) {
+            console.error('Error loading profile:', error);
+          }
 
           if (profile) {
             const nameParts = (profile.display_name || '').split(' ');
@@ -105,7 +120,7 @@ const Checkout = () => {
 
     loadOrderData();
     loadUserData();
-  }, [currentUser, navigate, currentLocation]);
+  }, [currentUser, navigate, currentLocation, cartItems]);
 
   useEffect(() => {
     if (!addressesLoading) {
@@ -145,57 +160,73 @@ const Checkout = () => {
   }, [addresses, defaultAddress, addressesLoading, currentUser]);
 
   const createNewOrder = async () => {
-    if (!cartItems || cartItems.length === 0) {
-      toast.error({
-        title: "Error",
-        description: 'Your cart is empty'
-      });
+    if (!cartItems || cartItems.length === 0 || !currentUser) {
+      toast.error('Cannot create order - cart empty or user not logged in');
       navigate('/cart');
       return;
     }
 
+    console.log('Creating new pending order');
     const DELIVERY_FEE = 40;
-    const orderData = {
-      orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
-      subtotal: totalPrice,
-      deliveryFee: DELIVERY_FEE,
-      total: totalPrice + DELIVERY_FEE,
-      items: cartItems,
-      status: 'pending',
-    };
+    
+    try {
+      // Format the cart items for storage
+      const serializedItems = cartItems.map(item => ({
+        id: item.id || `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        size: item.size,
+        image: item.image,
+        productId: item.productId
+      }));
+      
+      // Generate order number
+      const orderNumber = `B3F-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+      
+      // Create order data object
+      const orderData = {
+        orderNumber,
+        subtotal: totalPrice,
+        deliveryFee: DELIVERY_FEE,
+        total: totalPrice + DELIVERY_FEE,
+        items: cartItems,
+        status: 'pending',
+      };
+      
+      setCurrentOrder(orderData);
+      
+      // Create order in database
+      const { data, error } = await supabase
+        .from('orders')
+        .insert({
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          order_number: orderNumber,
+          total: totalPrice + DELIVERY_FEE,
+          delivery_fee: DELIVERY_FEE,
+          items: serializedItems,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          payment_method: 'pending',
+          payment_details: { status: 'pending' }
+        })
+        .select()
+        .single();
 
-    setCurrentOrder(orderData);
-
-    if (currentUser && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('orders')
-          .insert({
-            user_id: currentUser.id,
-            order_number: orderData.orderNumber,
-            total: orderData.total,
-            delivery_fee: orderData.deliveryFee,
-            subtotal: orderData.subtotal,
-            items: JSON.stringify(cartItems), // Convert CartItems to JSON string
-            status: 'pending',
-            created_at: new Date().toISOString(),
-          })
-          .select('id')
-          .single();
-
-        if (error) throw error;
-
+      if (error) {
+        console.error('Failed to create order:', error);
+        toast.error('Failed to prepare order');
+      } else {
+        console.log('Order created successfully:', data);
         setCurrentOrder({
           ...orderData,
           id: data.id,
         });
-      } catch (error) {
-        console.error('Error creating order:', error);
-        toast.error({
-          title: "Error",
-          description: 'Failed to create new order'
-        });
       }
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast.error('Failed to create new order');
     }
   };
 
@@ -251,39 +282,52 @@ const Checkout = () => {
         email: values.email,
       };
 
-      if (currentUser && supabase && currentOrder && useNewAddress) {
+      if (currentUser && supabase && useNewAddress) {
         try {
+          // Save new address to database if this is a new address
           await supabase.from('addresses').insert({
             user_id: currentUser.id,
-            name: `${values.firstName} ${values.lastName}`, // Add name field for database
+            name: `${values.firstName} ${values.lastName}`, 
             street: values.address,
             city: values.city,
             state: values.state,
             zipcode: values.zipCode,
             country: values.country,
-            phone: values.phone,
-            is_default: addresses.length === 0,
+            phone: values.phone || '',
+            is_default: addresses.length === 0, // Make default if first address
           });
+          console.log('Address saved to database');
         } catch (error) {
           console.error('Error saving address to database:', error);
         }
       }
 
-      if (currentUser && supabase && currentOrder) {
-        await supabase
+      // If we don't have a current order yet, create one
+      if (!currentOrder?.id) {
+        await createNewOrder();
+      }
+
+      if (currentUser && supabase && currentOrder?.id) {
+        // Update order with shipping address
+        const { error } = await supabase
           .from('orders')
           .update({
-            shipping_address: JSON.stringify(shippingAddress), // Convert to JSON string
+            shipping_address: shippingAddress,
             updated_at: new Date().toISOString(),
           })
           .eq('id', currentOrder.id);
+          
+        if (error) {
+          console.error('Error updating order shipping address:', error);
+          throw error;
+        }
+        
+        console.log('Order updated with shipping address');
       }
 
-      toast.success({
-        title: "Success",
-        description: 'Shipping info saved successfully'
-      });
+      toast.success('Shipping info saved successfully');
 
+      // Proceed to payment page
       setTimeout(() => {
         navigate('/payment', {
           state: { shippingAddress },
@@ -291,10 +335,7 @@ const Checkout = () => {
       }, 500);
     } catch (error) {
       console.error('Error saving shipping details:', error);
-      toast.error({
-        title: "Error",
-        description: 'Failed to save shipping details'
-      });
+      toast.error('Failed to save shipping details');
     } finally {
       setIsLoading(false);
     }
@@ -302,7 +343,7 @@ const Checkout = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 mt-10">
         <div className="flex items-center mb-6">
           <Link to="/cart" className="mr-2">
             <ArrowLeft size={24} className="text-blue-600 hover:text-blue-800" />

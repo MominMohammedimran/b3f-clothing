@@ -1,10 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { isAdminAuthenticated } from '@/utils/adminAuth';
 import { Loader2 } from 'lucide-react';
 
 interface AdminAuthGuardProps {
@@ -16,32 +14,42 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
         setLoading(true);
-        
-        // First check for current user
+
         if (!currentUser) {
           console.log('No current user, redirecting to admin login');
           navigate('/admin/login');
           return;
         }
-        
+
         console.log('Checking admin status for user:', currentUser.email);
-        
-        // Check if user is an admin in database
-        const isAdmin = await isAdminAuthenticated();
-        
-        // If not admin, redirect to login
+
+        // Correct usage: <ReturnType, ParamsType>
+      const { data, error } = await supabase.rpc<boolean, { user_email: string }>(
+  'is_admin',
+  { user_email: currentUser.email || '' }
+);
+
+
+
+        if (error) {
+          console.error('Error checking admin status:', error);
+          throw error;
+        }
+
+        const isAdmin = !!data;
+
         if (!isAdmin) {
           console.log('User is not an admin, redirecting to admin login');
           toast.error('You do not have admin privileges');
           navigate('/admin/login');
           return;
         }
-        
+
         console.log('Admin authentication successful');
         setIsAdmin(true);
       } catch (error) {
@@ -52,15 +60,14 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
         setLoading(false);
       }
     };
-    
-    // Add small delay to ensure we have latest auth state
+
     const timer = setTimeout(() => {
       checkAdminStatus();
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [currentUser, navigate]);
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -73,8 +80,7 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
       </div>
     );
   }
-  
-  // Only render children if user is an admin
+
   return isAdmin ? <>{children}</> : null;
 };
 

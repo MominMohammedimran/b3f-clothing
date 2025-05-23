@@ -8,29 +8,41 @@ import OrderTrackingStatus from '../components/orders/OrderTrackingStatus';
 import { useOrderTracking } from '@/hooks/useOrderTracking';
 import OrderLoadingState from '../components/orders/OrderLoadingState';
 import OrderErrorState from '../components/orders/OrderErrorState';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 const TrackOrder = () => {
   const { id } = useParams<{ id: string }>();
   const { tracking, loading, error } = useOrderTracking(id || '');
 
   if (loading) {
-    return <OrderLoadingState />;
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh] mt-10">
+          <OrderLoadingState />
+        </div>
+      </Layout>
+    );
   }
 
   if (error || !tracking) {
-    return <OrderErrorState error={error?.message || 'Error loading tracking information'} />;
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8 mt-10">
+          <OrderErrorState error={error?.message || 'Error loading tracking information'} />
+        </div>
+      </Layout>
+    );
   }
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 mt-10">
         <div className="flex items-center mb-6">
           <Link to="/orders" className="flex items-center text-blue-600 hover:text-blue-800">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Orders
           </Link>
-          <h1 className="text-2xl font-bold ml-4">Track Order #{tracking.id}</h1>
+          <h1 className="text-2xl font-bold ml-4">Track Order #{tracking.order_id}</h1>
         </div>
         
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -71,6 +83,7 @@ const TrackOrder = () => {
                     <div>
                       <p className="font-medium">{item.status}</p>
                       <p className="text-sm text-gray-500">{item.location} - {new Date(item.timestamp).toLocaleString()}</p>
+                      {item.description && <p className="text-sm text-gray-600 mt-1">{item.description}</p>}
                     </div>
                   </div>
                 ))}
@@ -79,7 +92,7 @@ const TrackOrder = () => {
           )}
           
           <div className="mt-8 flex justify-center">
-            <Button onClick={() => toast.info({ title: 'Support', description: 'Contacting support...' })}>
+            <Button onClick={() => toast('Support team will contact you soon')}>
               Contact Support
             </Button>
           </div>

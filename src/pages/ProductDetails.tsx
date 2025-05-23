@@ -42,7 +42,7 @@ const ProductDetails = () => {
     // Show basic content while loading instead of a loader
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-5">
+        <div className="container mx-auto px-4 py-5 mt-10">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h1 className="text-2xl font-bold">Product Details</h1>
             <div className="mt-4">Loading product information...</div>

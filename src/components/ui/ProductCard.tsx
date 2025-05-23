@@ -82,16 +82,23 @@ const ProductCard = ({
   };
   
   const handleCardClick = () => {
-    if (onClick) {
-      onClick(product);
-    } else {
-      if (isCustomProduct) {
-        navigate(`/design-tool`);
-      } else {
-        navigate(`/product/details/${product.productId}`);
-      }
-    }
-  };
+  const isCustomProduct = product.tags?.includes("custom");
+
+
+  if (isCustomProduct) {
+    navigate('/design-tool');
+    return;
+  }
+
+  if (onClick) {
+    onClick(product);
+    return;
+  }
+
+  navigate(`/product/details/${product.productId}`);
+};
+
+
 
   // Format price to Indian Rupees
   const formatIndianRupees = (price: number) => {
@@ -117,7 +124,7 @@ const ProductCard = ({
         )}
         
         {isCustomProduct && (
-          <div className="absolute left-0 top-3 sm:top-12 md:top- -translate-y-1/2 z-10 bg-blue-500 px-1 py-1 text-[10px] sm:text-[15px] md:text-sm font-semibold text-white flex items-center">
+          <div className="absolute right-0 top- sm:top-0 md:top-0  z-10 bg-blue-500 px-1 py-1 text-[10px] sm:text-[15px] md:text-sm font-semibold text-white flex items-center">
             <Pencil size={10} className="mr-1" /> Customizable
           </div>
         )}

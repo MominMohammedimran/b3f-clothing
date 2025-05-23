@@ -31,7 +31,7 @@ export interface Order {
   created_at: string;
   updated_at?: string;
   date?: string; // Adding this for backwards compatibility
-  cancellation_reason?: string; // Adding this for orderService.ts
+  cancellation_reason?: string;
 }
 
 export interface Product {
@@ -122,6 +122,7 @@ export interface UserProfile {
 }
 
 export interface ShippingAddress {
+  id?: string;
   name?: string;
   street?: string;
   city?: string;
@@ -129,6 +130,10 @@ export interface ShippingAddress {
   zipcode?: string;
   zipCode?: string; // For backwards compatibility
   country?: string;
+  user_id?: string;
+  is_default?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AdminUser {
@@ -140,3 +145,12 @@ export interface AdminUser {
   user_id?: string | null;
   permissions?: string[];
 }
+
+// JSON Type for Supabase
+export type Json = 
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];

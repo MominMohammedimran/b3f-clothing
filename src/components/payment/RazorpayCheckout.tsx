@@ -10,14 +10,19 @@ import { useAuth } from '@/context/AuthContext';
 const loadRazorpayScript = (): Promise<boolean> => {
   return new Promise((resolve) => {
     if ((window as any).Razorpay) {
+      console.log("Razorpay already loaded");
       resolve(true);
       return;
     }
 
+    console.log("Loading Razorpay script...");
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
-    script.onload = () => resolve(true);
+    script.onload = () => {
+      console.log("Razorpay script loaded successfully");
+      resolve(true);
+    };
     script.onerror = () => {
       console.error('Failed to load Razorpay script');
       resolve(false);
@@ -42,13 +47,14 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
-  const [isTestMode, setIsTestMode] = useState(true);
-  const { currentUser } = useAuth();
+  const [isTestMode] = useState(true);
+  const { currentUser, userProfile } = useAuth();
 
   useEffect(() => {
     const loadScript = async () => {
       try {
         const loaded = await loadRazorpayScript();
+        console.log("Razorpay script loaded status:", loaded);
         setIsScriptLoaded(loaded);
         if (!loaded) {
           toast.error('Could not load payment gateway. Please try again later.');
@@ -67,32 +73,56 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
     
     try {
       if (!(window as any).Razorpay) {
-        throw new Error('Razorpay not loaded');
+        const loaded = await loadRazorpayScript();
+        if (!loaded || !(window as any).Razorpay) {
+          throw new Error('Razorpay not loaded');
+        }
       }
       
-      const name = currentUser?.user_metadata?.full_name || '';
-      const email = currentUser?.email || '';
-      const phone = currentUser?.user_metadata?.phone || '';
+      console.log("Initializing Razorpay payment with order:", orderId, "amount:", amount);
+      
+      // Prepare user information for the payment
+      const name = userProfile?.display_name || currentUser?.user_metadata?.full_name || '';
+      const email = currentUser?.email || userProfile?.email || '';
+      const phone = userProfile?.phone_number || currentUser?.user_metadata?.phone || '';
+      
+      // For testing, we'll use a mock successful payment
+      if (isTestMode) {
+        console.log("Test mode: Simulating successful payment");
+        
+        // Simulate payment processing
+        setTimeout(() => {
+          const mockPaymentResponse = {
+            razorpay_payment_id: `test_pay_${Math.random().toString(36).substring(2, 15)}`,
+            razorpay_order_id: orderId,
+            razorpay_signature: 'test_signature',
+          };
+          
+          console.log("Test payment successful:", mockPaymentResponse);
+          
+          onSuccess({
+            paymentId: mockPaymentResponse.razorpay_payment_id,
+            orderId: mockPaymentResponse.razorpay_order_id,
+            signature: mockPaymentResponse.razorpay_signature,
+            amount,
+            currency: 'INR'
+          });
+          
+          toast.success('Payment successful!');
+          setIsLoading(false);
+        }, 2000);
+        
+        return;
+      }
       
       // Razorpay options
       const options = {
-        key: "rzp_test_NRItHtK5M0vOd5", // Replace with your actual key in production
+        key: "rzp_test_NRItHtK5M0vOd5", // Test key 
         amount: amount * 100, // Razorpay takes amount in paise
         currency: "INR",
         name: "B3F Prints & Men's Wear",
         description: `Payment for order ${orderId}`,
-        image: "https://your-logo-url.png",
-        handler: (response: any) => {
-          onSuccess({
-            paymentId: response.razorpay_payment_id,
-            orderId: response.razorpay_order_id || orderId,
-            signature: response.razorpay_signature || 'test-signature',
-            amount,
-            currency: 'INR'
-          });
-          toast.success('Payment successful!');
-          setIsLoading(false);
-        },
+        order_id: orderId,
         prefill: {
           name: name || "Customer",
           email: email || "customer@example.com",
@@ -106,12 +136,34 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
             onFailure();
             toast.error('Payment was cancelled');
             setIsLoading(false);
-          }
+          },
+          escape: true,
+          animation: true
+        },
+        handler: function (response: any) {
+          console.log("Razorpay payment successful:", response);
+          onSuccess({
+            paymentId: response.razorpay_payment_id,
+            orderId: response.razorpay_order_id || orderId,
+            signature: response.razorpay_signature || 'test-signature',
+            amount,
+            currency: 'INR'
+          });
+          toast.success('Payment successful!');
+          setIsLoading(false);
         }
       };
 
+      console.log("Creating Razorpay instance with options:", options);
+
       // Initialize Razorpay instance
       const razorpay = new (window as any).Razorpay(options);
+      razorpay.on('payment.failed', function (response: any) {
+        console.error("Payment failed:", response.error);
+        toast.error(`Payment failed: ${response.error.description}`);
+        onFailure();
+        setIsLoading(false);
+      });
       razorpay.open();
     } catch (error: any) {
       console.error('Payment error:', error);

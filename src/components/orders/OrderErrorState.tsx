@@ -42,7 +42,7 @@ const OrderErrorState: React.FC<OrderErrorStateProps> = ({ error, onRetry, onBac
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 mt-10">
         <LoadableContent
           isLoading={false}
           error={error}

@@ -141,7 +141,7 @@ const AdminProfiles = () => {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 mt-10">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Customer Profiles</h1>
           <Button variant="outline" className="flex items-center gap-2" onClick={() => refetch()}>

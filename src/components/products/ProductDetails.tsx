@@ -28,6 +28,12 @@ const ProductDetails = ({ product, selectedSize, setSelectedSize }: ProductDetai
       return;
     }
     
+    // Validate size selection
+    if (!selectedSize) {
+      toast.error('Please select a size before adding to cart');
+      return;
+    }
+    
     if (product) {
       await addToCart({
         ...product,

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -15,6 +14,7 @@ import DesignCanvas from '../components/design/DesignCanvas';
 import CustomizationSidebar from '../components/design/CustomizationSidebar';
 import { useDesignCanvas } from '@/hooks/useDesignCanvas';
 import { useProductInventory } from '@/hooks/useProductInventory';
+import { useDesignToolInventory } from '@/hooks/useDesignToolInventory';
 
 // Product interface
 interface Product {
@@ -45,7 +45,7 @@ const DesignTool = () => {
   const { currentUser } = useAuth();
   const { currentLocation } = useLocation();
   const { addToCart } = useCart();
-  const { sizeInventory, fetchProductInventory, updateInventory } = useProductInventory();
+  const { sizeInventory, fetchProductInventory, updateInventory } = useDesignToolInventory();
   
   const emojis = [
     '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', 
@@ -327,14 +327,14 @@ const DesignTool = () => {
 
   return (
     <Layout>
-      <div className="container-custom px-4">
-        <div className="flex items-center justify-between mb-6">
+      <div className="container-custom px-4 mt-10">
+        <div className="flex items-center justify-between   mb-6">
           <Link
             to="/"
             className="flex items-center text-blue-600 hover:text-blue-800"
           >
-            <ArrowLeft className="mr-1" size={20} />
-            <span className="text-sm font-medium">Back</span>
+            <ArrowLeft className="mr-1" size={25} />
+            <span className="text-xl font-medium">Back</span>
           </Link>
           <h1 className="text-xl md:text-2xl font-bold text-gray-800">Design Your Product</h1>
           <div className="w-20"></div>

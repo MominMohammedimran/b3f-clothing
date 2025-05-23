@@ -52,7 +52,7 @@ const Cart = () => {
   if (!currentUser) {
     return (
       <Layout>
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 mt-8">
           <div className="flex items-center mb-6">
             <Link to="/" className="mr-2">
               <ArrowLeft size={24} className="text-blue-600 hover:text-blue-800" />
@@ -75,7 +75,7 @@ const Cart = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 mt-10">
         <div className="flex items-center mb-6">
           <Link to="/" className="mr-2">
             <ArrowLeft size={24} className="text-blue-600 hover:text-blue-800" />

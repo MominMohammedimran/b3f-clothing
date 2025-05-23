@@ -40,7 +40,7 @@ const Banner = ({ images, autoplaySpeed = 5000 }: BannerProps) => {
   
   return (
    <div className="relative rounded-lg overflow-hidden banner-img 
-   w-full sm:w-[90%] md:w-[70%] lg:w-[70%] xl:w-[70%] mx-auto
+   w-full sm:w-[100%] md:w-[80%] lg:w-[80%] xl:w-[80%] mx-auto
     h-[180px] sm:h-[250px] lg:h-[300px]">
 
       <div 
@@ -64,30 +64,13 @@ const Banner = ({ images, autoplaySpeed = 5000 }: BannerProps) => {
       
       {images.length > 1 && (
         <>
-          <button 
-            onClick={goToPrevious}
-            className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black bg-opacity-30 rounded-full p-1.5 text-white hover:bg-opacity-50 transition-colors z-10"
-            aria-label="Previous slide"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          
-          <button 
-            onClick={goToNext}
-            className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black bg-opacity-30 rounded-full p-1.5 text-white hover:bg-opacity-50 transition-colors z-10"
-            aria-label="Next slide"
-          >
-            <ChevronRight size={20} />
-          </button>
-          
-          <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-2">
+         
+          <div className="absolute  bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-2">
             {images.map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`w-2 h-2.5 rounded-full transition-colors ${
-                  index === currentIndex ? 'bg-red-500' : 'bg-white bg-opacity-50'
-                }`}
+                
                 aria-label={`Go to slide ${index + 1}`}
               ></button>
             ))}

@@ -6,7 +6,7 @@ import Layout from '../components/layout/Layout';
 const Home = () => {
   return (
     <Layout>
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 mt-10">
         <h1 className="text-3xl font-bold mb-6">Welcome to our Store</h1>
         <p className="text-xl mb-8">Check out our latest products and customize your own designs!</p>
         

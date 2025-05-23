@@ -17,6 +17,8 @@ const statusSteps = [
 const statusMap: Record<string, string> = {
   processing: 'processing',
   prepared: 'processing',
+  order_placed: 'processing',
+  pending: 'processing',
   shipped: 'shipped',
   shipping: 'shipped',
   out_for_delivery: 'out_for_delivery',
@@ -28,17 +30,28 @@ const OrderTrackingStatus: React.FC<OrderTrackingStatusProps> = ({
   currentStatus,
   estimatedDelivery,
 }) => {
-  const normalizedStatus = statusMap[currentStatus?.toLowerCase()] || 'processing';
+  // Normalize status - default to processing if invalid status provided
+  const normalizedStatus = currentStatus && typeof currentStatus === 'string'
+    ? (statusMap[currentStatus.toLowerCase()] || 'processing')
+    : 'processing';
+  
+  console.log('Order tracking status:', currentStatus, 'Normalized:', normalizedStatus);
+  
+  // Find the index of the current status in our steps
   const currentStatusIndex = statusSteps.findIndex(step => step.key === normalizedStatus);
-  const percentComplete = (currentStatusIndex / (statusSteps.length - 1)) * 100;
+  
+  // Calculate progress percentage (handle -1 case if status not found)
+  const percentComplete = currentStatusIndex >= 0 
+    ? ((currentStatusIndex + 1) / statusSteps.length) * 100
+    : 0;
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+    <div className="bg-white rounded-lg mb-8">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Delivery Status</h2>
         <div className="text-blue-600 text-right">
           <p className="font-medium">Estimated Delivery</p>
-          <p>{estimatedDelivery}</p>
+          <p>{estimatedDelivery || 'To be confirmed'}</p>
         </div>
       </div>
 
@@ -84,7 +97,7 @@ const OrderTrackingStatus: React.FC<OrderTrackingStatusProps> = ({
       </div>
 
       <div className="mt-4 text-sm font-medium text-blue-700 text-center">
-        Current Status: {statusSteps[currentStatusIndex]?.label}
+        Current Status: {currentStatusIndex >= 0 ? statusSteps[currentStatusIndex]?.label : 'Processing'}
       </div>
     </div>
   );

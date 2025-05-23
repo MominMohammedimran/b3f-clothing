@@ -6,7 +6,7 @@ import { Skeleton } from '../ui/skeleton';
 
 const PaymentPageLoader = () => {
   const customLoading = (
-    <div className="container-custom py-8">
+    <div className="container-custom py-8 mt-10">
       <div className="flex items-center mb-6">
         <Skeleton className="h-8 w-8 rounded-full mr-2" />
         <Skeleton className="h-8 w-32" />

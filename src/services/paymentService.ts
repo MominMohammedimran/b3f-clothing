@@ -1,26 +1,46 @@
 
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { CartItem } from '@/lib/types'; // Import the correct CartItem type
 
 interface ShippingAddress {
-  name: string;
-  street: string;
+  name?: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  street?: string;
+  addressLine1?: string;
   city: string;
   state: string;
-  zipCode: string;
+  zipCode?: string;
+  postalCode?: string;
+  zipcode?: string;
   country: string;
+  phone?: string;
+  email?: string;
 }
 
-interface CartItem {
-  id?: string;
-  product_id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-  color?: string;
-  size?: string;
-}
+/**
+ * Serialize cart items for storage in database
+ * @param items Array of cart items
+ * @returns JSON serializable object
+ */
+export const serializeCartItems = (items: CartItem[]) => {
+  // Convert CartItem[] to a plain JSON object that can be stored in Supabase
+  return items.map(item => ({
+    id: item.id || `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+    image: item.image || '',
+    size: item.size || '',
+    color: item.color || '',
+    options: item.options || {},
+    productId: item.productId || item.id,
+    view: item.view || '',
+    backImage: item.backImage || '',
+  }));
+};
 
 /**
  * Service for handling payment-related operations
@@ -37,30 +57,82 @@ export class PaymentService {
    */
   async createOrder(
     userId: string,
+    userEmail: string,
     orderNumber: string,
     totalAmount: number,
     deliveryFee: number,
     cartItems: CartItem[],
-    shippingAddress: ShippingAddress
+    shippingAddress: ShippingAddress,
+    paymentMethod: string = 'razorpay'
   ) {
     try {
       if (!this.supabase) {
         throw new Error('Supabase client not initialized');
       }
       
-      const { data, error } = await this.supabase.rpc('create_order', {
-        p_user_id: userId,
-        p_order_number: orderNumber,
-        p_total: totalAmount,
-        p_status: 'processing',
-        p_items: JSON.stringify(cartItems),
-        p_payment_method: 'razorpay',
-        p_delivery_fee: deliveryFee,
-        p_shipping_address: JSON.stringify(shippingAddress)
-      });
+      // Ensure all cart items have required id property
+      const validatedCartItems: CartItem[] = cartItems.map(item => ({
+        ...item,
+        id: item.id || `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      }));
       
-      if (error) throw error;
-      return data;
+      // Serialize the cart items for storage
+      const serializedItems = serializeCartItems(validatedCartItems);
+      
+      // Normalize shipping address to ensure consistent property names
+      const normalizedAddress = {
+        name: shippingAddress.fullName || `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim() || shippingAddress.name || '',
+        street: shippingAddress.addressLine1 || shippingAddress.street || '',
+        city: shippingAddress.city || '',
+        state: shippingAddress.state || '',
+        zipcode: shippingAddress.zipCode || shippingAddress.postalCode || shippingAddress.zipcode || '',
+        country: shippingAddress.country || 'India',
+        phone: shippingAddress.phone || '',
+        email: shippingAddress.email || userEmail || ''
+      };
+      
+      // Create the basic payment details object
+      const paymentDetails = {
+        method: paymentMethod,
+        status: paymentMethod === 'cod' ? 'pending' : 'processing',
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('Creating order with payment details:', paymentDetails);
+      console.log('Shipping address:', normalizedAddress);
+      
+      // Create the order in the database with error handling
+      try {
+        const { data, error } = await this.supabase
+          .from('orders')
+          .insert({
+            user_id: userId,
+            user_email: userEmail || '',
+            order_number: orderNumber,
+            total: totalAmount,
+            status: 'order_placed',
+            payment_method: paymentMethod,
+            shipping_address: normalizedAddress,
+            delivery_fee: deliveryFee,
+            items: serializedItems,
+            payment_details: paymentDetails,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('Supabase error creating order:', error);
+          throw error;
+        }
+        
+        console.log('Order created successfully:', data);
+        return data;
+      } catch (insertError) {
+        console.error('Error during order insert:', insertError);
+        throw new Error('Failed to insert order into database');
+      }
     } catch (error) {
       console.error('Error creating order:', error);
       throw error;
@@ -79,26 +151,31 @@ export class PaymentService {
         throw new Error('Supabase client not initialized');
       }
       
-      const { data, error } = await this.supabase.rpc('create_order_tracking', {
-        p_order_id: orderId,
-        p_status: 'pending',
-        p_current_location: 'Warehouse',
-        p_estimated_delivery: estimatedDeliveryDate,
-        p_history: JSON.stringify([
-          {
-            status: 'order_placed',
-            date: new Date().toISOString(),
-            location: 'Online',
-            description: 'Order has been placed successfully'
-          }
-        ])
-      });
+      const { data, error } = await this.supabase
+        .from('order_tracking')
+        .insert({
+          order_id: orderId,
+          status: 'pending',
+          current_location: 'Warehouse',
+          estimated_delivery: estimatedDeliveryDate,
+          history: [
+            {
+              status: 'order_placed',
+              date: new Date().toISOString(),
+              location: 'Online',
+              description: 'Order has been placed successfully'
+            }
+          ]
+        })
+        .select()
+        .single();
       
       if (error) throw error;
       return data;
     } catch (error) {
       console.error('Error creating order tracking:', error);
-      throw error;
+      // Don't throw here, just return null so the main process can continue
+      return null;
     }
   }
   
@@ -107,43 +184,148 @@ export class PaymentService {
    */
   async processPayment(
     userId: string,
+    userEmail: string,
     orderNumber: string,
     totalAmount: number,
     deliveryFee: number,
     cartItems: CartItem[],
     shippingAddress: ShippingAddress,
-    estimatedDeliveryDate: string
+    estimatedDeliveryDate: string,
+    paymentMethod: string = 'razorpay',
+    paymentDetails: any = {}
   ) {
     try {
-      // Create order
-      const orderData = await this.createOrder(
-        userId,
-        orderNumber,
-        totalAmount,
-        deliveryFee,
-        cartItems,
-        shippingAddress
-      );
+      console.log('Processing payment with method:', paymentMethod);
       
-      if (!orderData) {
-        throw new Error('Failed to create order');
+      if (!userId || !userEmail) {
+        console.error('Missing user info:', { userId, userEmail });
+        return {
+          success: false,
+          error: 'User information is missing'
+        };
       }
       
-      // Create order tracking
-      await this.createOrderTracking(orderData.id, estimatedDeliveryDate);
+      if (!cartItems || cartItems.length === 0) {
+        console.error('No items in cart');
+        return {
+          success: false, 
+          error: 'No items in cart'
+        };
+      }
       
+      // Log shippingAddress for debugging
+      console.log('Shipping address received:', shippingAddress);
+      
+      // Validate address fields
+      if (!shippingAddress.city || !shippingAddress.state || !shippingAddress.country) {
+        console.error('Incomplete shipping address:', shippingAddress);
+        return {
+          success: false,
+          error: 'Shipping address is incomplete'
+        };
+      }
+      
+      // Ensure all cart items have required id property
+      const validatedCartItems: CartItem[] = cartItems.map(item => ({
+        ...item,
+        id: item.id || `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      }));
+      
+      // Create order with basic payment details
+      let orderData;
+      try {
+        orderData = await this.createOrder(
+          userId,
+          userEmail,
+          orderNumber,
+          totalAmount,
+          deliveryFee,
+          validatedCartItems,
+          shippingAddress,
+          paymentMethod
+        );
+      } catch (orderError: any) {
+        console.error('Failed to create order:', orderError);
+        return {
+          success: false,
+          error: orderError.message || 'Failed to create order in database'
+        };
+      }
+      
+      if (!orderData) {
+        console.error('No order data returned');
+        return {
+          success: false,
+          error: 'Failed to create order'
+        };
+      }
+      
+      // If we have additional payment details (like from Razorpay), update them
+      if (Object.keys(paymentDetails).length > 0 && paymentMethod === 'razorpay') {
+        try {
+          await this.updatePaymentDetails(orderData.id, paymentDetails);
+        } catch (paymentError) {
+          console.error('Error updating payment details:', paymentError);
+          // Continue even if payment details update fails
+        }
+      }
+      
+      // Try to create order tracking
+      try {
+        await this.createOrderTracking(orderData.id, estimatedDeliveryDate);
+      } catch (trackingError) {
+        console.error('Warning: Could not create tracking info:', trackingError);
+        // Continue even if tracking creation fails
+      }
+      
+      console.log('Order processed successfully:', orderData.id);
       return {
         success: true,
         orderId: orderData.id,
         orderNumber: orderNumber
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment processing failed:', error);
       toast.error('Payment processing failed. Please try again.');
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
+    }
+  }
+  
+  /**
+   * Update payment details for an existing order
+   */
+  async updatePaymentDetails(
+    orderId: string,
+    paymentDetails: any
+  ) {
+    try {
+      if (!this.supabase) {
+        throw new Error('Supabase client not initialized');
+      }
+      
+      // Create the payment details object including timestamps
+      const updatedDetails = {
+        ...paymentDetails,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await this.supabase
+        .from('orders')
+        .update({
+          payment_details: updatedDetails,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .select();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating payment details:', error);
+      throw error;
     }
   }
   
@@ -160,6 +342,7 @@ export class PaymentService {
       state: string;
       zipCode: string;
       country: string;
+      phone?: string;
     }
   ) {
     try {
@@ -186,6 +369,7 @@ export class PaymentService {
             state: addressData.state,
             zipcode: addressData.zipCode,
             country: addressData.country,
+            phone: addressData.phone || '',
             updated_at: new Date().toISOString()
           })
           .eq('id', existingAddress.id)
@@ -205,6 +389,7 @@ export class PaymentService {
             state: addressData.state,
             zipcode: addressData.zipCode,
             country: addressData.country,
+            phone: addressData.phone || '',
             is_default: true
           })
           .select();

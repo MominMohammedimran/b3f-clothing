@@ -24,7 +24,7 @@ const formSchema = z.object({
 });
 
 // Define both interfaces to handle both use cases
-export interface SignupFormProps {
+export interface SignUpFormProps {
   onVerificationSent?: (email: string, password: string, data: { firstName: string; lastName: string }) => void;
   // Properties for AuthFormContainer use case
   email?: string;
@@ -40,7 +40,7 @@ export interface SignupFormProps {
   setMode?: Dispatch<SetStateAction<'signin' | 'signup' | 'otp'>>;
 }
 
-const SignupForm: React.FC<SignupFormProps> = ({ 
+const SignUpForm: React.FC<SignUpFormProps> = ({ 
   onVerificationSent,
   email,
   setEmail,
@@ -405,4 +405,4 @@ const SignupForm: React.FC<SignupFormProps> = ({
   );
 };
 
-export default SignupForm;
+export default SignUpForm;

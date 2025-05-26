@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../context/AuthContext';
-import SignupForm from '../components/auth/SignupForm';
+import SignUpForm from '../components/auth/SignupForm';
 import VerificationForm from '../components/auth/VerificationForm';
 
 const SignUp = () => {
@@ -37,7 +37,7 @@ const SignUp = () => {
               onBack={() => setIsOtpSent(false)}
             />
           ) : (
-            <SignupForm 
+            <SignUpForm 
               onVerificationSent={(email, password, data) => {
                 setUserEmail(email);
                 setUserPassword(password);

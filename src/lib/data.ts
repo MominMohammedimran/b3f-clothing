@@ -131,8 +131,8 @@ export const products: Product[] = [
 export const categories: Category[] = [
   {
     id: '1',
-    name: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/shirt.png',
-    icon: '/lovable-uploads/hero-categorie/shirt.png'
+    name: 'Shirts',
+    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/shirt.png'
   },
   {
     id: '2',

@@ -6,7 +6,6 @@ const baseUrl = 'https://b3f-prints.pages.dev';
 // Define your URLs here (you can extend this later to pull from your routes or database)
 const urls = [
   { loc: '/', changefreq: 'daily', priority: 1.0 },
-  { loc: '/design-tool', changefreq: 'monthly', priority: 0.9 },
   { loc: '/about-us', changefreq: 'monthly', priority: 0.6 },
   { loc: '/contact-us', changefreq: 'monthly', priority: 0.6 },
 ];

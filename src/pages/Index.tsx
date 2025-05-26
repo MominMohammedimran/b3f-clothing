@@ -61,13 +61,18 @@ const Index = () => {
   };
 
   const bannerImages = [
-    '/lovable-uploads/banner-images/tshirt-banner.png',
-    '/lovable-uploads/banner-images/mug-banner.png',
-    '/lovable-uploads/banner-images/cap-banner.png'
+    'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/banner-images/tshirt-banner.png',
+    'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/banner-images/mug-banner.png',
+    'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/banner-images/cap-banner.png'
   ];
 
   return (
     <Layout >
+
+
+
+
+      
       <div className="container-custom mt-10">
         <div className="mt-8 mb-6 animate-fade-in" >
           <ScrollArea className="w-full">

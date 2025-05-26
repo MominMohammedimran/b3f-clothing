@@ -2,7 +2,7 @@
 import React from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import WhatsappCommunityWidget from '../ui/WhatsappCommunityWidget';
+import ChatbaseAIWidget from '../ui/ChatbaseAIWidget';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideFooter = false }) => {
         {children}
       </main>
       {!hideFooter && <Footer />}
-      <WhatsappCommunityWidget />
+      <ChatbaseAIWidget />
     </div>
   );
 };

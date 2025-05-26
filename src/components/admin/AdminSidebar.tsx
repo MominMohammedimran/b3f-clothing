@@ -1,86 +1,73 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Package, 
+  ShoppingCart, 
   Users, 
-  Settings,
-  Map, 
-  FileText
+  UserCheck,
+  Settings
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 const AdminSidebar = () => {
   const location = useLocation();
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
-  const toggleSection = (section: string) => {
-    if (expandedSection === section) {
-      setExpandedSection(null);
-    } else {
-      setExpandedSection(section);
-    }
-  };
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
-  const navItems = [
-    {
-      name: 'Dashboard',
-      path: '/admin/dashboard',
-      icon: LayoutDashboard
-    },
-    {
-      name: 'Products',
-      path: '/admin/products',
-      icon: Package
-    },
-    {
-      name: 'Orders',
-      path: '/admin/orders',
-      icon: FileText
-    },
-    {
-      name: 'Customers',
-      path: '/admin/customers',
-      icon: Users
-    },
-    {
-      name: 'Locations',
-      path: '/admin/locations',
-      icon: Map
-    },
-    {
-      name: 'Settings',
-      path: '/admin/settings',
-      icon: Settings
-    }
+  const menuItems = [
+    { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
+    { path: '/admin/products', icon: Package, label: 'Products' },
+    { path: '/admin/users', icon: Users, label: 'Admin Users' },
+    { path: '/admin/website-users', icon: UserCheck, label: 'Website Users' },
   ];
 
   return (
-    <div className="h-full w-64 flex-shrink-0 bg-gray-900 text-white">
-      <div className="flex h-16 items-center justify-center border-b border-gray-800">
-        <Link to="/admin/dashboard" className="text-xl font-bold">Admin Panel</Link>
+    <div className="bg-gray-900 text-white h-full flex flex-col">
+      {/* Logo/Brand */}
+      <div className="p-4 lg:p-6 border-b border-gray-700">
+        <h2 className="text-lg lg:text-xl font-bold text-white">Admin Panel</h2>
+        <p className="text-xs text-gray-300 mt-1">B3F Prints Management</p>
       </div>
       
-      <nav className="flex flex-col p-4 space-y-1">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={cn(
-              "flex items-center px-4 py-3 text-sm rounded-md hover:bg-gray-800 transition-colors",
-              isActive(item.path) && "bg-gray-800 text-blue-500"
-            )}
-          >
-            <item.icon size={20} className="mr-3" />
-            <span>{item.name}</span>
-          </Link>
-        ))}
+      {/* Navigation */}
+      <nav className="flex-1 px-2 lg:px-4 py-4 space-y-1">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+          
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`
+                flex items-center px-3 lg:px-4 py-3 text-sm lg:text-base font-medium rounded-lg transition-colors group
+                ${isActive
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }
+              `}
+            >
+              <Icon className={`h-5 w-5 lg:h-6 lg:w-6 mr-3 flex-shrink-0 ${
+                isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'
+              }`} />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
       </nav>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-700">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <Settings className="h-4 w-4 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">Admin</p>
+            <p className="text-xs text-gray-400 truncate">System Manager</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

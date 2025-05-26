@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -8,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,9 +22,14 @@ type AuthMode = 'signin' | 'signup' | 'otp';
 interface AuthFormContainerProps {
   initialMode?: 'signin' | 'signup';
   redirectTo?: string;
+  isAdmin?: boolean;
 }
 
-export function AuthFormContainer({ initialMode = 'signin', redirectTo = '/' }: AuthFormContainerProps) {
+export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
+  initialMode = 'signin',
+  redirectTo = '/',
+  isAdmin = false
+}) => {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -259,4 +264,4 @@ export function AuthFormContainer({ initialMode = 'signin', redirectTo = '/' }: 
       )}
     </Card>
   );
-}
+};

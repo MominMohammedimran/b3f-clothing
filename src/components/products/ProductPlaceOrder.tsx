@@ -54,35 +54,15 @@ const ProductPlaceOrder: React.FC<ProductPlaceOrderProps> = ({
       
       console.log('Adding to cart before checkout:', product);
       
-      // Create a valid product object by ensuring all required fields exist
-      const validProduct: Product = {
-        id: productId,
+      // Add to cart with correct structure
+      await addToCart({
+        product_id: productId,
         name: product.name || 'Product',
         price: product.price || 0,
-        originalPrice: product.originalPrice || product.price || 0,
-        discountPercentage: product.discountPercentage || 0,
+        quantity: 1,
+        size: selectedSize || (selectedSizes.length > 0 ? selectedSizes[0] : undefined),
         image: product.image || '',
-        description: product.description || '',
-        rating: product.rating || 0,
-        category: product.category || '',
-        tags: product.tags || [],
-        code: product.code || productId,
-        stock: product.stock || 10,
-      };
-      
-      // If we have multiple sizes selected, use those
-      if (selectedSizes && selectedSizes.length > 0) {
-        await addToCart({
-          ...validProduct,
-          selectedSizes: selectedSizes,
-        }, 1);
-      } else {
-        // Otherwise use the single size
-        await addToCart({
-          ...validProduct,
-          size: selectedSize,
-        }, 1);
-      }
+      });
       
       toast.success(`${product.name} added to cart`);
       

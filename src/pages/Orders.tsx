@@ -188,7 +188,8 @@ const Orders = () => {
                         </div>
                         
                         <Link 
-                          to={`/track-order/${order.id}`} 
+                               to="/track-order" 
+                               state={{ orderId: order.id }}
                           className="text-blue-600 text-sm hover:underline"
                         >
                           Track Order

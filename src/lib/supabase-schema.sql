@@ -1,7 +1,7 @@
 -- Enable RLS for admin_users
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
--- Drop overly permissive policy
+-- Drop overly permissive policy if it exists
 DROP POLICY IF EXISTS "Allow auth users to view admin_users" ON public.admin_users;
 
 -- Secure policy: only admins can read their own row
@@ -22,6 +22,7 @@ BEGIN
     SELECT 1
     FROM public.admin_users
     WHERE email = user_email
+      AND role = ANY (ARRAY['admin', 'super_admin'])
   );
 END;
 $$;

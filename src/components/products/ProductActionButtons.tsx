@@ -33,9 +33,13 @@ const ProductActionButtons = ({ product, selectedSize }: ProductActionButtonsPro
     
     if (product) {
       addToCart({
-        ...product,
-        size: selectedSize || undefined
-      }, 1);
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        size: selectedSize,
+        image: product.image
+      });
       
       toast.success(`${product.name} added to cart`);
     }
@@ -57,9 +61,13 @@ const ProductActionButtons = ({ product, selectedSize }: ProductActionButtonsPro
     try {
       if (product) {
         await addToCart({
-          ...product,
-          size: selectedSize || undefined
-        }, 1);
+          product_id: product.id,
+          name: product.name,
+          price: product.price,
+          quantity: 1,
+          size: selectedSize,
+          image: product.image
+        });
         
         toast.success(`${product.name} added to cart`);
         

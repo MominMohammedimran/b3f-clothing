@@ -1,9 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { Loader2, ShieldAlert } from 'lucide-react';
 
 interface AdminAuthGuardProps {
   children: React.ReactNode;
@@ -14,11 +15,13 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
         setLoading(true);
+        setError(null);
 
         if (!currentUser) {
           console.log('No current user, redirecting to admin login');
@@ -28,17 +31,17 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
 
         console.log('Checking admin status for user:', currentUser.email);
 
-        // Correct usage: <ReturnType, ParamsType>
-      const { data, error } = await supabase.rpc<boolean, { user_email: string }>(
-  'is_admin',
-  { user_email: currentUser.email || '' }
-);
-
-
+        // Using the Supabase RPC function to check if user is admin
+        const { data, error } = await supabase.rpc('is_admin', 
+          { user_email: currentUser.email || '' }
+        );
 
         if (error) {
           console.error('Error checking admin status:', error);
-          throw error;
+          setError('Failed to verify admin privileges');
+          toast.error('Authentication error: ' + error.message);
+          navigate('/admin/login');
+          return;
         }
 
         const isAdmin = !!data;
@@ -52,8 +55,9 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
 
         console.log('Admin authentication successful');
         setIsAdmin(true);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Admin auth check error:', error);
+        setError('Authentication failed');
         toast.error('Authentication error');
         navigate('/admin/login');
       } finally {
@@ -61,6 +65,7 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
       }
     };
 
+    // Small delay to ensure auth context has loaded
     const timer = setTimeout(() => {
       checkAdminStatus();
     }, 300);
@@ -70,11 +75,32 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="flex items-center space-x-3">
-            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-            <span className="text-gray-600">Verifying admin access...</span>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <h2 className="text-xl font-semibold text-gray-800">Verifying admin access</h2>
+            <p className="text-gray-600 text-center">Please wait while we verify your credentials.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+          <div className="flex flex-col items-center space-y-4">
+            <ShieldAlert className="h-12 w-12 text-red-500" />
+            <h2 className="text-xl font-semibold text-red-600">Authentication Error</h2>
+            <p className="text-gray-600 text-center">{error}</p>
+            <button 
+              onClick={() => navigate('/admin/login')}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Return to Login
+            </button>
           </div>
         </div>
       </div>

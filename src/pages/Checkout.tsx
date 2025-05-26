@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Layout from '../components/layout/Layout';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/utils/toastWrapper';
+import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import OrderSummaryComponent from '../components/checkout/OrderSummaryComponent';
 import ShippingDetailsForm from '../components/checkout/ShippingDetailsForm';
@@ -13,10 +13,22 @@ import { useCart } from '../context/CartContext';
 import { useAddresses } from '../hooks/useAddresses';
 import SavedAddresses from '@/components/checkout/SavedAddresses';
 
+type FormData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+
+  const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
     email: '',
@@ -27,6 +39,8 @@ const Checkout = () => {
     zipCode: '',
     country: 'India',
   });
+
+  const [isLoading, setIsLoading] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
   const [useNewAddress, setUseNewAddress] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -45,207 +59,89 @@ const Checkout = () => {
       return;
     }
 
-    // Check if cart is empty
     if (!cartItems || cartItems.length === 0) {
       toast.error('Your cart is empty');
       navigate('/cart');
       return;
     }
 
-    const loadOrderData = async () => {
-      if (currentUser && supabase) {
-        try {
-          // Try to get any existing pending order for this user
-          const { data: existingOrder, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .eq('status', 'pending')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-            
-          if (error) {
-            console.error('Error checking existing orders:', error);
-          }
+    const loadProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .maybeSingle();
 
-          if (existingOrder) {
-            setCurrentOrder(existingOrder);
-            console.log('Found existing order:', existingOrder);
-          } else {
-            await createNewOrder();
-          }
-        } catch (error) {
-          console.error('Error loading order data:', error);
-          await createNewOrder();
+        if (error || !data) return;
+
+        setFormData(prev => ({
+          ...prev,
+          firstName: data.first_name || '',
+          lastName: data.last_name || '',
+          email: data.email || currentUser.email || '',
+          phone: data.phone_number || '',
+        }));
+
+        if (currentLocation) {
+          setFormData(prev => ({
+            ...prev,
+            city: currentLocation.name,
+          }));
         }
+      } catch (err) {
+        console.error('Profile fetch error:', err);
       }
     };
 
-    const loadUserData = async () => {
-      if (currentUser && supabase) {
-        try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentUser.id)
-            .maybeSingle();
-
-          if (error) {
-            console.error('Error loading profile:', error);
-          }
-
-          if (profile) {
-            const nameParts = (profile.display_name || '').split(' ');
-            setFormData(prev => ({
-              ...prev,
-              firstName: profile.first_name || nameParts[0] || '',
-              lastName: profile.last_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''),
-              email: profile.email || currentUser.email || '',
-              phone: profile.phone_number || '',
-            }));
-          }
-
-          if (currentLocation) {
-            setFormData(prev => ({
-              ...prev,
-              city: currentLocation.name || prev.city,
-            }));
-          }
-        } catch (error) {
-          console.error('Error loading user data:', error);
-        }
-      }
-    };
-
-    loadOrderData();
-    loadUserData();
-  }, [currentUser, navigate, currentLocation, cartItems]);
+    loadProfile();
+  }, [currentUser, cartItems, navigate, currentLocation]);
 
   useEffect(() => {
-    if (!addressesLoading) {
-      if (defaultAddress) {
-        setSelectedAddressId(defaultAddress.id);
-        setUseNewAddress(false);
-        setFormData({
-          firstName: defaultAddress.first_name || '',
-          lastName: defaultAddress.last_name || '',
-          email: currentUser?.email || '',
-          phone: defaultAddress.phone || '',
-          address: defaultAddress.street || '',
-          city: defaultAddress.city || '',
-          state: defaultAddress.state || '',
-          zipCode: defaultAddress.zipcode || '',
-          country: defaultAddress.country || 'India',
-        });
-      } else if (addresses.length > 0) {
-        const firstAddress = addresses[0];
-        setSelectedAddressId(firstAddress.id);
-        setUseNewAddress(false);
-        setFormData({
-          firstName: firstAddress.first_name || '',
-          lastName: firstAddress.last_name || '',
-          email: currentUser?.email || '',
-          phone: firstAddress.phone || '',
-          address: firstAddress.street || '',
-          city: firstAddress.city || '',
-          state: firstAddress.state || '',
-          zipCode: firstAddress.zipcode || '',
-          country: firstAddress.country || 'India',
-        });
-      } else {
-        setUseNewAddress(true);
-      }
+    if (addressesLoading) return;
+
+    const fillFormFromAddress = (addr: any) => {
+      setFormData({
+        firstName: addr.first_name || '',
+        lastName: addr.last_name || '',
+        email: currentUser?.email || '',
+        phone: addr.phone || '',
+        address: addr.street || '',
+        city: addr.city || '',
+        state: addr.state || '',
+        zipCode: addr.zipcode || '',
+        country: addr.country || 'India',
+      });
+    };
+
+    if (defaultAddress) {
+      setSelectedAddressId(defaultAddress.id);
+      setUseNewAddress(false);
+      fillFormFromAddress(defaultAddress);
+    } else if (addresses.length > 0) {
+      setSelectedAddressId(addresses[0].id);
+      setUseNewAddress(false);
+      fillFormFromAddress(addresses[0]);
+    } else {
+      setUseNewAddress(true);
     }
   }, [addresses, defaultAddress, addressesLoading, currentUser]);
-
-  const createNewOrder = async () => {
-    if (!cartItems || cartItems.length === 0 || !currentUser) {
-      toast.error('Cannot create order - cart empty or user not logged in');
-      navigate('/cart');
-      return;
-    }
-
-    console.log('Creating new pending order');
-    const DELIVERY_FEE = 40;
-    
-    try {
-      // Format the cart items for storage
-      const serializedItems = cartItems.map(item => ({
-        id: item.id || `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        size: item.size,
-        image: item.image,
-        productId: item.productId
-      }));
-      
-      // Generate order number
-      const orderNumber = `B3F-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
-      
-      // Create order data object
-      const orderData = {
-        orderNumber,
-        subtotal: totalPrice,
-        deliveryFee: DELIVERY_FEE,
-        total: totalPrice + DELIVERY_FEE,
-        items: cartItems,
-        status: 'pending',
-      };
-      
-      setCurrentOrder(orderData);
-      
-      // Create order in database
-      const { data, error } = await supabase
-        .from('orders')
-        .insert({
-          user_id: currentUser.id,
-          user_email: currentUser.email,
-          order_number: orderNumber,
-          total: totalPrice + DELIVERY_FEE,
-          delivery_fee: DELIVERY_FEE,
-          items: serializedItems,
-          status: 'pending',
-          created_at: new Date().toISOString(),
-          payment_method: 'pending',
-          payment_details: { status: 'pending' }
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Failed to create order:', error);
-        toast.error('Failed to prepare order');
-      } else {
-        console.log('Order created successfully:', data);
-        setCurrentOrder({
-          ...orderData,
-          id: data.id,
-        });
-      }
-    } catch (error) {
-      console.error('Error creating order:', error);
-      toast.error('Failed to create new order');
-    }
-  };
 
   const handleAddressSelect = (addressId: string) => {
     setSelectedAddressId(addressId);
     setUseNewAddress(false);
-
-    const selectedAddress = addresses.find(addr => addr.id === addressId);
-    if (selectedAddress) {
+    const selected = addresses.find(a => a.id === addressId);
+    if (selected) {
       setFormData({
-        firstName: selectedAddress.first_name || '',
-        lastName: selectedAddress.last_name || '',
+        firstName: selected.first_name,
+        lastName: selected.last_name,
         email: currentUser?.email || '',
-        phone: selectedAddress.phone || '',
-        address: selectedAddress.street || '',
-        city: selectedAddress.city || '',
-        state: selectedAddress.state || '',
-        zipCode: selectedAddress.zipcode || '',
-        country: selectedAddress.country || 'India',
+        phone: selected.phone,
+        address: selected.street,
+        city: selected.city,
+        state: selected.state,
+        zipCode: selected.zipcode,
+        country: selected.country || 'India',
       });
     }
   };
@@ -263,10 +159,17 @@ const Checkout = () => {
     }));
   };
 
-  const handleFormSubmit = async (values: any) => {
+  const handleFormSubmit = async (values: FormData) => {
+    if (!currentUser || !cartItems || cartItems.length === 0) {
+      toast.error('Invalid checkout state');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      console.log('Starting checkout form submission...');
+      
       const shippingAddress = {
         fullName: `${values.firstName} ${values.lastName}`,
         firstName: values.firstName,
@@ -282,63 +185,54 @@ const Checkout = () => {
         email: values.email,
       };
 
-      if (currentUser && supabase && useNewAddress) {
+      // Save new address if needed
+      if (useNewAddress && currentUser) {
         try {
-          // Save new address to database if this is a new address
           await supabase.from('addresses').insert({
             user_id: currentUser.id,
-            name: `${values.firstName} ${values.lastName}`, 
+            first_name: values.firstName,
+            last_name: values.lastName,
+            name: `${values.firstName} ${values.lastName}`,
             street: values.address,
             city: values.city,
             state: values.state,
             zipcode: values.zipCode,
             country: values.country,
-            phone: values.phone || '',
-            is_default: addresses.length === 0, // Make default if first address
+            phone: values.phone,
+            is_default: addresses.length === 0,
           });
-          console.log('Address saved to database');
-        } catch (error) {
-          console.error('Error saving address to database:', error);
+        } catch (addressError) {
+          console.error('Error saving address:', addressError);
+          // Continue even if address save fails
         }
       }
 
-      // If we don't have a current order yet, create one
-      if (!currentOrder?.id) {
-        await createNewOrder();
-      }
-
-      if (currentUser && supabase && currentOrder?.id) {
-        // Update order with shipping address
-        const { error } = await supabase
-          .from('orders')
-          .update({
-            shipping_address: shippingAddress,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', currentOrder.id);
-          
-        if (error) {
-          console.error('Error updating order shipping address:', error);
-          throw error;
-        }
-        
-        console.log('Order updated with shipping address');
-      }
-
-      toast.success('Shipping info saved successfully');
-
-      // Proceed to payment page
-      setTimeout(() => {
-        navigate('/payment', {
-          state: { shippingAddress },
-        });
-      }, 500);
+      console.log('Shipping address prepared:', shippingAddress);
+      
+      // Navigate to payment with shipping address
+      navigate('/payment', { state: { shippingAddress } });
+      
+      toast.success('Shipping details saved');
+      
     } catch (error) {
-      console.error('Error saving shipping details:', error);
-      toast.error('Failed to save shipping details');
+      console.error('Error in checkout:', error);
+      toast.error('Failed to process checkout');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Calculate order summary
+  const DELIVERY_FEE = 40;
+  const subtotal = totalPrice;
+  const total = subtotal + DELIVERY_FEE;
+  
+  const orderSummary = {
+    orderNumber: `B3F-${Date.now().toString().slice(-6)}`,
+    subtotal,
+    deliveryFee: DELIVERY_FEE,
+    total,
+    items: cartItems,
   };
 
   return (
@@ -350,13 +244,12 @@ const Checkout = () => {
           </Link>
           <h1 className="text-2xl font-bold text-blue-600">Checkout</h1>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold mb-4">Shipping Details</h2>
-              
-              {/* Current Location Badge */}
+
               {currentLocation && (
                 <div className="mb-4 p-2 bg-blue-50 rounded-md border border-blue-100">
                   <p className="text-sm text-blue-600">
@@ -364,8 +257,7 @@ const Checkout = () => {
                   </p>
                 </div>
               )}
-              
-              {/* Saved Addresses Component */}
+
               {!addressesLoading && (
                 <SavedAddresses
                   addresses={addresses}
@@ -375,7 +267,7 @@ const Checkout = () => {
                   useNewAddress={useNewAddress}
                 />
               )}
-              
+
               <ShippingDetailsForm
                 formData={formData}
                 onSubmit={handleFormSubmit}
@@ -383,9 +275,9 @@ const Checkout = () => {
               />
             </div>
           </div>
-          
+
           <div className="md:col-span-1">
-            <OrderSummaryComponent currentOrder={currentOrder} />
+            <OrderSummaryComponent currentOrder={orderSummary} />
           </div>
         </div>
       </div>

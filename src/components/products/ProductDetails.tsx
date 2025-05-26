@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Product } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import ProductPlaceOrder from '@/components/products/ProductPlaceOrder';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
@@ -36,9 +36,13 @@ const ProductDetails = ({ product, selectedSize, setSelectedSize }: ProductDetai
     
     if (product) {
       await addToCart({
-        ...product,
-        size: selectedSize || undefined
-      }, 1);
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        size: selectedSize,
+        image: product.image
+      });
       
       toast.success(`${product.name} added to cart`);
     }
@@ -51,9 +55,9 @@ const ProductDetails = ({ product, selectedSize, setSelectedSize }: ProductDetai
       </div>
       
       <div className="mt-2">
-        <span className="text-2xl font-bold text-blue-600">{formatCurrency(product?.price || 0)}</span>
-        {product?.discountPercentage > 0 && (
-          <span className="ml-2 text-gray-500 line-through">{formatCurrency(product?.originalPrice || 0)}</span>
+        <span className="text-2xl font-bold text-blue-600">{formatPrice(product?.price || 0)}</span>
+        {product?.discountPercentage && product.discountPercentage > 0 && (
+          <span className="ml-2 text-gray-500 line-through">{formatPrice(product?.originalPrice || 0)}</span>
         )}
       </div>
       

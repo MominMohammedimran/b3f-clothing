@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Product, ProductOption } from '@/data/products';
 import { Button } from '@/components/ui/button';
@@ -54,9 +53,14 @@ const ProductCustomizer = ({ product }: ProductCustomizerProps) => {
   };
 
   const handleAddToCart = () => {
-    // Convert selectedOptions object to an array of strings
-    const selectedSizesArray = Object.values(selectedOptions);
-    addToCart(product, quantity, selectedSizesArray);
+    addToCart({
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: quantity,
+      image: product.images[0] || '',
+      size: Object.values(selectedOptions)[0] || undefined,
+    });
   };
 
   const nextImage = () => {

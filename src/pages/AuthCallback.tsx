@@ -1,155 +1,157 @@
 
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import { useAuth } from '../context/AuthContext';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
+import { toast } from '@/utils/toastWrapper'; // Use the fixed toast wrapper
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { refreshUserProfile, currentUser } = useAuth();
-  const [message, setMessage] = useState('Completing authentication...');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        console.error('Auth callback started');
+        // Get the URL hash
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
         
-        if (!supabase) {
-          console.error('Supabase client not initialized');
-          toast({
-            title: "Error",
-            description: 'Authentication service not available',
-            variant: 'destructive'
+        // Check for error
+        const errorParam = hashParams.get('error');
+        const errorDescription = hashParams.get('error_description');
+        
+        if (errorParam) {
+          toast.error('Authentication error', {
+            description: errorDescription || 'Failed to complete authentication'
           });
-          navigate('/signin');
+          setError(errorDescription || 'Authentication failed');
+          setLoading(false);
+          // Redirect to sign-in after a delay
+          setTimeout(() => {
+            navigate('/signin');
+          }, 3000);
           return;
         }
-
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error('Auth error:', error);
-          toast({
-            title: "Authentication error",
-            description: error.message,
-            variant: 'destructive'
+        
+        // Check if we have tokens from OAuth providers
+        if (accessToken && refreshToken) {
+          // Set session with the tokens
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
           });
-          navigate('/signin');
-          return;
-        }
-
-        const isAdminAuth = location.search.includes('admin=true');
-
-        if (session) {
-          console.error('Authentication successful, session established');
           
-          if (refreshUserProfile) {
-            await refreshUserProfile();
+          if (error) {
+            throw error;
           }
           
-          setMessage('Authentication successful! Redirecting...');
-          
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-            
-          if (!profile) {
-            console.error('Creating profile for new user');
-            
-            await supabase.from('profiles').insert({
-              id: session.user.id,
-              email: session.user.email,
-              first_name: session.user.user_metadata?.full_name?.split(' ')[0] || '',
-              last_name: session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
-              avatar_url: session.user.user_metadata?.avatar_url || '',
-              display_name: session.user.user_metadata?.full_name || '',
-              reward_points: 0,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-          }
-          
-          if (isAdminAuth) {
-            const { data: adminUser } = await supabase
-              .from('admin_users')
-              .select('*')
-              .eq('email', session.user.email)
-              .maybeSingle();
-              
-            if (adminUser) {
-              console.error('Admin user authenticated');
-              localStorage.setItem('adminLoggedIn', 'true');
-              toast({
-                title: "Success",
-                description: 'Successfully signed in as admin!',
-                variant: 'success'
-              });
-              navigate('/admin/dashboard');
-              return;
-            } else {
-              try {
-                await supabase.from('admin_users').insert({
-                  email: session.user.email
+          // Check if user exists in the database
+          if (data.user) {
+            try {
+              // Check if user has a profile
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', data.user.id)
+                .single();
+                
+              // Create profile if not exists
+              if (!profile) {
+                await supabase.from('profiles').insert({
+                  id: data.user.id,
+                  email: data.user.email,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  display_name: data.user?.user_metadata?.full_name || '',
+                  avatar_url: data.user?.user_metadata?.avatar_url || ''
                 });
-                localStorage.setItem('adminLoggedIn', 'true');
-                toast({
-                  title: "Success",
-                  description: 'New admin account created and signed in!',
-                  variant: 'success'
-                });
-                navigate('/admin/dashboard');
-                return;
-              } catch (error) {
-                console.error('Failed to create admin user:', error);
-                toast({
-                  title: "Error",
-                  description: 'You do not have admin privileges',
-                  variant: 'destructive'
-                });
-                navigate('/');
-                return;
               }
+            } catch (profileError) {
+              // Continue even if profile creation has an error
+              console.error('Error creating/checking profile:', profileError);
             }
           }
           
-          toast({
-            title: "Success",
-            description: 'Successfully signed in!',
-            variant: 'success'
-          });
-          
+          toast.success('Successfully signed in!');
           navigate('/');
-        } else {
-          console.error('No session found after auth callback');
-          setMessage('Awaiting email verification...');
-          toast({
-            title: "Email verification",
-            description: 'Please check your email to verify your account'
-          });
-          navigate('/signin');
+          return;
         }
-      } catch (err) {
-        console.error('Error in auth callback:', err);
-        toast({
-          title: "Authentication error",
-          description: 'An error occurred during authentication',
-          variant: 'destructive'
-        });
-        navigate('/signin');
+        
+        // Handle email confirmation if that's what we're doing
+        if (type === 'email_confirmation') {
+          toast.success('Email successfully confirmed');
+        } else if (type === 'recovery') {
+          toast.success('Password recovery successful');
+        } else if (type === 'signup') {
+          toast.success('Signup successful');
+        } else if (type === 'magiclink') {
+          toast.success('Magic link login successful');
+        }
+        
+        // Default redirect to home
+        navigate('/');
+      } catch (err: any) {
+        console.error('Auth callback error:', err);
+        toast.error('Authentication error');
+        setError(err.message || 'Authentication failed');
+        
+        // Redirect to sign-in after a delay
+        setTimeout(() => {
+          navigate('/signin');
+        }, 3000);
+      } finally {
+        setLoading(false);
       }
     };
 
     handleAuthCallback();
-  }, [navigate, refreshUserProfile, location.search]);
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <Loader2 className="h-10 w-10 text-blue-500 animate-spin mb-4" />
+        <h1 className="text-xl font-semibold">Completing authentication...</h1>
+        <p className="text-gray-600 mt-2">Please wait while we verify your credentials</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+          <div className="text-center">
+            <svg
+              className="mx-auto h-12 w-12 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <h2 className="text-xl font-semibold text-gray-900 mt-4">Authentication Error</h2>
+            <p className="text-gray-600 mt-2">{error}</p>
+            <p className="text-gray-500 mt-2">Redirecting you to the sign-in page...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
-      <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      <p className="mt-4 text-xl font-medium text-gray-700">{message}</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <Loader2 className="h-10 w-10 text-blue-500 animate-spin mb-4" />
+      <h1 className="text-xl font-semibold">Redirecting...</h1>
     </div>
   );
 };

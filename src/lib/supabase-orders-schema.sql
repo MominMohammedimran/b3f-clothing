@@ -40,7 +40,24 @@ CREATE TABLE IF NOT EXISTS public.product_variants (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add RLS policies for orders
+-- Orders table (include payment_details)
+CREATE TABLE IF NOT EXISTS public.orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  order_number TEXT UNIQUE NOT NULL,
+  total NUMERIC NOT NULL,
+  status TEXT DEFAULT 'pending',
+  items JSONB,
+  payment_method TEXT,
+  delivery_fee NUMERIC,
+  shipping_address JSONB,
+  payment_details JSONB, -- ✅ ADD THIS LINE
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+
+-- RLS policies for orders
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view their own orders"

@@ -3,7 +3,7 @@ import React from 'react';
 import { Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/utils/toastWrapper'; // Use the fixed toast wrapper
 import { Product } from '@/lib/types';
 
 interface WishlistButtonProps {
@@ -23,17 +23,13 @@ const WishlistButton: React.FC<WishlistButtonProps> = ({ product }) => {
     e.preventDefault();
     
     if (!currentUser) {
-      toast({
-        title: 'Please sign in to add items to wishlist',
-        variant: 'destructive'
-      });
+      toast.error('Please sign in to add items to wishlist');
       navigate('/signin');
       return;
     }
     
     // For now, just show a message that wishlist functionality has been removed
-    toast({ 
-      title: 'Wishlist functionality has been removed',
+    toast.info('Wishlist functionality has been removed', {
       description: 'Wishlist feature is no longer available in this version'
     });
   };

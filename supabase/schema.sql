@@ -73,26 +73,30 @@ CREATE OR REPLACE FUNCTION create_order(
   p_items JSONB,
   p_payment_method TEXT,
   p_delivery_fee NUMERIC,
-  p_shipping_address JSONB
+  p_shipping_address JSONB,
+  p_payment_details JSONB -- ✅ ADD THIS
 ) RETURNS JSON AS $$
 DECLARE
   v_order_id UUID;
   v_result JSON;
 BEGIN
   INSERT INTO public.orders (
-    user_id, order_number, total, status, items, payment_method, delivery_fee, shipping_address
+    user_id, order_number, total, status, items,
+    payment_method, delivery_fee, shipping_address, payment_details -- ✅ ADD
   ) VALUES (
-    p_user_id, p_order_number, p_total, p_status, p_items, p_payment_method, p_delivery_fee, p_shipping_address
+    p_user_id, p_order_number, p_total, p_status, p_items,
+    p_payment_method, p_delivery_fee, p_shipping_address, p_payment_details -- ✅ ADD
   )
   RETURNING id INTO v_order_id;
-  
+
   SELECT row_to_json(o) INTO v_result
   FROM public.orders o
   WHERE o.id = v_order_id;
-  
+
   RETURN v_result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 CREATE OR REPLACE FUNCTION create_order_tracking(
   p_order_id UUID,

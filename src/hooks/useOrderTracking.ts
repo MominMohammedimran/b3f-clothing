@@ -1,241 +1,110 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-import { useSupabaseClient } from './useSupabase';
-import { TrackingInfo } from '../lib/types';
-import { useQuery } from '@tanstack/react-query';
-import { SupabaseClient } from '@supabase/supabase-js';
+interface OrderTrackingHistoryItem {
+  status: string;
+  location: string;
+  timestamp: string;
+  description?: string;
+}
 
-// Generate mock tracking data if real data isn't available
-const generateMockTrackingData = (orderId: string): TrackingInfo => {
-  const statuses = ['processing', 'shipped', 'out_for_delivery', 'delivered'];
-  const randomIndex = Math.floor(Math.random() * 3); // 0, 1, or 2
-  const currentStatus = statuses[randomIndex];
-  const today = new Date();
+interface OrderTrackingData {
+  id: string;
+  order_id: string;
+  status: string;
+  current_location?: string;
+  estimated_delivery?: string;
+  tracking_number?: string;
+  timestamp: string;
+  history: OrderTrackingHistoryItem[];
+}
 
-  const history = [];
+export const useOrderTracking = (orderId: string) => {
+  const [tracking, setTracking] = useState<OrderTrackingData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Always add processing status
-  history.push({
-    status: 'processing',
-    timestamp: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    location: 'B3F Prints and Mens Wear Shop',
-    description: 'Order is being processed'
-  });
+  useEffect(() => {
+    if (!orderId) {
+      setLoading(false);
+      return;
+    }
 
-  if (randomIndex >= 1) {
-    // Add shipped status
-    history.push({
-      status: 'shipped',
-      timestamp: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      location: 'Gooty, B3F Prints and Mens Wear',
-      description: 'Order has been shipped'
-    });
-  }
+    const fetchTrackingData = async () => {
+      try {
+        setLoading(true);
 
-  if (randomIndex >= 2) {
-    // Add out_for_delivery status
-    history.push({
-      status: 'out_for_delivery',
-      timestamp: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      location: 'Local Delivery Hub',
-      description: 'Order is out for delivery'
-    });
-  }
-
-  if (randomIndex === 3) {
-    // Add delivered status
-    history.push({
-      status: 'delivered',
-      timestamp: today.toISOString(),
-      location: 'Delivery Address',
-      description: 'Order has been delivered'
-    });
-  }
-
-  return {
-    id: `tracking-${orderId}`,
-    order_id: orderId,
-    status: currentStatus,
-    location: currentStatus === 'delivered' ? 'Delivered' : 'On the way',
-    timestamp: today.toISOString(),
-    currentLocation: currentStatus === 'delivered' ? 'Delivered' : 'On the way',
-    estimatedDelivery: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-    date: today.toLocaleDateString(),
-    time: today.toLocaleTimeString(),
-    history
-  };
-};
-
-export const useOrderTracking = (orderId: string | undefined) => {
-  const supabase = useSupabaseClient() as SupabaseClient;
-
-  const fetchTracking = async (): Promise<TrackingInfo> => {
-    if (!orderId) throw new Error('Order ID is missing');
-
-    try {
-      console.log('Fetching tracking data for order:', orderId);
-      
-      // Try to get order data first by ID
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .maybeSingle();
-
-      if (orderError) {
-        console.error('Order data fetch error:', orderError);
-        return generateMockTrackingData(orderId);
-      }
-      
-      // If no order found by ID, try by order_number
-      if (!orderData) {
-        console.log('No order data found, checking by order_number');
-        const { data: orderByNumber, error: numberError } = await supabase
+        const { data: orderData, error: orderError } = await supabase
           .from('orders')
           .select('*')
-          .eq('order_number', orderId)
-          .maybeSingle();
-          
-        if (numberError || !orderByNumber) {
-          console.error('Order not found by number either:', numberError);
-          return generateMockTrackingData(orderId);
-        }
-        
-        // Use the order found by number
-        const trackingData = await getTrackingData(orderByNumber.id, orderByNumber);
-        return trackingData;
-      }
+          .eq('id', orderId)
+          .single();
 
-      // Use the order found by ID
-      const trackingData = await getTrackingData(orderId, orderData);
-      return trackingData;
-    } catch (error) {
-      console.error('Error fetching tracking:', error);
-      return generateMockTrackingData(orderId);
-    }
-  };
-  
-  // Helper function to get tracking data for an order
-  const getTrackingData = async (trackingOrderId: string, orderData: any): Promise<TrackingInfo> => {
-    try {
-      // Try to get tracking data
-      const { data: trackingData, error: trackingError } = await supabase
-        .from('order_tracking')
-        .select('*')
-        .eq('order_id', trackingOrderId)
-        .maybeSingle();
-
-      if (trackingError) {
-        console.error('Tracking fetch error:', trackingError);
-        // Continue to fallback
-      }
-
-      if (trackingData) {
-        // Parse history if it's stored as a string
-        let history = trackingData.history;
-        if (typeof history === 'string') {
-          try {
-            history = JSON.parse(history);
-          } catch (e) {
-            history = [];
-          }
+        if (orderError) {
+          throw orderError;
         }
 
-        return {
-          ...trackingData,
-          history: Array.isArray(history) ? history : []
-        } as TrackingInfo;
-      }
+        if (!orderData) {
+          throw new Error('Order not found');
+        }
 
-      // No tracking data found, generate from order status
-      return generateTrackingFromOrder(orderData);
-    } catch (error) {
-      console.error('Error in getTrackingData:', error);
-      return generateMockTrackingData(trackingOrderId);
-    }
-  };
-  
-  // Generate tracking info from order data
-  const generateTrackingFromOrder = (orderData: any): TrackingInfo => {
-    const today = new Date();
-    const createdAt = new Date(orderData.created_at);
-    const updatedAt = new Date(orderData.updated_at || today);
-    
-    // Default to processing if status is undefined
-    const orderStatus = orderData.status?.toLowerCase() || 'processing';
-    
-    const history = [];
-    
-    // Always add processing status
-    history.push({
-      status: 'processing',
-      timestamp: createdAt.toISOString(),
-      location: 'B3F Prints and Mens Wear Shop',
-      description: 'Order is being processed'
-    });
-    
-    if (['shipped', 'out_for_delivery', 'delivered'].includes(orderStatus)) {
-      history.push({
-        status: 'shipped',
-        timestamp: new Date(updatedAt.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        location: 'Distribution Center',
-        description: 'Order has been shipped'
-      });
-    }
-    
-    if (['out_for_delivery', 'delivered'].includes(orderStatus)) {
-      history.push({
-        status: 'out_for_delivery',
-        timestamp: new Date(updatedAt.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        location: 'Local Delivery Hub',
-        description: 'Order is out for delivery'
-      });
-    }
-    
-    if (orderStatus === 'delivered') {
-      history.push({
-        status: 'delivered',
-        timestamp: updatedAt.toISOString(),
-        location: 'Delivery Address',
-        description: 'Order has been delivered'
-      });
-    }
-    
-    // Create tracking info from order data
-    return {
-      id: `tracking-${orderData.id}`,
-      order_id: orderData.id,
-      status: orderStatus,
-      timestamp: updatedAt.toISOString(),
-      location: orderStatus === 'delivered' ? 'Delivered' : 
-               orderStatus === 'shipped' || orderStatus === 'out_for_delivery' ? 'Out for delivery' : 
-               'Processing Center',
-      currentLocation: orderStatus === 'delivered' ? 'Delivered' : 
-                      orderStatus === 'shipped' || orderStatus === 'out_for_delivery' ? 'Out for delivery' : 
-                      'Processing Center',
-      estimatedDelivery: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-      date: createdAt.toLocaleDateString(),
-      time: createdAt.toLocaleTimeString(),
-      history
+        const { data: trackingRows, error: trackingError } = await supabase
+          .from('order_tracking')
+          .select('*')
+          .eq('order_id', orderId);
+
+        if (trackingError && trackingError.code !== 'PGRST116') {
+          throw trackingError;
+        }
+
+        // Combine tracking rows into a single history array
+        const history = trackingRows?.map((row) => ({
+          status: row.status,
+          location: row.current_location || 'Unknown',
+          timestamp: row.timestamp,
+          description: row.description || '',
+        })) || [];
+
+        // Use latest tracking status from last row or fallback to order status
+        const latestTracking = trackingRows && trackingRows.length > 0
+          ? trackingRows[trackingRows.length - 1]
+          : null;
+
+        const trackingInfo: OrderTrackingData = {
+          id: latestTracking?.id || `order-${orderId}`,
+          order_id: orderId,
+          status: latestTracking?.status || orderData.status || 'processing',
+          current_location: latestTracking?.current_location || 'Processing Center',
+          timestamp: orderData.created_at,
+          estimated_delivery: latestTracking?.estimated_delivery || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          tracking_number: latestTracking?.tracking_number || orderData.order_number,
+          history: history.length > 0 ? history : [
+            {
+              status: 'Order Placed',
+              location: 'Online',
+              timestamp: orderData.created_at,
+              description: 'Your order has been placed successfully',
+            },
+            {
+              status: orderData.status || 'processing',
+              location: 'Processing Center',
+              timestamp: orderData.updated_at || orderData.created_at,
+              description: `Order status: ${orderData.status || 'processing'}`,
+            },
+          ],
+        };
+
+        setTracking(trackingInfo);
+      } catch (err) {
+        console.error('Error fetching tracking data:', err);
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+      }
     };
-  };
 
-  const {
-    data: tracking,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['tracking', orderId],
-    queryFn: fetchTracking,
-    enabled: !!orderId,
-    staleTime: 60000,
-    retry: 2
-  });
+    fetchTrackingData();
+  }, [orderId]);
 
-  return { 
-    tracking, 
-    loading: isLoading, 
-    error,
-    refetch 
-  };
+  return { tracking, loading, error };
 };

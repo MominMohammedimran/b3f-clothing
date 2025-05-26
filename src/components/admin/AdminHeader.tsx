@@ -1,105 +1,91 @@
 
-import React, { useState } from 'react';
-import { Bell, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signOutAdmin } from '../../utils/adminAuth';
+import { Button } from '@/components/ui/button';
+import { Menu, LogOut, Bell, User } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { signOutAdmin } from '@/utils/adminAuth';
 
 interface AdminHeaderProps {
   title?: string;
+  onMenuClick?: () => void;
 }
 
-const AdminHeader: React.FC<AdminHeaderProps> = ({ title }) => {
+const AdminHeader = ({ title, onMenuClick }: AdminHeaderProps) => {
   const navigate = useNavigate();
-  
-  const handleSignOut = async () => {
+
+  const handleLogout = async () => {
     try {
       await signOutAdmin();
-      toast.success("Signed out successfully");
-      navigate("/admin/login");
+      toast.success('Logged out successfully');
+      navigate('/admin/login');
     } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error("Failed to sign out");
+      console.error('Logout error:', error);
+      toast.error('Failed to log out');
     }
   };
-  
-  // Get admin user data from Supabase
-  const [adminUser, setAdminUser] = useState({ name: 'Admin User', email: 'admin@example.com' });
-  
-  React.useEffect(() => {
-    const getAdminUserData = async () => {
-      try {
-        const { data } = await supabase.auth.getUser();
-        if (data.user) {
-          setAdminUser({
-            name: data.user.user_metadata?.name || 'Admin User',
-            email: data.user.email || 'admin@example.com'
-          });
-        }
-      } catch (error) {
-        console.error('Error getting admin user data:', error);
-      }
-    };
-    
-    getAdminUserData();
-  }, []);
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="flex h-16 items-center justify-between px-6">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-800">
-            {title || 'Admin Dashboard'}
-          </h1>
-        </div>
-        
+    <header className="bg-white shadow-sm border-b border-gray-200">
+      <div className="flex items-center justify-between px-4 lg:px-6 py-4">
+        {/* Left side */}
         <div className="flex items-center space-x-4">
-          <button className="p-1.5 rounded-full hover:bg-gray-100" aria-label="Notifications">
-            <Bell size={20} />
-          </button>
+          {/* Mobile menu button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={onMenuClick}
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center space-x-2 rounded-full hover:bg-gray-100 p-1.5">
-                <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">
-                    {adminUser.name?.charAt(0).toUpperCase() || 'A'}
-                  </span>
-                </div>
-                <ChevronDown size={16} />
-              </button>
-            </DropdownMenuTrigger>
-            
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/admin/profile')}>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/admin/settings')}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600" onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Title */}
+          <div>
+            <h1 className="text-xl lg:text-2xl font-semibold text-gray-900">
+              {title || 'Dashboard'}
+            </h1>
+            <p className="text-sm text-gray-500 hidden sm:block">
+              Manage your e-commerce operations
+            </p>
+          </div>
+        </div>
+
+        {/* Right side */}
+        <div className="flex items-center space-x-2 lg:space-x-4">
+          {/* Notifications */}
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+              3
+            </span>
+          </Button>
+
+          {/* Profile */}
+          <Button variant="ghost" size="icon">
+            <User className="h-5 w-5" />
+          </Button>
+
+          {/* Logout */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            className="hidden sm:flex items-center space-x-2"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </Button>
+          
+          {/* Mobile logout */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            className="sm:hidden"
+          >
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     </header>

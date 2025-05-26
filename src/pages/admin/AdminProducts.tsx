@@ -1,273 +1,321 @@
 
-import React, { useState } from 'react';
-import AdminLayout from '../../components/admin/AdminLayout';
-import { toast } from '@/components/ui/use-toast';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Plus, Edit, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import ProductEditForm from '@/components/admin/ProductEditForm';
 import { Product } from '@/lib/types';
-import ProductList from '@/components/admin/product/ProductList';
-import ProductDialogs from '@/components/admin/product/ProductDialogs';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const AdminProducts = () => {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
-  const queryClient = useQueryClient();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Use React Query to fetch products
-  const { 
-    data: products = [], 
-    isLoading,
-    refetch,
-    error 
-  } = useQuery({
-    queryKey: ['adminProducts'],
-    queryFn: fetchProducts,
-    retry: 3,
-    staleTime: 1000 * 60, // 1 minute
-    refetchOnWindowFocus: false
-  });
-
-  async function fetchProducts(): Promise<Product[]> {
+  const fetchProducts = async () => {
     try {
+      setLoading(true);
+      console.log('Fetching products...');
+      
       const { data, error } = await supabase
         .from('products')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) {
+        console.error('Error fetching products:', error);
         throw error;
       }
+
+      console.log('Products fetched:', data);
       
-      if (data && data.length > 0) {
-        // Parse JSON fields with proper type casting
-        const parsedProducts = data.map(product => ({
-          id: product.id,
-          code: product.code || '',
-          name: product.name || '',
-          description: product.description || '',
-          price: product.price || 0,
-          originalPrice: product.original_price || product.price || 0,
-          discountPercentage: product.discount_percentage || 0,
-          image: product.image || '',
-          rating: product.rating || 0,
-          category: product.category || '',
-          tags: Array.isArray(product.tags) ? product.tags : [],
-          sizes: Array.isArray(product.sizes) ? product.sizes : [],
-          images: Array.isArray(product.images) ? product.images : [],
-          stock: product.stock || 0
-        } as Product));
-        
-        return parsedProducts;
-      } else {
-        return [];
-      }
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  const handleEdit = (product: Product) => {
-    setSelectedProduct(product);
-    setShowEditDialog(true);
-    if (product.image) {
-      setImagePreviewUrl(product.image);
-    } else {
-      setImagePreviewUrl('');
-    }
-  };
-
-  const handleAdd = () => {
-    setSelectedProduct(null);
-    setShowAddDialog(true);
-    setImagePreviewUrl('');
-    setImageFile(null);
-  };
-
-  const handleDelete = async (product: Product) => {
-    try {
-      // Delete product from database
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', product.id);
-
-      if (error) {
-        throw error;
-      }
+      const transformedProducts: Product[] = data?.map((product: any) => ({
+        id: product.id,
+        code: product.code || `PROD-${product.id.slice(0, 8)}`,
+        name: product.name,
+        description: product.description || '',
+        price: product.price,
+        originalPrice: product.original_price || product.price,
+        discountPercentage: product.discount_percentage || 0,
+        category: product.category || 'general',
+        stock: product.stock || 0,
+        image: product.image || '',
+        images: Array.isArray(product.images) 
+          ? product.images.filter(img => typeof img === 'string')
+          : [],
+        sizes: Array.isArray(product.sizes) 
+          ? product.sizes.filter(size => typeof size === 'string')
+          : [],
+        tags: Array.isArray(product.tags) 
+          ? product.tags.filter(tag => typeof tag === 'string')
+          : []
+      })) || [];
       
-      // Update UI state by refetching
-      queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
-      refetch();
-      toast.success({ title: `Product "${product.name}" deleted successfully` });
+      setProducts(transformedProducts);
     } catch (error: any) {
-      toast.error({ title: 'Failed to delete product', description: error.message });
+      console.error('Failed to fetch products:', error);
+      toast.error('Failed to load products: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleImageSelected = (file: File, previewUrl: string) => {
-    setImageFile(file);
-    setImagePreviewUrl(previewUrl);
-  };
-
-  const uploadImage = async (file: File) => {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `products/${fileName}`;
-      
-      const { error: uploadError, data } = await supabase.storage
-        .from('public')
-        .upload(filePath, file);
-        
-      if (uploadError) throw uploadError;
-      
-      const { data: urlData } = supabase.storage
-        .from('public')
-        .getPublicUrl(filePath);
-        
-      return urlData.publicUrl;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  // Helper function to upload multiple images
-  const uploadMultipleImages = async (files: File[]) => {
-    try {
-      const uploadPromises = files.map(file => uploadImage(file));
-      return await Promise.all(uploadPromises);
-    } catch (error) {
-      throw error;
-    }
-  };
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const handleSaveProduct = async (productData: Product) => {
     try {
-      let imageUrl = productData.image;
-      let imageUrls = productData.images || [];
-      
-      // Upload main image if available
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
-      }
-      
-      // Upload additional images if available
-      if (productData.additionalImageFiles && productData.additionalImageFiles.length > 0) {
-        const additionalImageUrls = await uploadMultipleImages(productData.additionalImageFiles);
-        imageUrls = [...imageUrls, ...additionalImageUrls];
-      }
+      setLoading(true);
+      console.log('Saving product data:', productData);
 
-      if (selectedProduct) {
+      const productPayload = {
+        code: productData.code || `PROD-${Date.now()}`,
+        name: productData.name,
+        description: productData.description || '',
+        price: Number(productData.price),
+        original_price: Number(productData.originalPrice) || Number(productData.price),
+        discount_percentage: Number(productData.discountPercentage) || 0,
+        category: productData.category || 'general',
+        stock: Number(productData.stock) || 0,
+        image: productData.image || '',
+        images: productData.images || [],
+        sizes: productData.sizes || [],
+        tags: productData.tags || [],
+        updated_at: new Date().toISOString()
+      };
+
+      let result;
+      if (editingProduct) {
         // Update existing product
-        const { error } = await supabase
+        result = await supabase
           .from('products')
-          .update({
-            code: productData.code,
-            name: productData.name,
-            description: productData.description,
-            price: productData.price,
-            original_price: productData.originalPrice,
-            discount_percentage: productData.discountPercentage,
-            image: imageUrl,
-            images: imageUrls || [],
-            tags: productData.tags || [],
-            sizes: productData.sizes || [],
-            stock: productData.stock || 0,
-            category: productData.category,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', selectedProduct.id);
-        
-        if (error) throw error;
-        
-        queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
-        refetch();
-        toast.success({ title: 'Product updated successfully' });
-        setShowEditDialog(false);
+          .update(productPayload)
+          .eq('id', editingProduct.id)
+          .select();
       } else {
-        // Add new product
-        const { data, error } = await supabase
+        // Create new product
+        result = await supabase
           .from('products')
           .insert([{
-            code: productData.code || Math.random().toString(36).substring(2, 10),
-            name: productData.name,
-            description: productData.description,
-            price: productData.price,
-            original_price: productData.originalPrice,
-            discount_percentage: productData.discountPercentage,
-            image: imageUrl,
-            images: imageUrls || [],
-            tags: productData.tags || [],
-            sizes: productData.sizes || [],
-            stock: productData.stock || 0,
-            category: productData.category,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            ...productPayload,
+            created_at: new Date().toISOString()
           }])
           .select();
-        
-        if (error) throw error;
-        
-        queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
-        refetch();
-        toast.success({ title: 'Product added successfully' });
-        setShowAddDialog(false);
       }
+
+      if (result.error) {
+        console.error('Error saving product:', result.error);
+        throw result.error;
+      }
+
+      console.log('Product saved successfully:', result.data);
+      toast.success(editingProduct ? 'Product updated successfully' : 'Product created successfully');
       
-      // Reset image state
-      setImageFile(null);
-      setImagePreviewUrl('');
+      setShowAddForm(false);
+      setEditingProduct(null);
+      await fetchProducts();
     } catch (error: any) {
-      toast.error({ title: 'Failed to save product', description: error.message });
+      console.error('Error saving product:', error);
+      toast.error('Failed to save product: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <AdminLayout>
-      <div className="bg-white rounded-lg shadow p-6 pt-0">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Products</h1>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => refetch()}>Refresh</Button>
-            <Button onClick={handleAdd}>
-              <Plus size={16} className="mr-1" />
-              Add Product
-            </Button>
-          </div>
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setShowAddForm(true);
+  };
+
+  const handleDelete = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) {
+      return;
+    }
+
+    try {
+      console.log('Deleting product:', productId);
+      
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) {
+        console.error('Error deleting product:', error);
+        throw error;
+      }
+
+      toast.success('Product deleted successfully');
+      await fetchProducts();
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      toast.error('Failed to delete product: ' + error.message);
+    }
+  };
+
+  const handleAddNew = () => {
+    setEditingProduct(null);
+    setShowAddForm(true);
+  };
+
+  const handleCancel = () => {
+    setShowAddForm(false);
+    setEditingProduct(null);
+  };
+
+  const emptyProduct: Product = {
+    id: '',
+    name: '',
+    description: '',
+    price: 0,
+    originalPrice: 0,
+    discountPercentage: 0,
+    image: '',
+    images: [],
+    code: '',
+    category: '',
+    tags: [],
+    sizes: [],
+    stock: 0
+  };
+
+  if (loading && products.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading products...</span>
         </div>
-        
-        {isLoading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-8 text-red-500">
-            Error loading products. Please try refreshing the page.
-          </div>
-        ) : (
-          <ProductList 
-            products={products as Product[]} 
-            onEdit={handleEdit} 
-            onDelete={handleDelete} 
-          />
-        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Products Management</h1>
+        <div className="flex gap-2">
+          <Button onClick={fetchProducts} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button onClick={handleAddNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
-      <ProductDialogs
-        showEditDialog={showEditDialog}
-        showAddDialog={showAddDialog}
-        selectedProduct={selectedProduct}
-        imagePreviewUrl={imagePreviewUrl}
-        onEditDialogChange={setShowEditDialog}
-        onAddDialogChange={setShowAddDialog}
-        onImageSelected={handleImageSelected}
-        onSaveProduct={handleSaveProduct}
-      />
-    </AdminLayout>
+      {showAddForm && (
+        <div className="bg-white p-6 rounded-lg shadow mb-6">
+          <h2 className="text-xl font-semibold mb-4">
+            {editingProduct ? 'Edit Product' : 'Add New Product'}
+          </h2>
+          <ProductEditForm
+            product={editingProduct || emptyProduct}
+            onSave={handleSaveProduct}
+            onCancel={handleCancel}
+          />
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-4 border-b">
+          <h2 className="text-lg font-semibold">Products ({products.length})</h2>
+        </div>
+        
+        {products.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <p>No products found. Add your first product to get started.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left">Image</th>
+                  <th className="px-4 py-2 text-left">Name</th>
+                  <th className="px-4 py-2 text-left">Code</th>
+                  <th className="px-4 py-2 text-left">Category</th>
+                  <th className="px-4 py-2 text-left">Price</th>
+                  <th className="px-4 py-2 text-left">Stock</th>
+                  <th className="px-4 py-2 text-left">Created</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((product) => (
+                  <tr key={product.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-2">
+                      {product.image ? (
+                        <img 
+                          src={product.image} 
+                          alt={product.name}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                          <span className="text-xs text-gray-500">No img</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="font-medium">{product.name}</div>
+                      {product.description && (
+                        <div className="text-sm text-gray-500 truncate max-w-32">
+                          {product.description}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-sm">{product.code}</td>
+                    <td className="px-4 py-2">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        {product.category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">₹{product.price}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        (product.stock || 0) > 10 
+                          ? 'bg-green-100 text-green-800' 
+                          : (product.stock || 0) > 0 
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                      }`}>
+                        {product.stock || 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-500">
+                      {new Date().toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(product.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

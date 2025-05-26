@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 interface AdminOTPFormProps {
   email: string;
@@ -71,11 +72,13 @@ const AdminOTPForm: React.FC<AdminOTPFormProps> = ({
   }, [otp]);
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-center text-lg font-medium">Enter verification code</h2>
-      <p className="text-center text-sm text-gray-500">
-        We've sent a 6-digit code to <strong>{email}</strong>
-      </p>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold text-gray-800">Enter verification code</h2>
+        <p className="text-gray-500 mt-2">
+          We've sent a 6-digit code to <span className="font-medium">{email}</span>
+        </p>
+      </div>
       
       <div className="flex justify-center py-4">
         <InputOTP 
@@ -83,6 +86,7 @@ const AdminOTPForm: React.FC<AdminOTPFormProps> = ({
           value={otp} 
           onChange={setOtp}
           containerClassName="gap-2"
+          className="text-center"
         >
           <InputOTPGroup>
             <InputOTPSlot index={0} />
@@ -100,29 +104,41 @@ const AdminOTPForm: React.FC<AdminOTPFormProps> = ({
         className="w-full"
         disabled={isSubmitting || otp.length < 6}
       >
-        {isSubmitting ? 'Verifying...' : 'Verify Code'}
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Verifying...
+          </>
+        ) : (
+          'Verify Code'
+        )}
       </Button>
       
-      <div className="flex justify-between text-sm">
-        <button 
+      <div className="flex justify-between items-center pt-2 text-sm">
+        <Button
           type="button" 
           onClick={onBack}
-          className="text-blue-600 hover:text-blue-800"
+          variant="ghost"
+          size="sm"
+          className="text-blue-600 hover:text-blue-800 flex items-center"
         >
-          Back to login
-        </button>
-        <button 
+          <ArrowLeft className="h-3 w-3 mr-1" />
+          Back
+        </Button>
+        <Button 
           type="button" 
           onClick={handleResend} 
-          className={`${canResend ? 'text-blue-600 hover:text-blue-800' : 'text-gray-400 cursor-not-allowed'}`}
+          variant="ghost"
+          size="sm"
           disabled={!canResend || isSubmitting}
+          className={canResend ? "text-blue-600 hover:text-blue-800" : "text-gray-400 cursor-not-allowed"}
         >
           {canResend ? 'Resend code' : `Resend in ${resendTimeout}s`}
-        </button>
+        </Button>
       </div>
       
       {process.env.NODE_ENV === 'development' && (
-        <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md">
+        <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md text-sm">
           <p className="text-sm font-medium">For development:</p>
           <p className="text-sm">Use code: <code className="bg-white px-2 py-1 rounded">123456</code></p>
         </div>

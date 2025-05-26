@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/utils/toastWrapper';
 
 /**
  * Update product inventory in the database
@@ -15,23 +14,60 @@ export const updateProductInventory = async (
   quantity: number
 ): Promise<boolean> => {
   try {
-    // Since we don't have a product_inventory table yet,
-    // we'll use the products table with category='inventory'
-    const { data, error } = await supabase
+    console.log(`Updating inventory for ${productType}_${size} to ${quantity}`);
+    
+    // Check if the inventory item exists
+    const { data: existingItem, error: checkError } = await supabase
       .from('products')
-      .update({ stock: quantity })
+      .select('id, name, stock')
       .eq('category', 'inventory')
-      .eq('name', `${productType}_${size}`);
+      .eq('name', `${productType}_${size}`)
+      .maybeSingle();
     
-    if (error) throw error;
+    if (checkError) {
+      console.error('Error checking inventory:', checkError);
+      throw checkError;
+    }
     
+    if (existingItem) {
+      // Update existing inventory item
+      const { error } = await supabase
+        .from('products')
+        .update({ 
+          stock: quantity,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingItem.id);
+      
+      if (error) {
+        console.error('Error updating inventory:', error);
+        throw error;
+      }
+    } else {
+      // Create new inventory item with required fields based on schema
+      const { error } = await supabase
+        .from('products')
+        .insert({
+          name: `${productType}_${size}`,
+          category: 'inventory',
+          stock: quantity,
+          price: 0, // Required field
+          original_price: 0, // Required field according to schema
+          code: `INV-${productType}-${size}`, // Required field according to schema
+        });
+      
+      if (error) {
+        console.error('Error creating inventory item:', error);
+        throw error;
+      }
+    }
+    
+    console.log(`Successfully updated inventory for ${productType}_${size}`);
     return true;
   } catch (error) {
     console.error('Error updating product inventory:', error);
-    toast({
-      title: 'Inventory update failed',
-      description: 'Could not update product inventory',
-      variant: 'destructive'
+    toast.error('Inventory update failed', {
+      description: 'Could not update product inventory'
     });
     return false;
   }
@@ -75,10 +111,8 @@ export const getProductInventory = async () => {
     return inventory;
   } catch (error) {
     console.error('Error fetching product inventory:', error);
-    toast({
-      title: 'Inventory fetch failed',
-      description: 'Could not retrieve product inventory',
-      variant: 'destructive'
+    toast.error('Inventory fetch failed', {
+      description: 'Could not retrieve product inventory'
     });
     
     // Return default inventory in case of error
@@ -87,5 +121,44 @@ export const getProductInventory = async () => {
       mug: { Standard: 20 },
       cap: { Standard: 12 }
     };
+  }
+};
+
+/**
+ * Update a product in the database
+ * @param productId The product ID to update
+ * @param productData The updated product data
+ * @returns Promise resolving to boolean indicating success
+ */
+export const updateProduct = async (
+  productId: string,
+  productData: any
+): Promise<boolean> => {
+  try {
+    console.log('Updating product:', productId, productData);
+    
+    // Make sure we have a timestamp
+    const dataWithTimestamp = {
+      ...productData,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Update the product with proper error handling
+    const { error } = await supabase
+      .from('products')
+      .update(dataWithTimestamp)
+      .eq('id', productId);
+    
+    if (error) {
+      console.error('Error updating product:', error);
+      throw error;
+    }
+    
+    toast.success('Product updated successfully');
+    return true;
+  } catch (error) {
+    console.error('Error updating product:', error);
+    toast.error('Failed to update product');
+    return false;
   }
 };

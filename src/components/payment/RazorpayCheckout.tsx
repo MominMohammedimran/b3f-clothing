@@ -10,22 +10,18 @@ import { useAuth } from '@/context/AuthContext';
 const loadRazorpayScript = (): Promise<boolean> => {
   return new Promise((resolve) => {
     if ((window as any).Razorpay) {
-      console.log("Razorpay already loaded");
-      resolve(true);
+     resolve(true);
       return;
     }
 
-    console.log("Loading Razorpay script...");
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     script.onload = () => {
-      console.log("Razorpay script loaded successfully");
       resolve(true);
     };
     script.onerror = () => {
-      console.error('Failed to load Razorpay script');
-      resolve(false);
+     resolve(false);
     };
 
     document.body.appendChild(script);
@@ -54,7 +50,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
     const loadScript = async () => {
       try {
         const loaded = await loadRazorpayScript();
-        console.log("Razorpay script loaded status:", loaded);
         setIsScriptLoaded(loaded);
         if (!loaded) {
           toast.error('Could not load payment gateway. Please try again later.');
@@ -79,8 +74,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         }
       }
       
-      console.log("Initializing Razorpay payment with order:", orderId, "amount:", amount);
-      
+       
       // Prepare user information for the payment
       const name = userProfile?.display_name || currentUser?.user_metadata?.full_name || '';
       const email = currentUser?.email || userProfile?.email || '';
@@ -88,8 +82,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
       
       // For testing, we'll use a mock successful payment
       if (isTestMode) {
-        console.log("Test mode: Simulating successful payment");
-        
+       
         // Simulate payment processing
         setTimeout(() => {
           const mockPaymentResponse = {
@@ -98,8 +91,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
             razorpay_signature: 'test_signature',
           };
           
-          console.log("Test payment successful:", mockPaymentResponse);
-          
+        
           onSuccess({
             paymentId: mockPaymentResponse.razorpay_payment_id,
             orderId: mockPaymentResponse.razorpay_order_id,
@@ -141,7 +133,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
           animation: true
         },
         handler: function (response: any) {
-          console.log("Razorpay payment successful:", response);
           onSuccess({
             paymentId: response.razorpay_payment_id,
             orderId: response.razorpay_order_id || orderId,
@@ -153,8 +144,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
           setIsLoading(false);
         }
       };
-
-      console.log("Creating Razorpay instance with options:", options);
 
       // Initialize Razorpay instance
       const razorpay = new (window as any).Razorpay(options);

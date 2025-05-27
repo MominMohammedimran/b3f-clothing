@@ -132,27 +132,27 @@ export const categories: Category[] = [
   {
     id: '1',
     name: 'Shirts',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/shirt.png'
+    icon: '/lovable-uploads/hero-categorie/shirt.png'
   },
   {
     id: '2',
     name: 'Pants',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/pant.png'
+    icon: '/lovable-uploads/hero-categorie/pant.png'
   },
   {
     id: '3',
     name: 'Tshirt-print',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/tshirt-print.png'
+    icon: '/lovable-uploads/hero-categorie/tshirt-print.png'
   },
   {
     id: '4',
     name: 'mug-print',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/mug-print.png'
+    icon: '/lovable-uploads/hero-categorie/mug-print.png'
   },
   {
     id: '5',
     name: 'cap-print',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/cap-print.png'
+    icon: '/lovable-uploads/hero-categorie/cap-print.png'
   },
  
 ];

@@ -1,8 +1,9 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import Layout from '../components/layout/Layout';
+import SEOHelmet from '../components/seo/SEOHelmet';
+import { useSEO } from '../hooks/useSEO';
 import { Button } from '@/components/ui/button';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +12,11 @@ import { formatPrice } from '@/lib/utils';
 const Cart = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const seoData = useSEO({
+    title: 'Shopping Cart - Review Your Custom Products',
+    description: 'Review your custom designed products and proceed to secure checkout.',
+    keywords: 'shopping cart, checkout, custom products, secure payment'
+  });
   const {
     cartItems,
     totalPrice,
@@ -67,6 +73,7 @@ const Cart = () => {
 
   return (
     <Layout>
+      <SEOHelmet {...seoData} />
       <div className="container mx-auto px-4 py-8 mt-10">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Shopping Cart ({cartItems.length})</h1>

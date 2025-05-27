@@ -15,7 +15,7 @@ const Footer = () => {
               1/128 Opposite Ap Transco Colony Gooty Gooty RS, Ananthapur (District), Andhra Pradesh (State) 515402
             </p>
           </div>
-        
+          
 
 
 
@@ -34,10 +34,16 @@ const Footer = () => {
         
         {/* Legal Pages Links */}
         <div className="mb-6 grid grid-cols-2 gap-3">
-          <Link to="/privacy-policy" className="text-sm flex items-center hover:text-blue-600 transition-colors">
-            <FileLock size={16} className="mr-2" />
-            <span>Privacy Policy</span>
-          </Link>
+          <a
+             href="https://b3f-prints.pages.dev/privacy-policy"
+               target="_blank"
+               rel="noopener noreferrer"
+             className="text-sm flex items-center hover:text-blue-600 transition-colors"
+               >
+             <FileLock size={16} className="mr-2" />
+         <span>Privacy Policy</span>
+           </a>
+
           <Link to="/terms-conditions" className="text-sm flex items-center hover:text-blue-600 transition-colors">
             <FileText size={16} className="mr-2" />
             <span>Terms & Conditions</span>

@@ -227,9 +227,7 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsLoading(true);
       const normalizedId = normalizeProductId(productId);
       
-      console.log('Removing from wishlist:', normalizedId);
-      
-      // Remove from Supabase
+     // Remove from Supabase
       await saveWishlist.mutateAsync({ type: 'remove', productId: normalizedId });
       
       // Update local state to immediately reflect change

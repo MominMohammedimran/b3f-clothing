@@ -1,7 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import SEOHelmet from '../components/seo/SEOHelmet';
+import { useSEO } from '../hooks/useSEO';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { ArrowLeft, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Type, Image as ImageIcon, Smile, Undo, Redo, Trash2, X, Upload } from 'lucide-react';
 import DesignCanvas from '../components/design/DesignCanvas';
 import { useDesignCanvas } from '@/hooks/useDesignCanvas';
 
@@ -18,8 +19,18 @@ const DesignTool = () => {
   const { productkey } = useParams<{ productkey: string }>();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const [products, setProducts] = useState<Product[]>([]);
+  
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  
+  // Single useSEO hook at the top level with dynamic title based on selectedProduct
+  const seoData = useSEO({
+    title: selectedProduct ? `Design ${selectedProduct.name} - Custom Design Tool | B3F Prints` : 'Design Tool - Create Custom Products Online | B3F Prints',
+    description: 'Use our advanced design tool to create custom t-shirts, mugs, and caps. Add text, images, and graphics to make unique products.',
+    keywords: 'design tool, custom design, t-shirt designer, mug designer, online design',
+    type: 'website' as const
+  });
+
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeProduct, setActiveProduct] = useState('tshirt');
   const [productView, setProductView] = useState('front');
@@ -134,7 +145,6 @@ const DesignTool = () => {
     }
 
     try {
-      // Store design data in localStorage as fallback
       const designData = {
         id: `design_${Date.now()}`,
         user_id: currentUser.id,
@@ -216,8 +226,9 @@ const DesignTool = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh] mt-10">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+        <SEOHelmet {...seoData} />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       </Layout>
     );
@@ -225,132 +236,103 @@ const DesignTool = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8 mt-10">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={() => navigate('/')} className="mr-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <h1 className="text-3xl font-bold">Design Tool</h1>
-        </div>
-
-        {/* PRODUCT SELECTION - TOP */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-2xl font-bold mb-4">Select Product</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                  selectedProduct?.id === product.id 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => {
-                  setSelectedProduct(product);
-                  if (product.category === 'tshirt') {
-                    setActiveProduct('tshirt');
-                    setIsDualSided(true);
-                  } else if (product.category === 'mug') {
-                    setActiveProduct('mug');
-                    setIsDualSided(false);
-                  } else if (product.category === 'cap') {
-                    setActiveProduct('cap');
-                    setIsDualSided(false);
-                  }
-                }}
-              >
-                <img
-                  src={product.image || '/placeholder.svg'}
-                  alt={product.name}
-                  className="w-full h-32 object-cover rounded mb-2"
-                />
-                <h3 className="font-bold text-sm">{product.name}</h3>
-                <p className="text-gray-600">₹{product.price}</p>
-              </div>
-            ))}
+      <SEOHelmet {...seoData} />
+      
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b sticky top-0 z-50">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h1 className="text-lg font-semibold">Design Your Product</h1>
+            </div>
           </div>
         </div>
 
-        {/* DESIGN CANVAS - MIDDLE */}
-        {selectedProduct && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-2xl font-bold mb-4">Design Your Product</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Design Tools */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Design Tools</h3>
-                
-                {/* View Selection for T-shirt */}
-                {activeProduct === 'tshirt' && (
-                  <div className="space-y-2">
-                    <Label>View</Label>
-                    <Select value={productView} onValueChange={setProductView}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="front">Front</SelectItem>
-                        <SelectItem value="back">Back</SelectItem>
-                      </SelectContent>
-                    </Select>
+        {/* Single Page Layout with All Components */}
+        <div className="p-4 space-y-6">
+          {/* Product Selection */}
+          {!selectedProduct && (
+            <div className="bg-white rounded-lg p-6">
+              <h2 className="text-xl font-bold mb-4 text-center">Select Product</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {products.slice(0, 3).map((product) => (
+                  <div
+                    key={product.id}
+                    className="bg-white rounded-lg border p-4 cursor-pointer hover:border-blue-500 transition-colors"
+                    onClick={() => {
+                      setSelectedProduct(product);
+                      if (product.category === 'tshirt') {
+                        setActiveProduct('tshirt');
+                        setIsDualSided(true);
+                      } else if (product.category === 'mug') {
+                        setActiveProduct('mug');
+                        setIsDualSided(false);
+                      } else if (product.category === 'cap') {
+                        setActiveProduct('cap');
+                        setIsDualSided(false);
+                      }
+                    }}
+                  >
+                    <div className="aspect-square bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
+                      <img
+                        src={product.image || '/placeholder.svg'}
+                        alt={product.name}
+                        className="w-20 h-20 object-contain"
+                      />
+                    </div>
+                    <h3 className="font-semibold text-center">{product.name}</h3>
+                    <p className="text-green-600 text-center font-medium">₹{product.price}</p>
                   </div>
-                )}
-
-                {/* Add Text */}
-                <div className="space-y-2">
-                  <Label>Add Text</Label>
-                  <Input
-                    value={designText}
-                    onChange={(e) => setDesignText(e.target.value)}
-                    placeholder="Enter your text"
-                  />
-                  <div className="flex gap-2">
-                    <Input
-                      type="color"
-                      value={textColor}
-                      onChange={(e) => setTextColor(e.target.value)}
-                      className="w-16"
-                    />
-                  </div>
-                  <Button onClick={handleAddText} className="w-full" size="sm">
-                    Add Text
-                  </Button>
-                </div>
-
-                {/* Add Image */}
-                <div className="space-y-2">
-                  <Label>Add Image</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                  />
-                </div>
-
-                {/* Add Emoji */}
-                <div className="space-y-2">
-                  <Label>Add Emoji</Label>
-                  <div className="grid grid-cols-4 gap-1">
-                    {['😀', '😍', '🔥', '✨', '❤️', '👍', '🎉', '⭐'].map(emoji => (
-                      <Button
-                        key={emoji}
-                        variant="outline"
-                        onClick={() => handleEmojiClick(emoji)}
-                        className="text-lg p-1"
-                        size="sm"
-                      >
-                        {emoji}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                ))}
               </div>
+            </div>
+          )}
 
-              {/* Canvas */}
-              <div className="lg:col-span-2 space-y-4">
-                <h3 className="text-lg font-semibold">Canvas</h3>
-                <div className="bg-gray-100 p-4 rounded-lg flex justify-center">
+          {/* All Design Components in One View */}
+          {selectedProduct && (
+            <>
+              {/* Product Views and Dual-sided Option */}
+              {activeProduct === 'tshirt' && (
+                <div className="bg-white rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">T-Shirt Views</h3>
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      variant={productView === 'front' ? 'default' : 'outline'}
+                      onClick={() => setProductView('front')}
+                      size="sm"
+                    >
+                      Front
+                    </Button>
+                    <Button
+                      variant={productView === 'back' ? 'default' : 'outline'}
+                      onClick={() => setProductView('back')}
+                      size="sm"
+                    >
+                      Back
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isDualSided}
+                        onChange={(e) => setIsDualSided(e.target.checked)}
+                        className="rounded"
+                      />
+                      <span className="text-sm">I want to print on both sides (₹300.00)</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Design Canvas */}
+              <div className="bg-white rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Design Canvas</h3>
+                <div className="flex justify-center mb-4">
                   {canvasInitialized && (
                     <DesignCanvas
                       activeProduct={activeProduct}
@@ -361,95 +343,147 @@ const DesignTool = () => {
                 </div>
               </div>
 
-              {/* Product Preview */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Product Preview</h3>
-                <div className="border rounded-lg p-4">
-                  <img
-                    src={selectedProduct.image}
-                    alt={selectedProduct.name}
-                    className="w-full h-32 object-cover rounded mb-2"
-                  />
-                  <h4 className="font-bold text-sm">{selectedProduct.name}</h4>
-                  <p className="text-gray-600">₹{selectedProduct.price}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PLACE ORDER - BOTTOM */}
-        {selectedProduct && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-4">Complete Your Order</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <Label>Size</Label>
-                  <Select value={selectedSize} onValueChange={setSelectedSize}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedProduct?.sizes?.map(size => (
-                        <SelectItem key={size} value={size}>{size}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Quantity</Label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
+              {/* Customization Options */}
+              <div className="bg-white rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Add Design Elements</h3>
+                
+                {/* Text Section */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Type className="h-5 w-5" />
+                    Add Text
+                  </h4>
+                  <div className="space-y-3">
                     <Input
-                      type="number"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-                      className="w-20 text-center"
+                      value={designText}
+                      onChange={(e) => setDesignText(e.target.value)}
+                      placeholder="Enter your text"
                     />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setQuantity(quantity + 1)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-bold mb-2">Order Summary</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>{selectedProduct?.name}</span>
-                      <span>₹{selectedProduct?.price}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Quantity</span>
-                      <span>{quantity}</span>
-                    </div>
-                    <div className="flex justify-between font-bold">
-                      <span>Total</span>
-                      <span>₹{((selectedProduct?.price || 0) * quantity).toFixed(2)}</span>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={textColor}
+                        onChange={(e) => setTextColor(e.target.value)}
+                        className="w-16"
+                      />
+                      <Button onClick={handleAddText} className="flex-1">
+                        Add Text
+                      </Button>
                     </div>
                   </div>
                 </div>
 
-                <Button onClick={handlePlaceOrder} className="w-full" size="lg">
-                  Place Order
-                </Button>
+                {/* Image Section */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" />
+                    Add Image
+                  </h4>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label htmlFor="image-upload" className="cursor-pointer">
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm text-gray-500">Click to upload an image</p>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Emoji Section */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Smile className="h-5 w-5" />
+                    Add Emoji
+                  </h4>
+                  <div className="grid grid-cols-6 gap-2">
+                    {['😊', '😎', '❤️', '🔥', '⭐', '🎉', '👍', '💪', '🌟', '🚀', '🎨', '✨'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => handleEmojiClick(emoji)}
+                        className="p-2 text-2xl hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+
+              {/* Size Selection */}
+              <div className="bg-white rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Select Size</h3>
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {selectedProduct.sizes?.map(size => (
+                    <Button
+                      key={size}
+                      variant={selectedSize === size ? 'default' : 'outline'}
+                      onClick={() => setSelectedSize(size)}
+                      className="aspect-square"
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500">Available stock: 0 items</p>
+              </div>
+
+              {/* Product Summary and Actions */}
+              <div className="bg-white rounded-lg p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Order Summary</h3>
+                  <span className="text-2xl font-bold text-green-600">₹{selectedProduct.price}</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Product:</span>
+                    <span>{selectedProduct.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Size:</span>
+                    <span>{selectedSize || 'Not selected'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Quantity:</span>
+                    <span>{quantity}</span>
+                  </div>
+                  {isDualSided && (
+                    <div className="flex justify-between">
+                      <span>Dual-sided printing:</span>
+                      <span>₹300.00</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 mt-6">
+                  <Button variant="outline" onClick={saveDesign}>
+                    Save Design
+                  </Button>
+                  <Button onClick={handlePlaceOrder}>
+                    Place Order
+                  </Button>
+                </div>
+                
+                {!hasDesignElements() && (
+                  <p className="text-red-500 text-sm text-center mt-2">
+                    Please add some design elements
+                  </p>
+                )}
+                
+                {!selectedSize && (
+                  <p className="text-red-500 text-sm text-center mt-2">
+                    Please select a size
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </Layout>
   );

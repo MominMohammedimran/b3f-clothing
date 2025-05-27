@@ -1,58 +1,106 @@
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { products } from '../lib/data';
-import { Product } from '../lib/types';
-import ProductDetailsPage from '../components/products/ProductDetailsPage';
+import SEOHelmet from '../components/seo/SEOHelmet';
+import { useSEO } from '../hooks/useSEO';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/lib/types';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart } from 'lucide-react';
 
 const ProductDetails = () => {
   const { productId } = useParams<{ productId: string }>();
   const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(false);
-  
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (productId) {
-      // Try to find product in mock data
-      const foundProduct = products.find(p => p.id === productId);
-      if (foundProduct) {
-        setProduct(foundProduct);
-      } else {
-        // Provide fallback product data
-        const fallbackProduct: Product = {
-          id: productId,
-          code: `PROD-${productId.substring(0, 5)}`,
-          name: "Sample Product",
-          description: "This is a sample product description. This product demonstrates the user interface when a real product isn't found.",
-          price: 99.99,
-          originalPrice: 129.99,
-          discountPercentage: 23,
-          image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500",
-          rating: 4.5,
-          category: "Sample",
-          tags: ["featured"],
-          stock: 10
-        };
-        setProduct(fallbackProduct);
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        if (!productId) {
+          console.warn('No productId provided');
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        setProduct(data as Product);
+      } catch (error: any) {
+        console.error('Error fetching product:', error);
+        toast.error('Failed to load product details');
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchProduct();
   }, [productId]);
 
-  if (!product) {
-    // Show basic content while loading instead of a loader
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-5 mt-10">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h1 className="text-2xl font-bold">Product Details</h1>
-            <div className="mt-4">Loading product information...</div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  const seoData = useSEO({
+    title: product ? `${product.name} - Custom Design` : 'Product Details',
+    description: product ? `Customize ${product.name} with our design tool. ${product.description}` : 'View product details and start customizing',
+    image: product?.image,
+    type: 'product',
+    keywords: product ? `${product.name}, custom ${product.category}, personalized ${product.category}` : undefined
+  });
 
-  return <ProductDetailsPage />;
+  return (
+    <Layout>
+      <SEOHelmet {...seoData} />
+      <div className="container mx-auto px-4 py-8 mt-10">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+          </div>
+        ) : product ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Product Image */}
+            <div>
+              <img
+                src={product.image || '/placeholder.svg'}
+                alt={product.name}
+                className="w-full h-auto rounded-lg shadow-md"
+              />
+            </div>
+
+            {/* Product Details */}
+            <div className="space-y-4">
+              <h1 className="text-3xl font-bold">{product.name}</h1>
+              <p className="text-gray-600">{product.description}</p>
+              <div className="text-xl font-semibold">₹{product.price}</div>
+
+              {/* Add to Cart Button */}
+              <Button className="w-full">
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Add to Cart
+              </Button>
+
+              {/* Design Now Button */}
+              <Button className="w-full" variant="secondary">
+                <a href={`/design-tool/${product.code}`} className="block w-full text-center">
+                  Design Now
+                </a>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-red-500">Product not found.</p>
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
 };
 
 export default ProductDetails;

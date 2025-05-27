@@ -28,8 +28,7 @@ const OrderStatusActions = ({ orderId, currentStatus, onStatusUpdate }: OrderSta
     setIsUpdating(newStatus);
     
     try {
-      console.log(`Updating order ${orderId} status to ${newStatus}`);
-      
+     
       // Update the status in orders table
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
@@ -45,14 +44,11 @@ const OrderStatusActions = ({ orderId, currentStatus, onStatusUpdate }: OrderSta
         throw orderError;
       }
       
-      console.log('Order status updated:', orderData);
-      
-      // Call the callback to update the UI immediately
+     // Call the callback to update the UI immediately
       onStatusUpdate(orderId, newStatus);
       toast.success(`Order status updated to: ${newStatus}`);
     } catch (error: any) {
-      console.error('Update failed:', error);
-      toast.error(`Failed to update order status: ${error.message}`);
+       toast.error(`Failed to update order status: ${error.message}`);
     } finally {
       setIsUpdating(null);
     }

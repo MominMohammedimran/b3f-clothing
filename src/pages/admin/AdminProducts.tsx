@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import ProductEditForm from '@/components/admin/ProductEditForm';
 import { Product } from '@/lib/types';
-
+import AdminLayout from '../../components/admin/AdminLayout';
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,8 +16,7 @@ const AdminProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      console.log('Fetching products...');
-      
+     
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -28,8 +27,7 @@ const AdminProducts = () => {
         throw error;
       }
 
-      console.log('Products fetched:', data);
-      
+     
       const transformedProducts: Product[] = data?.map((product: any) => ({
         id: product.id,
         code: product.code || `PROD-${product.id.slice(0, 8)}`,
@@ -68,8 +66,7 @@ const AdminProducts = () => {
   const handleSaveProduct = async (productData: Product) => {
     try {
       setLoading(true);
-      console.log('Saving product data:', productData);
-
+    
       const productPayload = {
         code: productData.code || `PROD-${Date.now()}`,
         name: productData.name,
@@ -109,9 +106,7 @@ const AdminProducts = () => {
         console.error('Error saving product:', result.error);
         throw result.error;
       }
-
-      console.log('Product saved successfully:', result.data);
-      toast.success(editingProduct ? 'Product updated successfully' : 'Product created successfully');
+ toast.success(editingProduct ? 'Product updated successfully' : 'Product created successfully');
       
       setShowAddForm(false);
       setEditingProduct(null);
@@ -135,8 +130,7 @@ const AdminProducts = () => {
     }
 
     try {
-      console.log('Deleting product:', productId);
-      
+    
       const { error } = await supabase
         .from('products')
         .delete()
@@ -193,6 +187,7 @@ const AdminProducts = () => {
   }
 
   return (
+     <AdminLayout title="Admin Products">
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Products Management</h1>
@@ -316,6 +311,7 @@ const AdminProducts = () => {
         )}
       </div>
     </div>
+    </AdminLayout>
   );
 };
 

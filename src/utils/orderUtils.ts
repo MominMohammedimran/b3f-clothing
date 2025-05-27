@@ -8,7 +8,6 @@ export const calculateEstimatedDelivery = (orderDate: Date): string => {
 export const updateInventoryLevels = async (cartItems: any[]) => {
   // This is a placeholder function for inventory management
   // In a real application, you would update stock levels here
-  console.log('Updating inventory for items:', cartItems);
   return Promise.resolve();
 };
 

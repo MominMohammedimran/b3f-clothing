@@ -80,7 +80,6 @@ const sendEmailNotification = async (payload: NotificationPayload): Promise<bool
       return false;
     }
 
-    console.log('Email notification sent successfully:', data);
     return true;
   } catch (error) {
     console.error('Error in sendEmailNotification:', error);
@@ -112,7 +111,6 @@ const sendWhatsAppNotification = async (payload: NotificationPayload): Promise<b
       return false;
     }
 
-    console.log('WhatsApp notification sent successfully:', data);
     return true;
   } catch (error) {
     console.error('Error in sendWhatsAppNotification:', error);

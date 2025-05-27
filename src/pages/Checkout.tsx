@@ -168,8 +168,7 @@ const Checkout = () => {
     setIsLoading(true);
 
     try {
-      console.log('Starting checkout form submission...');
-      
+    
       const shippingAddress = {
         fullName: `${values.firstName} ${values.lastName}`,
         firstName: values.firstName,
@@ -207,8 +206,7 @@ const Checkout = () => {
         }
       }
 
-      console.log('Shipping address prepared:', shippingAddress);
-      
+     
       // Navigate to payment with shipping address
       navigate('/payment', { state: { shippingAddress } });
       

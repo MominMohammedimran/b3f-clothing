@@ -7,26 +7,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Search, Filter, RefreshCw, Edit, Truck } from 'lucide-react';
+import { Eye, Search, Filter, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import OrderDetailsDialog from '../../components/admin/OrderDetailsDialog';
+import { CartItem } from '@/lib/types';
 
-interface Order {
+interface AdminOrder {
   id: string;
   order_number: string;
   user_id: string;
   total: number;
   status: string;
   created_at: string;
-  items: any[];
+  items: CartItem[];
   user_email?: string;
   user_name?: string;
+  shipping_address?: any;
+  payment_method?: string;
 }
 
 const AdminOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
 
   const {
@@ -37,8 +40,7 @@ const AdminOrders = () => {
   } = useQuery({
     queryKey: ['adminOrders', searchTerm, statusFilter],
     queryFn: async () => {
-      console.log('Fetching orders...');
-      
+     
       let query = supabase
         .from('orders')
         .select('*')
@@ -59,7 +61,7 @@ const AdminOrders = () => {
         throw ordersError;
       }
 
-      // Fetch user profiles for each order
+      // Fetch user profiles for each order and transform data
       const ordersWithUserInfo = await Promise.all(
         (ordersData || []).map(async (order) => {
           try {
@@ -69,26 +71,71 @@ const AdminOrders = () => {
               .eq('id', order.user_id)
               .maybeSingle();
 
-            return {
-              ...order,
+            // Transform items to CartItem[] format
+            const transformedItems: CartItem[] = Array.isArray(order.items) 
+              ? order.items.map((item: any) => ({
+                  id: item.id || item.product_id || 'unknown',
+                  name: item.name || 'Unknown Product',
+                  price: Number(item.price) || 0,
+                  quantity: Number(item.quantity) || 1,
+                  image: item.image || '',
+                  productId: item.product_id,
+                  size: item.size,
+                  color: item.color
+                }))
+              : [];
+
+            const transformedOrder: AdminOrder = {
+              id: order.id,
+              order_number: order.order_number || '',
+              user_id: order.user_id,
+              total: Number(order.total) || 0,
+              status: order.status || 'pending',
+              created_at: order.created_at,
+              items: transformedItems,
               user_email: profile?.email || 'Unknown',
               user_name: profile?.first_name && profile?.last_name 
                 ? `${profile.first_name} ${profile.last_name}`.trim()
-                : profile?.first_name || profile?.last_name || 'Unknown'
+                : profile?.first_name || profile?.last_name || 'Unknown',
+              shipping_address: order.shipping_address,
+              payment_method: order.payment_method
             };
+
+            return transformedOrder;
           } catch (error) {
             console.error('Error fetching user profile:', error);
+            
+            // Fallback transformation
+            const transformedItems: CartItem[] = Array.isArray(order.items) 
+              ? order.items.map((item: any) => ({
+                  id: item.id || item.product_id || 'unknown',
+                  name: item.name || 'Unknown Product',
+                  price: Number(item.price) || 0,
+                  quantity: Number(item.quantity) || 1,
+                  image: item.image || '',
+                  productId: item.product_id,
+                  size: item.size,
+                  color: item.color
+                }))
+              : [];
+
             return {
-              ...order,
+              id: order.id,
+              order_number: order.order_number || '',
+              user_id: order.user_id,
+              total: Number(order.total) || 0,
+              status: order.status || 'pending',
+              created_at: order.created_at,
+              items: transformedItems,
               user_email: 'Unknown',
-              user_name: 'Unknown'
+              user_name: 'Unknown',
+              shipping_address: order.shipping_address,
+              payment_method: order.payment_method
             };
           }
         })
       );
-
-      console.log('Orders fetched:', ordersWithUserInfo);
-      return ordersWithUserInfo as Order[];
+return ordersWithUserInfo;
     },
     staleTime: 30000
   });
@@ -141,7 +188,7 @@ const AdminOrders = () => {
     }
   };
 
-  const handleViewOrder = (order: Order) => {
+  const handleViewOrder = (order: AdminOrder) => {
     setSelectedOrder(order);
     setShowOrderDetails(true);
   };
@@ -245,7 +292,7 @@ const AdminOrders = () => {
                             {order.order_number}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {Array.isArray(order.items) ? order.items.length : 0} item(s)
+                            {order.items.length} item(s)
                           </div>
                         </div>
                       </td>
@@ -266,7 +313,7 @@ const AdminOrders = () => {
                       </td>
                       
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ₹{order.total?.toFixed(2) || '0.00'}
+                        ₹{order.total.toFixed(2)}
                       </td>
                       
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">

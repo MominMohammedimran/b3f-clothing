@@ -19,21 +19,18 @@ const ChatbaseAIWidget: React.FC = () => {
       </div>
 
       {/* Chatbot iframe popup */}
-     {isOpen && (
-         <div
-             className="fixed bottom-24 right-4 z-40 rounded-lg overflow-hidden border border-gray-200 bg-white shadow-lg
-               w-[85vw] h-[60vh] md:w-[30px] md:h-[400px] lg:w-[420px] lg:h-[700px]"
-             >
-    <iframe
-      src="https://www.chatbase.co/chatbot-iframe/WOyJJ_Tgby5tFUvlnbcYY"
-      width="100%"
-      height="100%"
-      style={{ border: 'none' }}
-      title="Chatbase AI Chatbot"
-    />
-  </div>
-)}
-
+      {isOpen && (
+        <div className="fixed bottom-20 right-8 w-[360px] h-[600px] z-40 shadow-lg rounded-lg overflow-hidden border border-gray-200 bg-white">
+          <iframe
+            src="https://www.chatbase.co/chatbot-iframe/WOyJJ_Tgby5tFUvlnbcYY"
+            width="100%"
+            height="100%"
+            style={{ border: 'none' }}
+            frameBorder="0"
+            title="Chatbase AI Chatbot"
+          />
+        </div>
+      )}
     </>
   );
 };

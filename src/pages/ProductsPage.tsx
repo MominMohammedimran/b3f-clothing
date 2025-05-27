@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import SEOHelmet from '../components/seo/SEOHelmet';
+import { useSEO } from '../hooks/useSEO';
+import { useSearchParams } from 'react-router-dom';
 import ProductGrid from '../components/products/ProductGrid';
 import ProductFilters from '../components/products/ProductFilters';
 import { supabase } from '../integrations/supabase/client';
@@ -12,6 +14,11 @@ const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const seoData = useSEO({
+    title: 'Custom Products - T-Shirts, Mugs, Caps',
+    description: 'Browse our collection of customizable products. Design your own t-shirts, mugs, caps and more.',
+    type: 'website'
+  });
 
   const fetchProducts = async () => {
     try {
@@ -55,6 +62,7 @@ const ProductsPage = () => {
 
   return (
     <Layout>
+      <SEOHelmet {...seoData} />
       <div className="container mx-auto px-4 py-8 mt-10">
         <div className="flex gap-8">
           <aside className="w-64 flex-shrink-0">

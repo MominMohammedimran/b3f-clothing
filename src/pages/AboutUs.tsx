@@ -1,10 +1,18 @@
-
 import React from 'react';
 import Layout from '../components/layout/Layout';
+import SEOHelmet from '../components/seo/SEOHelmet';
+import { useSEO } from '../hooks/useSEO';
 
 const AboutUs = () => {
+  const seoData = useSEO({
+    title: 'About Us - Premium Custom Printing Services',
+    description: 'Learn about B3F Prints - your trusted partner for custom t-shirts, mugs, and promotional products with premium quality and fast delivery.',
+    keywords: 'about us, custom printing company, premium quality printing, promotional products'
+  });
+
   return (
     <Layout>
+      <SEOHelmet {...seoData} />
       <div className="container-custom pt-2 pb-24 mt-10">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold text-center ">About Us</h1>

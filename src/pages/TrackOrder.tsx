@@ -1,7 +1,8 @@
-
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import SEOHelmet from '../components/seo/SEOHelmet';
+import { useSEO } from '../hooks/useSEO';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Package, Truck, MapPin, Clock } from 'lucide-react';
 import OrderTrackingStatus from '../components/orders/OrderTrackingStatus';
@@ -13,6 +14,12 @@ import { toast } from 'sonner';
 const TrackOrder = () => {
   const { id } = useParams<{ id: string }>();
   const { tracking, loading, error } = useOrderTracking(id || '');
+  const seoData = useSEO({
+    title: tracking ? `Track Order ${tracking.tracking_number}` : 'Track Your Order',
+    description: 'Track the status and delivery progress of your custom printed products with real-time updates.',
+    keywords: 'track order, order status, delivery tracking, shipping status'
+  });
+
   if (loading) {
     return (
       <Layout>
@@ -35,6 +42,7 @@ const TrackOrder = () => {
 
   return (
     <Layout>
+      <SEOHelmet {...seoData} />
       <div className="container mx-auto px-4 py-8 mt-10 max-w-4xl">
         {/* Header */}
         <div className="flex items-center mb-6">

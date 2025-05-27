@@ -78,7 +78,6 @@ const OTPValidation: React.FC<OTPValidationProps> = ({
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       const testToken = Math.floor(100000 + Math.random() * 900000).toString();
-      console.log(`Development test OTP for ${email}: ${testToken}`);
     }
   }, [email]);
 

@@ -120,7 +120,7 @@ const Navbar = () => {
           
           <Link to="/" className="flex items-center transition-transform hover:scale-105">
             <div className="h-2 sm:h-5 md:h-5 object-contain flex items-center justify-center bg-white-600 text-white px-6 rounded">
-              <img style={{height:"42px",marginTop:"2px"}} src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/logo-image/B3F.jpg" alt="Logo" />
+              <img style={{height:"42px",marginTop:"2px"}} src="/lovable-uploads/B3F.jpg" alt="Logo" />
             </div>
           </Link>
           

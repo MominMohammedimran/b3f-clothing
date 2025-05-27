@@ -1,4 +1,3 @@
-
+Sitemap: https://b3f-prints.pages.dev/sitemap.xml
 User-agent: *
 Allow: /
-Sitemap: https://b3f-prints.pages.dev/sitemap.xml

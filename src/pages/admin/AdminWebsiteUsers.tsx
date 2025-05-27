@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
+import AdminLayout from '../../components/admin/AdminLayout';
 interface UserProfile {
   id: string;
   email: string;
@@ -43,8 +43,7 @@ const AdminWebsiteUsers = () => {
   } = useQuery({
     queryKey: ['websiteUsers'],
     queryFn: async () => {
-      console.log('Fetching website users...');
-      
+     
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -55,8 +54,7 @@ const AdminWebsiteUsers = () => {
         throw error;
       }
 
-      console.log('Users fetched:', data);
-      return data as UserProfile[];
+    return data as UserProfile[];
     },
     staleTime: 60000
   });
@@ -80,7 +78,6 @@ const AdminWebsiteUsers = () => {
     if (!editingUser) return;
 
     try {
-      console.log('Updating user:', editingUser.id, formData);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -102,7 +99,6 @@ const AdminWebsiteUsers = () => {
         throw error;
       }
 
-      console.log('User updated successfully:', data);
       toast.success('User profile updated successfully');
       setShowEditDialog(false);
       setEditingUser(null);
@@ -141,6 +137,7 @@ const AdminWebsiteUsers = () => {
   }
 
   return (
+     <AdminLayout title="Admin Website users">
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Website Users</h1>
@@ -312,6 +309,7 @@ const AdminWebsiteUsers = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </AdminLayout>
   );
 };
 

@@ -1,11 +1,15 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import SEOHelmet from '../components/seo/SEOHelmet';
+import { useSEO } from '../hooks/useSEO';
 
 const Home = () => {
+  const seoData = useSEO();
+
   return (
     <Layout>
+      <SEOHelmet {...seoData} />
       <div className="container mx-auto px-4 mt-10">
         <h1 className="text-3xl font-bold mb-6">Welcome to our Store</h1>
         <p className="text-xl mb-8">Check out our latest products and customize your own designs!</p>

@@ -21,7 +21,6 @@ export const loadRazorpayScript = (): Promise<boolean> => {
   return new Promise((resolve) => {
     if (window.Razorpay) {
       isScriptLoaded = true;
-      console.log('Razorpay script already loaded');
       return resolve(true);
     }
 
@@ -31,7 +30,6 @@ export const loadRazorpayScript = (): Promise<boolean> => {
         if (window.Razorpay) {
           clearInterval(checkScriptLoaded);
           isScriptLoaded = true;
-          console.log('Razorpay script loaded during polling');
           resolve(true);
         }
       }, 100);
@@ -47,14 +45,12 @@ export const loadRazorpayScript = (): Promise<boolean> => {
     }
 
     isScriptLoading = true;
-    console.log('Loading Razorpay script...');
     
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     
     script.onload = () => {
-      console.log('Razorpay script loaded successfully');
       isScriptLoaded = true;
       isScriptLoading = false;
       resolve(true);

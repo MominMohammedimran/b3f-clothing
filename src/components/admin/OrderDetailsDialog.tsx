@@ -6,32 +6,29 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import OrderStatusActions from './orders/OrderStatusActions';
 import OrderItems from './orders/OrderItems';
 import { Trash2 } from 'lucide-react';
+import { CartItem } from '@/lib/types';
+
+interface AdminOrder {
+  id: string;
+  order_number: string;
+  user_email?: string;
+  status: string;
+  created_at: string;
+  items: CartItem[];
+  total: number;
+  shipping_address?: {
+    name: string;
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  payment_method?: string;
+}
 
 interface OrderDetailsDialogProps {
-  order: {
-    id: string;
-    order_number: string;
-    user_email: string;
-    status: string;
-    created_at: string;
-    items: Array<{
-      id: string;
-      name: string;
-      price: number;
-      quantity: number;
-      image?: string;
-    }>;
-    total: number;
-    shipping_address?: {
-      name: string;
-      street: string;
-      city: string;
-      state: string;
-      zipCode: string;
-      country: string;
-    };
-    payment_method?: string;
-  };
+  order: AdminOrder;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onStatusUpdate: (orderId: string, status: string) => void;
@@ -66,7 +63,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             )}
           </DialogTitle>
           <DialogDescription>
-            Placed on {formatDate(order.created_at)} by {order.user_email}
+            Placed on {formatDate(order.created_at)} by {order.user_email || 'Unknown User'}
           </DialogDescription>
         </DialogHeader>
         

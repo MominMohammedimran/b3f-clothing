@@ -12,6 +12,8 @@ import { Product } from '../lib/types';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useLocation } from '../context/LocationContext';
 import { useWishlist } from '../context/WishlistContext';
+import SEOHelmet from '../components/seo/SEOHelmet';
+import { useSEO } from '../hooks/useSEO';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -22,7 +24,11 @@ const Index = () => {
   const [visibleCategories, setVisibleCategories] = useState<number>(4);
   const [startIndex, setStartIndex] = useState(0);
   const categoriesRef = useRef<HTMLDivElement>(null);
-  
+   const seoData = useSEO({
+      title: 'B3F Prints - Custom Printing Services',
+      description: 'Design and order custom printed products including t-shirts, mugs, caps and more. Professional quality printing with fast delivery.',
+      keywords: 'custom printing, t-shirts, mugs, caps, design, personalized products'
+    });
   useEffect(() => {
     window.scrollTo(0, 0);
     
@@ -69,7 +75,8 @@ const Index = () => {
   return (
     <Layout >
 
-
+<SEOHelmet {...seoData} />
+      
 
 
       

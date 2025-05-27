@@ -65,8 +65,7 @@ export default {
 
     // Block requests from non-allowed origins
     if (origin && origin !== ALLOWED_ORIGIN) {
-      console.log(`Blocked request from unauthorized origin: ${origin}`);
-      return new Response('Forbidden - Unauthorized Origin', { 
+       return new Response('Forbidden - Unauthorized Origin', { 
         status: 403,
         headers: {
           'Content-Type': 'text/plain',
@@ -79,7 +78,6 @@ export default {
                            (referer && referer.startsWith(ALLOWED_ORIGIN));
 
     if (!isAllowedOrigin) {
-      console.log(`Blocked request. Origin: ${origin}, Referer: ${referer}`);
       return new Response('Forbidden - Invalid Origin', { 
         status: 403,
         headers: {
@@ -98,8 +96,7 @@ export default {
 
     // Rate limiting
     if (isRateLimited(clientIP)) {
-      console.log(`Rate limited IP: ${clientIP}`);
-      return new Response('Too Many Requests', { 
+     return new Response('Too Many Requests', { 
         status: 429,
         headers: {
           ...corsHeaders,
@@ -119,8 +116,7 @@ export default {
       // Construct the backend URL
       const backendUrl = `${BACKEND_API}${targetPath}${url.search}`;
       
-      console.log(`Proxying request to: ${backendUrl}`);
-
+      
       // Prepare headers for the backend request
       const backendHeaders = new Headers(request.headers);
       
@@ -157,8 +153,7 @@ export default {
       });
 
       // Log successful request
-      console.log(`✅ Successfully proxied ${request.method} ${url.pathname} -> ${response.status}`);
-      
+     
       return newResponse;
 
     } catch (error) {

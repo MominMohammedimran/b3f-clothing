@@ -163,7 +163,6 @@ export const useProductInventory = (productId?: string): UseProductInventoryRetu
         ...data
       }));
 
-      console.log('Inventory updated successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error updating inventory';
       setError(errorMessage);

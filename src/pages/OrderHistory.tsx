@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { Button } from '@/components/ui/button';
+import SEOHelmet from '../components/seo/SEOHelmet';
+import { useSEO } from '../hooks/useSEO';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../integrations/supabase/client';
 import { Order } from '../lib/types';
 import { formatPrice } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 const OrderHistory = () => {
   const { currentUser } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const seoData = useSEO({
+    title: 'Order History - View Your Orders',
+    description: 'View your complete order history and track the status of your custom printed products.',
+    keywords: 'order history, my orders, order tracking, purchase history'
+  });
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -65,6 +72,7 @@ const OrderHistory = () => {
 
   return (
     <Layout>
+      <SEOHelmet {...seoData} />
       <div className="container mx-auto px-4 py-8 mt-10">
         <h1 className="text-2xl font-bold mb-6">Order History</h1>
         

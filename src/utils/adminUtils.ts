@@ -34,8 +34,7 @@ export const fetchUserAccounts = async (): Promise<UserProfile[]> => {
     
     // If no users found, try another method or return empty array
     if (users.length === 0) {
-      console.log('No profiles found, trying to fetch from auth users');
-      // Note: This might not work due to permissions, but leaving as fallback
+     // Note: This might not work due to permissions, but leaving as fallback
       return [];
     }
     

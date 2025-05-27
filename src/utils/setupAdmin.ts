@@ -6,11 +6,9 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export const initializeAdminSetup = async () => {
   try {
-    console.log('Initializing admin setup');
-    
+   
     // Check if Supabase is available
     if (!supabase) {
-      console.log('Supabase not available, skipping admin setup');
       return;
     }
     
@@ -23,11 +21,7 @@ export const initializeAdminSetup = async () => {
         .maybeSingle();
       
       // If no error, table exists
-      if (!tableError) {
-        console.log('Admin table exists');
-      } else {
-        console.log('Admin table may not exist, manual creation might be required');
-      }
+    
     } catch (error) {
       console.log('Error checking admin table:', error);
     }

@@ -83,7 +83,6 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
           checkDesignStatus(fabricCanvas);
         });
         
-        console.log('Canvas initialized successfully');
       } catch (error) {
         console.error('Error initializing canvas:', error);
       }

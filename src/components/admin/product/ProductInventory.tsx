@@ -36,9 +36,7 @@ const ProductInventory = () => {
       const delta = quantity - currentQuantity;
       const success = await updateInventory(productType, size, delta);
       
-      if (success) {
-        console.log(`Updated ${productType} ${size} inventory to ${quantity}`);
-      }
+      
     } catch (error) {
       console.error('Error saving inventory:', error);
     } finally {

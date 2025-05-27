@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import OTPValidation from './OTPValidation';
 import { useAuth } from '@/context/AuthContext';
 import LoginForm from './LoginForm';
-import SignupForm from './SignupForm';
+import SignUpForm from './SignUpForm';
 import { cleanupAuthState } from '@/context/AuthContext';
 
 type AuthMode = 'signin' | 'signup' | 'otp';
@@ -225,7 +225,7 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
             setMode={setMode}
           />
         ) : (
-          <SignupForm
+          <SignUpForm
             email={email}
             setEmail={setEmail}
             password={password}

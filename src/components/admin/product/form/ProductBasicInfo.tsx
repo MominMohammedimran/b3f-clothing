@@ -8,10 +8,10 @@ interface ProductBasicInfoProps {
   name: string;
   code: string;
   category: string;
-  price: number;
+  onNameChange: (name: string) => void;
+  onCodeChange: (code: string) => void;
+  onCategoryChange: (category: string) => void;
   errors: Record<string, string>;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onCategoryChange: (value: string) => void;
 }
 
 const CATEGORIES = [
@@ -29,22 +29,22 @@ const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
   name,
   code,
   category,
-  price,
-  errors,
-  onChange,
-  onCategoryChange
+  onNameChange,
+  onCodeChange,
+  onCategoryChange,
+  errors
 }) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Basic Information</h3>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">Product Name *</Label>
           <Input
             id="name"
-            name="name"
             value={name}
-            onChange={onChange}
+            onChange={(e) => onNameChange(e.target.value)}
             className={errors.name ? "border-red-500" : ""}
           />
           {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
@@ -54,50 +54,29 @@ const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
           <Label htmlFor="code">Product Code *</Label>
           <Input
             id="code"
-            name="code"
             value={code}
-            onChange={onChange}
+            onChange={(e) => onCodeChange(e.target.value)}
             className={errors.code ? "border-red-500" : ""}
           />
           {errors.code && <p className="text-red-500 text-sm">{errors.code}</p>}
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="category">Category *</Label>
-          <Select 
-            value={category} 
-            onValueChange={onCategoryChange}
-          >
-            <SelectTrigger className={errors.category ? "border-red-500" : ""}>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map(category => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="price">Price *</Label>
-          <Input
-            id="price"
-            name="price"
-            type="number"
-            step="0.01"
-            min="0"
-            value={price}
-            onChange={onChange}
-            className={errors.price ? "border-red-500" : ""}
-          />
-          {errors.price && <p className="text-red-500 text-sm">{errors.price}</p>}
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="category">Category *</Label>
+        <Select value={category} onValueChange={onCategoryChange}>
+          <SelectTrigger className={errors.category ? "border-red-500" : ""}>
+            <SelectValue placeholder="Select category" />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map(cat => (
+              <SelectItem key={cat} value={cat}>
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
       </div>
     </div>
   );

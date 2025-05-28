@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatOrderStatus, formatOrderDate, formatAddress } from '@/utils/orderUtils';
-import AdminLayout from '../../components/admin/AdminLayout';
+
 interface Order {
   id: string;
   order_number: string;
@@ -89,7 +89,6 @@ const AdminOrderView = () => {
 
   if (!order) {
     return (
-     
       <div className="p-6">
         <div className="text-center">
           <p className="text-gray-500">Order not found</p>
@@ -103,7 +102,6 @@ const AdminOrderView = () => {
   }
 
   return (
-     <AdminLayout title="Admin Products">
     <div className="p-6">
       <div className="flex items-center mb-6">
         <Button 
@@ -170,7 +168,6 @@ const AdminOrderView = () => {
         </div>
       </div>
     </div>
-     </AdminLayout>
   );
 };
 

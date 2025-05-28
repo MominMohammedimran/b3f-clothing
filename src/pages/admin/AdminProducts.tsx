@@ -16,7 +16,8 @@ const AdminProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-     
+      console.log('Fetching products...');
+      
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -27,7 +28,8 @@ const AdminProducts = () => {
         throw error;
       }
 
-     
+      console.log('Products fetched:', data);
+      
       const transformedProducts: Product[] = data?.map((product: any) => ({
         id: product.id,
         code: product.code || `PROD-${product.id.slice(0, 8)}`,
@@ -66,7 +68,8 @@ const AdminProducts = () => {
   const handleSaveProduct = async (productData: Product) => {
     try {
       setLoading(true);
-    
+      console.log('Saving product data:', productData);
+
       const productPayload = {
         code: productData.code || `PROD-${Date.now()}`,
         name: productData.name,
@@ -106,7 +109,9 @@ const AdminProducts = () => {
         console.error('Error saving product:', result.error);
         throw result.error;
       }
- toast.success(editingProduct ? 'Product updated successfully' : 'Product created successfully');
+
+      console.log('Product saved successfully:', result.data);
+      toast.success(editingProduct ? 'Product updated successfully' : 'Product created successfully');
       
       setShowAddForm(false);
       setEditingProduct(null);
@@ -130,7 +135,8 @@ const AdminProducts = () => {
     }
 
     try {
-    
+      console.log('Deleting product:', productId);
+      
       const { error } = await supabase
         .from('products')
         .delete()
@@ -177,17 +183,18 @@ const AdminProducts = () => {
 
   if (loading && products.length === 0) {
     return (
+    <AdminLayout title="Admin Products">
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading products...</span>
         </div>
       </div>
+      </AdminLayout>
     );
   }
 
-  return (
-     <AdminLayout title="Admin Products">
+  return (<AdminLayout title="Admin Products">
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Products Management</h1>

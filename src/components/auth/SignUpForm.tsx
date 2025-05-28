@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from 'zod';
+import {supabase} from '@/integrations/supabase/client'
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useSupabaseClient } from '@/hooks/useSupabase';
 import { Eye, EyeOff } from 'lucide-react';
-import {supabase} from  '@/integrations/supabase/client'
 
 // Form validation schema
 const formSchema = z.object({
@@ -25,7 +25,7 @@ const formSchema = z.object({
 });
 
 // Define both interfaces to handle both use cases
-export interface SignUpFormProps {
+export interface SignupFormProps {
   onVerificationSent?: (email: string, password: string, data: { firstName: string; lastName: string }) => void;
   // Properties for AuthFormContainer use case
   email?: string;
@@ -39,10 +39,18 @@ export interface SignUpFormProps {
   handleSubmit?: (e: React.FormEvent) => Promise<void>;
   loading?: boolean;
   setMode?: Dispatch<SetStateAction<'signin' | 'signup' | 'otp'>>;
-}
+}const handleGoogleSignIn = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+  });
 
+  if (error) {
+    toast.error('Google sign-in failed');
+    console.error('Google sign-in error:', error.message);
+  }
+};
 
-const SignUpForm: React.FC<SignUpFormProps> = ({ 
+const SignupForm: React.FC<SignupFormProps> = ({ 
   onVerificationSent,
   email,
   setEmail,
@@ -56,19 +64,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   loading,
   setMode
 }) => {
-  const handleGoogleSignIn = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-  });
-
-  if (error) {
-    console.error('Google sign-in error:', error.message);
-  }
-};
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localShowPassword, setLocalShowPassword] = useState(false);
   const [localShowConfirmPassword, setLocalShowConfirmPassword] = useState(false);
   const supabase = useSupabaseClient();
+
 
   // Determine which mode we're in based on props
   const isStandalone = !!onVerificationSent;
@@ -138,7 +138,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         
         // Generate a verification code (for development convenience)
         const verificationCode = "123456"; // Fixed code for testing
-       
+        console.log(`Verification code for ${values.email}: ${verificationCode}`);
+        
         // Store user data for verification
         if (data.user) {
           // Create profile for user
@@ -262,6 +263,22 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? 'Creating Account...' : 'Create Account'}
         </Button>
+             <div className="relative my-4 text-center">
+            <div className="absolute inset-0 flex items-center">
+               <div className="w-full border-t border-gray-300" />
+                 </div>
+                <div className="relative z-10 bg-white px-2 text-sm text-gray-500">
+              or
+             </div>
+       </div>
+                 <button onClick={handleGoogleSignIn}>
+                   <img
+                    src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/google-logo-image/signup.png"
+                    alt="Sign in with Google"
+                   className="w-48 sm:w-50 md:w-48 lg:w-58 h-auto" // adjust size as needed
+                    />
+                 </button>
+
         <p className="text-center text-sm">
           Already have an account?{" "}
           <button
@@ -272,23 +289,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
             Sign In
           </button>
         </p>
-         <div className="relative my-4 text-center">
-               <div className="absolute inset-0 flex items-center">
-                 <div className="w-full border-t border-gray-300" />
-              </div>
-            <div className="relative z-10 bg-white px-2 text-sm text-gray-500">
-              or
-            </div>
-         </div>
-
-           <button onClick={handleGoogleSignIn}>
-                 <img
-             src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/google-logo-image/signup.png"
-                  alt="Sign Up with Google"
-              className="w-32 sm:w-40 md:w-48 lg:w-56 xl:w-64 h-auto mx-auto"
-              />
-            </button>
-
       </form>
     );
   }
@@ -418,23 +418,23 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         >
           {isSubmitting ? 'Creating Account...' : 'Sign Up'}
         </Button>
-          <div className="relative my-4 text-center">
-               <div className="absolute inset-0 flex items-center">
-                 <div className="w-full border-t border-gray-300" />
-              </div>
-            <div className="relative z-10 bg-white px-2 text-sm text-gray-500">
-              or
-            </div>
-         </div>
+ <div className="relative my-4 text-center">
+  <div className="absolute inset-0 flex items-center">
+    <div className="w-full border-t border-gray-300" />
+  </div>
+  <div className="relative z-10 bg-white px-2 text-sm text-gray-500">
+    or
+  </div>
+</div>
 
-              <button onClick={handleGoogleSignIn}>
-                 <img
-             src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/google-logo-image/signup.png"
-                  alt="Sign Up with Google"
-              className="w-32 sm:w-40 md:w-48 lg:w-56 xl:w-64 h-auto mx-auto"
-              />
-            </button>
 
+      <button onClick={handleGoogleSignIn}>
+  <img
+    src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/google-logo-image/signin.png"
+    alt="Sign in with Google"
+    className="w-40 h-auto" // adjust size as needed
+  />
+</button>
 
         <div className="text-center mt-6">
           <p className="text-gray-600">
@@ -449,4 +449,4 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   );
 };
 
-export default SignUpForm;
+export default SignupForm;

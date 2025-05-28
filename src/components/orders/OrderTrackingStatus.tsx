@@ -35,6 +35,7 @@ const OrderTrackingStatus: React.FC<OrderTrackingStatusProps> = ({
     ? (statusMap[currentStatus.toLowerCase()] || 'processing')
     : 'processing';
   
+  console.log('Order tracking status:', currentStatus, 'Normalized:', normalizedStatus);
   
   // Find the index of the current status in our steps
   const currentStatusIndex = statusSteps.findIndex(step => step.key === normalizedStatus);

@@ -40,7 +40,11 @@ const OrderDetailsSection: React.FC<OrderDetailsSectionProps> = ({
   const finalOrderId = orderId || locationState.orderId || '';
   
   // Log the final data to debug
- 
+  console.log('Final items:', finalItems);
+  console.log('Final Shipping Address:', finalShippingAddress);
+  console.log('Final Payment Method:', finalPaymentMethod);
+  console.log('Order Status:', finalStatus);
+  
   // Store in localStorage if needed
   if (finalItems && finalItems.length > 0) {
     localStorage.setItem("order-item", JSON.stringify(finalItems));

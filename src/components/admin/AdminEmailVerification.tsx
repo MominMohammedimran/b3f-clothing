@@ -37,10 +37,12 @@ const AdminEmailVerification: React.FC<AdminEmailVerificationProps> = ({
       // For development, use default code "123456" and manually verify
       if (verificationCode === '123456') {
         // Sign in the user now that we're treating the email as verified
+        console.log('Starting signInWithPassword');
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password
         });
+        console.log('signInWithPassword done', signInData, signInError);
         
         if (signInError) throw signInError;
         

@@ -30,7 +30,8 @@ export const prefetchPage = (url: string): void => {
   
   // Add to document head
   document.head.appendChild(link);
- };
+  console.log(`Prefetched page: ${url}`);
+};
 
 /**
  * Prefetch an image by its URL
@@ -82,11 +83,13 @@ export const smartPrefetch = (
   
   // Don't prefetch if the user has set data saver mode
   if (connection?.saveData) {
-  return;
+    console.log('Data saver mode is enabled, skipping prefetch');
+    return;
   }
   
   // Check for slow connections
   if (connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g') {
+    console.log('Slow connection detected, skipping prefetch');
     return;
   }
   

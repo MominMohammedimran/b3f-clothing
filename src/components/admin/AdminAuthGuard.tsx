@@ -24,12 +24,12 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
         setError(null);
 
         if (!currentUser) {
-        
+          console.log('No current user, redirecting to admin login');
           navigate('/admin/login');
           return;
         }
 
-    
+        console.log('Checking admin status for user:', currentUser.email);
 
         // Using the Supabase RPC function to check if user is admin
         const { data, error } = await supabase.rpc('is_admin', 
@@ -47,12 +47,13 @@ const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ children }) => {
         const isAdmin = !!data;
 
         if (!isAdmin) {
+          console.log('User is not an admin, redirecting to admin login');
           toast.error('You do not have admin privileges');
           navigate('/admin/login');
           return;
         }
 
-       
+        console.log('Admin authentication successful');
         setIsAdmin(true);
       } catch (error: any) {
         console.error('Admin auth check error:', error);

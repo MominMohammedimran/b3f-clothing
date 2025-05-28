@@ -94,7 +94,8 @@ export const ensureMainAdminExists = async (): Promise<void> => {
       updated_at: new Date().toISOString(),
     });
 
-   } catch (error) {
+    console.log('Main admin created successfully');
+  } catch (error) {
     console.error('Error ensuring main admin exists:', error);
   }
 };

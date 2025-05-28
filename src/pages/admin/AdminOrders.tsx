@@ -40,7 +40,8 @@ const AdminOrders = () => {
   } = useQuery({
     queryKey: ['adminOrders', searchTerm, statusFilter],
     queryFn: async () => {
-     
+      console.log('Fetching orders...');
+      
       let query = supabase
         .from('orders')
         .select('*')
@@ -135,7 +136,9 @@ const AdminOrders = () => {
           }
         })
       );
-return ordersWithUserInfo;
+
+      console.log('Orders fetched:', ordersWithUserInfo);
+      return ordersWithUserInfo;
     },
     staleTime: 30000
   });

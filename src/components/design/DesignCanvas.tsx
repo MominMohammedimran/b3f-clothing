@@ -7,6 +7,7 @@ import { useImage } from '@/context/ImageContext';
 import { useText } from '@/context/TextContext';
 import { useEmoji } from '@/context/EmojiContext';
 import BoundaryRestrictor from './BoundaryRestrictor';
+import CanvasControls from './CanvasControls';
 
 interface DesignCanvasProps {
   activeProduct?: string;
@@ -24,11 +25,15 @@ interface DesignCanvasProps {
   setDesignComplete?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   designComplete?: Record<string, boolean>;
   checkDesignStatus?: (canvasInstance?: fabric.Canvas | null) => boolean;
+  undo?: () => void;
+  redo?: () => void;
+  clearCanvas?: () => void;
 }
 
 const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
   const localCanvasRef = useRef<HTMLCanvasElement>(null);
   const [localCanvas, setLocalCanvas] = useState<fabric.Canvas | null>(null);
+  const [canvasReady, setCanvasReady] = useState(false);
   const { selectedColor } = useColor();
   const { selectedFont } = useFont();
   const { selectedImage } = useImage();
@@ -39,52 +44,100 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
   const canvasRef = props.canvasRef || localCanvasRef;
   const canvas = props.canvas || localCanvas;
   const setCanvas = props.setCanvas || setLocalCanvas;
+  const undoStack = props.undoStack || [];
+  const redoStack = props.redoStack || [];
 
   useEffect(() => {
     const initializeCanvas = () => {
-      const newCanvas = new fabric.Canvas('design-canvas', {
-        backgroundColor: '#fff',
-        height: 500,
-        width: 500,
-        preserveObjectStacking: true,
-        selection: true,
-        renderOnAddRemove: true,
-      });
+      // Wait for DOM element to be available
+      const canvasElement = document.getElementById('design-canvas') as HTMLCanvasElement;
+      if (!canvasElement) {
+        console.error('Canvas element not found');
+        setTimeout(initializeCanvas, 100);
+        return;
+      }
 
-      setCanvas(newCanvas);
-      if (props.setCanvasInitialized) {
-        props.setCanvasInitialized(true);
+      try {
+        // Dispose existing canvas if any
+        if (canvas) {
+          canvas.dispose();
+        }
+
+        const newCanvas = new fabric.Canvas('design-canvas', {
+          backgroundColor: '#fff',
+          height: 600,
+          width: 500,
+          preserveObjectStacking: true,
+          selection: true,
+          renderOnAddRemove: true,
+          allowTouchScrolling: false,
+          imageSmoothingEnabled: false,
+        });
+
+        // Enable object selection and manipulation
+        newCanvas.selection = true;
+        newCanvas.skipTargetFind = false;
+        newCanvas.selectable = true;
+
+        setCanvas(newCanvas);
+        setCanvasReady(true);
+        
+        if (props.setCanvasInitialized) {
+          props.setCanvasInitialized(true);
+        }
+
+        console.log('Canvas initialized successfully');
+      } catch (error) {
+        console.error('Error initializing canvas:', error);
+        setTimeout(initializeCanvas, 100);
       }
     };
 
-    initializeCanvas();
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(initializeCanvas, 100);
 
     return () => {
-      canvas?.dispose();
+      clearTimeout(timer);
+      if (canvas) {
+        canvas.dispose();
+      }
     };
   }, []);
 
   useEffect(() => {
-    if (!canvas) return;
+    if (!canvas || !canvasReady) return;
 
     const addTextToCanvas = () => {
-      if (!text) return;
+      if (!text.trim()) return;
 
-      const textbox = new fabric.Textbox(text, {
-        left: 100,
-        top: 100,
-        fontSize: 20,
+      const textObject = new fabric.IText(text, {
+        left: 250,
+        top: 300,
+        fontSize: 24,
         fontFamily: selectedFont,
         fill: selectedColor,
+        selectable: true,
+        evented: true,
         hasRotatingPoint: true,
-        centerTransform: true,
+        hasControls: true,
+        hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
+        lockScalingX: false,
+        lockScalingY: false,
+        lockRotation: false,
+        borderColor: '#4169E1',
+        cornerColor: '#4169E1',
+        cornerSize: 12,
+        transparentCorners: false,
+        borderScaleFactor: 2,
         data: {
           type: 'text',
         },
       });
 
-      canvas.add(textbox);
-      canvas.setActiveObject(textbox);
+      canvas.add(textObject);
+      canvas.setActiveObject(textObject);
       canvas.renderAll();
       setText('');
       
@@ -100,24 +153,38 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
     };
 
     addTextToCanvas();
-  }, [text, selectedFont, selectedColor, canvas, setText]);
+  }, [text, selectedFont, selectedColor, canvas, canvasReady, setText]);
 
   useEffect(() => {
-    if (!canvas || !selectedImage) return;
+    if (!canvas || !canvasReady || !selectedImage) return;
 
     const addImageToCanvas = (url: string) => {
       fabric.Image.fromURL(url, (img) => {
         img.set({
-          left: 100,
-          top: 100,
-          scaleX: 0.5,
-          scaleY: 0.5,
+          left: 250,
+          top: 300,
+          scaleX: 0.3,
+          scaleY: 0.3,
+          selectable: true,
+          evented: true,
           hasRotatingPoint: true,
-          centerTransform: true,
+          hasControls: true,
+          hasBorders: true,
+          lockMovementX: false,
+          lockMovementY: false,
+          lockScalingX: false,
+          lockScalingY: false,
+          lockRotation: false,
+          borderColor: '#4169E1',
+          cornerColor: '#4169E1',
+          cornerSize: 12,
+          transparentCorners: false,
+          borderScaleFactor: 2,
           data: {
             type: 'image',
           },
         });
+        
         canvas.add(img);
         canvas.setActiveObject(img);
         canvas.renderAll();
@@ -135,62 +202,106 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
     };
 
     addImageToCanvas(selectedImage);
-  }, [selectedImage, canvas]);
+  }, [selectedImage, canvas, canvasReady]);
 
   useEffect(() => {
-    if (!canvas || !selectedEmoji) return;
+    if (!canvas || !canvasReady || !selectedEmoji) return;
 
-    const addEmojiToCanvas = (url: string) => {
-      fabric.Image.fromURL(url, (img) => {
-        img.set({
-          left: 100,
-          top: 100,
-          scaleX: 0.5,
-          scaleY: 0.5,
-          hasRotatingPoint: true,
-          centerTransform: true,
-          data: {
-            type: 'emoji',
-          },
-        });
-        canvas.add(img);
-        canvas.setActiveObject(img);
-        canvas.renderAll();
-        
-        // Save canvas state if callback provided
-        if (props.setUndoStack && props.undoStack) {
-          props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
-        }
-        
-        // Update design status if callback provided
-        if (props.checkDesignStatus) {
-          props.checkDesignStatus(canvas);
-        }
+    const addEmojiToCanvas = (emoji: string) => {
+      const emojiObject = new fabric.IText(emoji, {
+        left: 250,
+        top: 300,
+        fontSize: 48,
+        selectable: true,
+        evented: true,
+        hasRotatingPoint: true,
+        hasControls: true,
+        hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
+        lockScalingX: false,
+        lockScalingY: false,
+        lockRotation: false,
+        borderColor: '#4169E1',
+        cornerColor: '#4169E1',
+        cornerSize: 12,
+        transparentCorners: false,
+        borderScaleFactor: 2,
+        data: {
+          type: 'emoji',
+        },
       });
+      
+      canvas.add(emojiObject);
+      canvas.setActiveObject(emojiObject);
+      canvas.renderAll();
+      
+      // Save canvas state if callback provided
+      if (props.setUndoStack && props.undoStack) {
+        props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
+      }
+      
+      // Update design status if callback provided
+      if (props.checkDesignStatus) {
+        props.checkDesignStatus(canvas);
+      }
     };
 
     addEmojiToCanvas(selectedEmoji);
-  }, [selectedEmoji, canvas]);
+  }, [selectedEmoji, canvas, canvasReady]);
+
+  const handleUndo = () => {
+    if (props.undo) {
+      props.undo();
+    }
+  };
+
+  const handleRedo = () => {
+    if (props.redo) {
+      props.redo();
+    }
+  };
+
+  const handleClear = () => {
+    if (props.clearCanvas) {
+      props.clearCanvas();
+    }
+  };
 
   return (
-    <div className="design-canvas-container relative">
-      <canvas
-        id="design-canvas"
-        ref={canvasRef}
-        className="border border-gray-300"
+    <div className="design-canvas-container">
+      <CanvasControls
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onClear={handleClear}
+        canUndo={undoStack.length > 1}
+        canRedo={redoStack.length > 0}
       />
-      <div 
-        id="design-boundary" 
-        className="absolute border-2 border-dashed border-blue-500 pointer-events-none"
-        style={{
-          top: '10%',
-          left: '10%',
-          width: '80%',
-          height: '80%',
-          zIndex: 10
-        }}
-      />
-      <BoundaryRestrictor canvas={canvas} boundaryId="design-boundary" />
+      <div className="relative">
+        <canvas
+          id="design-canvas"
+          ref={canvasRef}
+          className="border border-gray-300 rounded-lg shadow-lg"
+          style={{ touchAction: 'none' }}
+        />
+        {!canvasReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+            <div className="text-gray-600">Loading canvas...</div>
+          </div>
+        )}
+        <div 
+          id="design-boundary" 
+          className="absolute border-2 border-dashed border-blue-500 pointer-events-none"
+          style={{
+            top: '10%',
+            left: '10%',
+            width: '80%',
+            height: '80%',
+            zIndex: 10
+          }}
+        />
+        <BoundaryRestrictor canvas={canvas} boundaryId="design-boundary" />
+      </div>
     </div>
   );
 };

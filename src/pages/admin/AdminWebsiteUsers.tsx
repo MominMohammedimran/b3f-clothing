@@ -43,7 +43,8 @@ const AdminWebsiteUsers = () => {
   } = useQuery({
     queryKey: ['websiteUsers'],
     queryFn: async () => {
-     
+      console.log('Fetching website users...');
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -54,7 +55,8 @@ const AdminWebsiteUsers = () => {
         throw error;
       }
 
-    return data as UserProfile[];
+      console.log('Users fetched:', data);
+      return data as UserProfile[];
     },
     staleTime: 60000
   });
@@ -78,6 +80,7 @@ const AdminWebsiteUsers = () => {
     if (!editingUser) return;
 
     try {
+      console.log('Updating user:', editingUser.id, formData);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -99,6 +102,7 @@ const AdminWebsiteUsers = () => {
         throw error;
       }
 
+      console.log('User updated successfully:', data);
       toast.success('User profile updated successfully');
       setShowEditDialog(false);
       setEditingUser(null);
@@ -116,28 +120,32 @@ const AdminWebsiteUsers = () => {
 
   if (isLoading) {
     return (
+    <AdminLayout title="Admin Website Users">
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading users...</span>
         </div>
       </div>
+      </AdminLayout>
     );
   }
 
   if (error) {
     return (
+      <AdminLayout title="Admin Website Users">
       <div className="p-6">
         <div className="text-center py-8">
           <p className="text-red-500 mb-4">Error loading users.</p>
           <Button onClick={() => refetch()}>Retry</Button>
         </div>
       </div>
+      </AdminLayout>
     );
   }
 
   return (
-     <AdminLayout title="Admin Website users">
+    <AdminLayout title="Admin Website Users">
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Website Users</h1>

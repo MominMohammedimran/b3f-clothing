@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Ban } from 'lucide-react';
 
 interface OrderStatusActionsProps {
   orderId: string;
@@ -28,7 +28,8 @@ const OrderStatusActions = ({ orderId, currentStatus, onStatusUpdate }: OrderSta
     setIsUpdating(newStatus);
     
     try {
-     
+      console.log(`Updating order ${orderId} status to ${newStatus}`);
+      
       // Update the status in orders table
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
@@ -44,11 +45,14 @@ const OrderStatusActions = ({ orderId, currentStatus, onStatusUpdate }: OrderSta
         throw orderError;
       }
       
-     // Call the callback to update the UI immediately
+      console.log('Order status updated:', orderData);
+      
+      // Call the callback to update the UI immediately
       onStatusUpdate(orderId, newStatus);
       toast.success(`Order status updated to: ${newStatus}`);
     } catch (error: any) {
-       toast.error(`Failed to update order status: ${error.message}`);
+      console.error('Update failed:', error);
+      toast.error(`Failed to update order status: ${error.message}`);
     } finally {
       setIsUpdating(null);
     }
@@ -159,7 +163,12 @@ const OrderStatusActions = ({ orderId, currentStatus, onStatusUpdate }: OrderSta
               <Loader2 size={16} className="mr-1 animate-spin" />
               Updating...
             </>
-          ) : 'Cancel'}
+          ) : (
+            <>
+              <Ban className="h-4 w-4 mr-1" />
+              Cancel Order
+            </>
+          )}
         </Button>
       </div>
     </div>

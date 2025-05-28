@@ -31,7 +31,8 @@ export const makePayment = async (
   const keyToUse = config.apiKey;
   
   // Log the mode for debugging
-  
+  console.log(`Razorpay running in ${config.isTestMode ? 'TEST' : 'PRODUCTION'} mode`);
+
   // Initialize Razorpay options
   const options: RazorpayOptions = {
     key: keyToUse,
@@ -54,6 +55,7 @@ export const makePayment = async (
       animation: true
     },
     handler: function (response: RazorpayResponse) {
+      console.log('Payment successful:', response);
       onSuccess(
         response.razorpay_payment_id,
         response.razorpay_order_id,
@@ -85,5 +87,6 @@ export const verifyPaymentSignature = (
   signature: string
 ): boolean => {
   // In a real implementation, this would be done server-side
-   return true;
+  console.log('Verifying payment signature:', { orderId, paymentId, signature });
+  return true;
 };

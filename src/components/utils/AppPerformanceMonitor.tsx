@@ -11,7 +11,8 @@ const AppPerformanceMonitor: React.FC = () => {
     // Track page navigation
     const trackPageNavigation = () => {
       const loadTime = performance.now() - startTime;
-     
+      console.log(`Page ${location.pathname} loaded in ${loadTime.toFixed(2)}ms`);
+      
       // Report metrics for analytics
       try {
         if ('sendBeacon' in navigator) {

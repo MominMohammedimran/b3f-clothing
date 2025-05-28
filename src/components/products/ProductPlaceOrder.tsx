@@ -52,7 +52,8 @@ const ProductPlaceOrder: React.FC<ProductPlaceOrderProps> = ({
         return;
       }
       
-     
+      console.log('Adding to cart before checkout:', product);
+      
       // Add to cart with correct structure
       await addToCart({
         product_id: productId,

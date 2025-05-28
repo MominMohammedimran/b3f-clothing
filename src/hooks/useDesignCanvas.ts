@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { fabric } from 'fabric';
 import { toast } from 'sonner';
@@ -45,24 +44,26 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
       
       try {
         // Set canvas dimensions based on product type and view
-        let canvasWidth = 400;
-        let canvasHeight = 400;
+        let canvasWidth = 500;
+        let canvasHeight = 600;
         
         if (activeProduct === 'tshirt') {
-          canvasWidth = 400;
-          canvasHeight = 500;
+          canvasWidth = 500;
+          canvasHeight = 600;
         } else if (activeProduct === 'mug') {
-          canvasWidth = 300;
-          canvasHeight = 300;
+          canvasWidth = 400;
+          canvasHeight = 400;
         } else if (activeProduct === 'cap') {
-          canvasWidth = 350;
-          canvasHeight = 300;
+          canvasWidth = 450;
+          canvasHeight = 350;
         }
         
         const fabricCanvas = new fabric.Canvas('design-canvas', {
           width: canvasWidth,
           height: canvasHeight,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          selection: true,
+          preserveObjectStacking: true
         });
         
         fabricCanvasRef.current = fabricCanvas;
@@ -83,6 +84,7 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
           checkDesignStatus(fabricCanvas);
         });
         
+        console.log('Canvas initialized successfully');
       } catch (error) {
         console.error('Error initializing canvas:', error);
       }
@@ -131,7 +133,7 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
             imgSrc = '/lovable-uploads/design-tool-page/tshirt-sub-images/right.png';
             break;
           default:
-            imgSrc = '/lovable-uploads/design-sub-page/tshirt-print.png';
+            imgSrc = '/lovable-uploads/design-tool-page/tshirt-sub-images/front.png';
         }
       } else if (activeProduct === 'mug') {
         imgSrc = '/lovable-uploads/design-tool-page/mug-print.png';
@@ -139,45 +141,75 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
         imgSrc = '/lovable-uploads/design-tool-page/cap-print.png';
       }
       
-      const img = new Image();
-      img.onload = () => {
-        fabric.Image.fromURL(imgSrc, (fabricImg) => {
-          const scaleFactor = Math.min(
-            canvas.getWidth() / fabricImg.width!, 
-            canvas.getHeight() / fabricImg.height!
-          ) * 0.9;
-          
-          fabricImg.scale(scaleFactor);
-          fabricImg.set({
-            left: canvas.getWidth() / 2,
-            top: canvas.getHeight() / 2,
-            originX: 'center',
-            originY: 'center',
-            selectable: false,
-            evented: false,
-            data: { isBackground: true }
-          });
-          
-          canvas.add(fabricImg);
-          canvas.sendToBack(fabricImg);
-          designObjects.forEach(obj => canvas.add(obj));
-          canvas.renderAll();
-          updateDesignImage(canvas);
-          checkDesignStatus(canvas);
+      console.log('Loading background image:', imgSrc);
+      
+      // Load image with proper error handling and fitting
+      fabric.Image.fromURL(imgSrc, (fabricImg) => {
+        if (!fabricImg) {
+          console.error('Failed to load image:', imgSrc);
+          canvas.setBackgroundColor('#f0f0f0', canvas.renderAll.bind(canvas));
+          return;
+        }
+
+        // Fit the image to canvas properly
+        const canvasWidth = canvas.getWidth();
+        const canvasHeight = canvas.getHeight();
+        const imgWidth = fabricImg.width!;
+        const imgHeight = fabricImg.height!;
+        
+        // Calculate scale to fit image to canvas
+        const scaleX = canvasWidth / imgWidth;
+        const scaleY = canvasHeight / imgHeight;
+        const scale = Math.min(scaleX, scaleY);
+        
+        fabricImg.set({
+          left: canvasWidth / 2,
+          top: canvasHeight / 2,
+          originX: 'center',
+          originY: 'center',
+          scaleX: scale,
+          scaleY: scale,
+          selectable: false,
+          evented: false,
+          data: { isBackground: true }
         });
-      };
-      
-      img.onerror = () => {
-        console.error(`Error loading ${imgSrc}`);
-        canvas.setBackgroundColor('#f0f0f0', canvas.renderAll.bind(canvas));
-        designObjects.forEach(obj => canvas.add(obj));
+        
+        canvas.add(fabricImg);
+        canvas.sendToBack(fabricImg);
+        
+        // Re-add design objects with proper properties
+        designObjects.forEach(obj => {
+          obj.set({
+            selectable: true,
+            evented: true,
+            hasRotatingPoint: true,
+            hasControls: true,
+            hasBorders: true,
+            lockMovementX: false,
+            lockMovementY: false,
+            lockScalingX: false,
+            lockScalingY: false,
+            lockRotation: false
+          });
+          canvas.add(obj);
+        });
+        
         canvas.renderAll();
-      };
-      
-      img.src = imgSrc;
+        updateDesignImage(canvas);
+        checkDesignStatus(canvas);
+        console.log('Background image loaded successfully');
+      }, { 
+        crossOrigin: 'anonymous',
+        // Add error handling for failed image loads
+        onError: () => {
+          console.error('Failed to load background image:', imgSrc);
+          canvas.setBackgroundColor('#f0f0f0', canvas.renderAll.bind(canvas));
+        }
+      });
       
     } catch (error) {
       console.error('Error adding background image:', error);
+      canvas.setBackgroundColor('#f0f0f0', canvas.renderAll.bind(canvas));
     }
   };
 
@@ -186,10 +218,42 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
     if (!canvasToUse) return;
     
     try {
-      const dataUrl = canvasToUse.toDataURL({
+      // Get only design objects (exclude background)
+      const designObjects = canvasToUse.getObjects().filter(obj => !obj.data?.isBackground);
+      
+      if (designObjects.length === 0) {
+        setDesignImage(undefined);
+        return;
+      }
+
+      // Create a temporary canvas for preview generation
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvasToUse.width!;
+      tempCanvas.height = canvasToUse.height!;
+      
+      const tempFabricCanvas = new fabric.Canvas(tempCanvas, {
+        width: canvasToUse.width!,
+        height: canvasToUse.height!,
+        backgroundColor: 'transparent'
+      });
+
+      // Add only design objects to temp canvas
+      designObjects.forEach(obj => {
+        const clonedObj = fabric.util.object.clone(obj);
+        tempFabricCanvas.add(clonedObj);
+      });
+
+      tempFabricCanvas.renderAll();
+
+      // Generate preview data URL
+      const dataUrl = tempFabricCanvas.toDataURL({
         format: 'png',
         quality: 1
       });
+
+      // Clean up
+      tempFabricCanvas.dispose();
+      
       setDesignImage(dataUrl);
     } catch (error) {
       console.error('Error updating design image:', error);
@@ -210,12 +274,73 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
     }
   };
 
+  const undo = () => {
+    if (!canvas || undoStack.length <= 1) return;
+    
+    try {
+      const currentState = undoStack[undoStack.length - 1];
+      const previousState = undoStack[undoStack.length - 2];
+      
+      setRedoStack(prev => [...prev, currentState]);
+      setUndoStack(prev => prev.slice(0, -1));
+      
+      canvas.loadFromJSON(previousState, () => {
+        canvas.renderAll();
+        updateDesignImage(canvas);
+        checkDesignStatus(canvas);
+      });
+    } catch (error) {
+      console.error('Error during undo:', error);
+    }
+  };
+
+  const redo = () => {
+    if (!canvas || redoStack.length === 0) return;
+    
+    try {
+      const nextState = redoStack[redoStack.length - 1];
+      
+      setUndoStack(prev => [...prev, nextState]);
+      setRedoStack(prev => prev.slice(0, -1));
+      
+      canvas.loadFromJSON(nextState, () => {
+        canvas.renderAll();
+        updateDesignImage(canvas);
+        checkDesignStatus(canvas);
+      });
+    } catch (error) {
+      console.error('Error during redo:', error);
+    }
+  };
+
+  const clearCanvas = () => {
+    if (!canvas) return;
+    
+    try {
+      const backgroundImage = canvas.getObjects().find(obj => obj.data?.isBackground);
+      canvas.clear();
+      
+      if (backgroundImage) {
+        canvas.add(backgroundImage);
+        canvas.sendToBack(backgroundImage);
+      }
+      
+      canvas.renderAll();
+      saveCanvasState(canvas);
+      updateDesignImage(canvas);
+      checkDesignStatus(canvas);
+      
+      toast.success("Canvas cleared");
+    } catch (error) {
+      console.error('Error clearing canvas:', error);
+    }
+  };
+
   const checkDesignStatus = (canvasInstance: fabric.Canvas | null = null) => {
     const canvasToUse = canvasInstance || canvas;
     if (!canvasToUse) return false;
     
     try {
-      // Get all objects except the background
       const designObjects = canvasToUse.getObjects().filter(obj => !obj.data?.isBackground);
       const hasElements = designObjects.length > 0;
       
@@ -240,7 +365,6 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
     if (!canvas) return false;
     
     try {
-      // Get all objects except the background
       const designObjects = canvas.getObjects().filter(obj => !obj.data?.isBackground);
       return designObjects.length > 0;
     } catch (error) {
@@ -266,7 +390,11 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
           top: canvas.height! / 2,
           originX: 'center',
           originY: 'center',
-          selectable: true
+          selectable: true,
+          evented: true,
+          hasRotatingPoint: true,
+          hasControls: true,
+          hasBorders: true
         });
         canvas.add(img);
         canvas.renderAll();
@@ -290,6 +418,16 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
         fontSize: 30,
         originX: 'center',
         originY: 'center',
+        selectable: true,
+        evented: true,
+        hasRotatingPoint: true,
+        hasControls: true,
+        hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
+        lockScalingX: false,
+        lockScalingY: false,
+        lockRotation: false
       });
       
       canvas.add(textObj);
@@ -308,10 +446,9 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
     
     try {
       fabric.Image.fromURL(imageUrl, (img) => {
-        // Scale image to fit within canvas
         const scaleFactor = Math.min(
-          (canvas.width! * 0.5) / img.width!,
-          (canvas.height! * 0.5) / img.height!
+          (canvas.width! * 0.3) / img.width!,
+          (canvas.height! * 0.3) / img.height!
         );
         
         img.scale(scaleFactor);
@@ -320,6 +457,16 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
           top: canvas.height! / 2,
           originX: 'center',
           originY: 'center',
+          selectable: true,
+          evented: true,
+          hasRotatingPoint: true,
+          hasControls: true,
+          hasBorders: true,
+          lockMovementX: false,
+          lockMovementY: false,
+          lockScalingX: false,
+          lockScalingY: false,
+          lockRotation: false
         });
         
         canvas.add(img);
@@ -344,6 +491,16 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
         fontSize: 60,
         originX: 'center',
         originY: 'center',
+        selectable: true,
+        evented: true,
+        hasRotatingPoint: true,
+        hasControls: true,
+        hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
+        lockScalingX: false,
+        lockScalingY: false,
+        lockRotation: false
       });
       
       canvas.add(text);
@@ -384,6 +541,9 @@ export const useDesignCanvas = ({ activeProduct, productView, isDualSided }: Use
     loadDesignToCanvas,
     addTextToCanvas,
     handleAddImage,
-    addEmojiToCanvas
+    addEmojiToCanvas,
+    undo,
+    redo,
+    clearCanvas
   };
 };

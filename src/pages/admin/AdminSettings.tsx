@@ -5,8 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Save, Loader2 } from 'lucide-react';
-import AdminLayout from '../../components/admin/AdminLayout';
-interface Settings {
+import AdminLayout from '../../components/admin/AdminLayout';interface Settings {
   site_name: string;
   site_description: string;
   contact_email: string;
@@ -30,7 +29,8 @@ const AdminSettings = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-    
+      console.log('Saving settings:', settings);
+      
       // For now, just save to localStorage since we don't have a settings table
       localStorage.setItem('admin_settings', JSON.stringify(settings));
       
@@ -64,7 +64,7 @@ const AdminSettings = () => {
   };
 
   return (
-     <AdminLayout title="Admin Settings">
+    <AdminLayout title="Admin Settings">
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Settings</h1>

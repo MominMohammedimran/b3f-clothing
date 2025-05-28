@@ -41,6 +41,7 @@ function writeSitemap() {
   }
 
   fs.writeFileSync(sitemapPath, sitemap, 'utf8');
+  console.log('Sitemap generated at:', sitemapPath);
 }
 
 writeSitemap();

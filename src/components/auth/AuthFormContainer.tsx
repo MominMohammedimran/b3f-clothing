@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import OTPValidation from './OTPValidation';
 import { useAuth } from '@/context/AuthContext';
 import LoginForm from './LoginForm';
-import SignUpForm from './SignUpForm';
+import SignupForm from './SignupForm';
 import { cleanupAuthState } from '@/context/AuthContext';
 
 type AuthMode = 'signin' | 'signup' | 'otp';
@@ -38,6 +38,16 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+const handleGoogleSignIn = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+  });
+
+  if (error) {
+    toast.error('Google sign-in failed');
+    console.error('Google sign-in error:', error.message);
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,10 +66,13 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
         }
         
         // Log for debugging
+        console.log("Attempting sign-in with:", { email, passwordLength: password.length });
+        
         // Attempt to sign in with provided credentials
         const { data, error } = await signIn(email, password);
         
         if (error) {
+          console.error("Sign-in failed:", error.message);
           toast.error(error.message || 'Sign in failed. Please check your credentials.');
           setLoading(false);
           return;
@@ -67,9 +80,11 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
         
         // If login is successful
         if (data && data.session) {
+          console.log("Sign-in successful with session:", data.session.user.id);
           toast.success('Sign in successful!');
           navigate(redirectTo);
         } else {
+          console.error("Sign-in response has no session:", data);
           toast.error('Unable to authenticate. Please try again.');
           setLoading(false);
         }
@@ -91,7 +106,8 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
         }
       }
     } catch (error: any) {
-    toast.error(error.message || 'Authentication failed');
+      console.error('Authentication error:', error);
+      toast.error(error.message || 'Authentication failed');
       setLoading(false);
     } finally {
       if (mode === 'signin') {
@@ -116,6 +132,7 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
         setMode('otp');
       }
     } catch (error: any) {
+      console.error('Failed to send OTP:', error);
       toast.error(error.message || 'Failed to send verification code');
     } finally {
       setLoading(false);
@@ -123,10 +140,12 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
   };
 
   const sendOtpToEmail = async (email: string) => {
-   
+    console.log('Sending OTP to email:', email);
+    
     try {
       const testToken = Math.floor(100000 + Math.random() * 900000).toString();
-       
+      console.log(`Development test token for ${email}: ${testToken}`);
+      
       return await supabase.auth.signInWithOtp({
         email,
       });
@@ -139,11 +158,13 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
   const handleVerifyOtp = async (token: string) => {
     setLoading(true);
     try {
+      console.log(`Attempting to verify OTP for ${email} with token: ${token}`);
       
       // For development, accept a test token
       let authResult;
       
       if (process.env.NODE_ENV === 'development' && token === '123456') {
+        console.log("Using development test token");
         
         // Create a mock session to simulate successful verification
         authResult = await supabase.auth.signInWithPassword({
@@ -163,6 +184,7 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
       if (error) {
         throw error;
       } else if (data && data.session) {
+        console.log("OTP verification successful with session:", data.session.user.id);
         toast.success('Verification successful!');
         navigate(redirectTo);
       } else {
@@ -225,7 +247,7 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
             setMode={setMode}
           />
         ) : (
-          <SignUpForm
+          <SignupForm
             email={email}
             setEmail={setEmail}
             password={password}
@@ -240,16 +262,7 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
           />
         )}
       </CardContent>
-      {process.env.NODE_ENV === 'development' && (
-        <CardFooter>
-          <div className="w-full p-3 bg-blue-50 text-blue-800 rounded-md text-sm">
-            <p className="font-medium">For development testing:</p>
-            <p>Email: <code className="bg-white px-1">test@example.com</code></p>
-            <p>Password: <code className="bg-white px-1">Password123!</code></p>
-            <p>OTP code: <code className="bg-white px-1">123456</code></p>
-          </div>
-        </CardFooter>
-      )}
+     
     </Card>
   );
 };

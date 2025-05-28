@@ -40,7 +40,8 @@ const AdminCustomers = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-    
+      console.log('Fetching customer profiles from Supabase...');
+      
       // Get profiles from Supabase
       const { data, error } = await supabase
         .from('profiles')
@@ -52,7 +53,8 @@ const AdminCustomers = () => {
         throw error;
       }
       
-    
+      console.log('Fetched profiles:', data);
+      
       // If we have data, map it to match the UserProfile type
       if (data && data.length > 0) {
         const mappedCustomers: UserProfile[] = data.map(profile => ({
@@ -169,7 +171,7 @@ const AdminCustomers = () => {
   };
 
   return (
-    <AdminLayout >
+    <AdminLayout>
       <div className="bg-white rounded-lg shadow p-6 pt-0">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Customers</h1>

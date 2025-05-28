@@ -13,6 +13,12 @@ export interface CartItem {
   size?: string;
   color?: string;
   image?: string;
+  metadata?: {
+    view?: string;
+    backImage?: string;
+    designData?: any;
+    previewImage?: string;
+  };
 }
 
 interface CartContextType {
@@ -50,7 +56,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      const transformedItems = data?.map(item => ({
+      const transformedItems = data?.map((item: any) => ({
         id: item.id,
         product_id: item.product_id,
         name: item.name,
@@ -59,6 +65,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         size: item.size || undefined,
         color: item.color || undefined,
         image: item.image || undefined,
+        metadata: item.metadata || undefined,
       })) || [];
 
       setCartItems(transformedItems);
@@ -101,6 +108,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           size: item.size,
           color: item.color,
           image: item.image,
+          metadata: item.metadata,
         }])
         .select()
         .single();
@@ -116,6 +124,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         size: data.size || undefined,
         color: data.color || undefined,
         image: data.image || undefined,
+        metadata: (data as any).metadata || undefined,
       };
 
       setCartItems(prev => [...prev, newItem]);

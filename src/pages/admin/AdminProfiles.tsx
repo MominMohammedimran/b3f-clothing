@@ -43,6 +43,7 @@ const AdminProfiles = () => {
 
   async function fetchProfiles(): Promise<Profile[]> {
     try {
+      console.log('Fetching profiles from database...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -53,9 +54,13 @@ const AdminProfiles = () => {
         throw error;
       }
       
-     if (!data || data.length === 0) {
-       return [];
+      console.log('Profiles fetched:', data?.length || 0);
+      
+      if (!data || data.length === 0) {
+        console.log('No profiles found in database');
+        return [];
       } else {
+        console.log('Loaded profiles:', data.length);
         return data as Profile[];
       }
     } catch (error) {
@@ -66,6 +71,7 @@ const AdminProfiles = () => {
   }
 
   const handleViewProfile = (profile: Profile) => {
+    console.log('Viewing profile:', profile.email);
     setSelectedProfile(profile);
   };
 
@@ -75,7 +81,8 @@ const AdminProfiles = () => {
 
   const handleSaveProfile = async (updatedProfile: Profile) => {
     try {
-       const { error } = await supabase
+      console.log('Updating profile:', updatedProfile.id);
+      const { error } = await supabase
         .from('profiles')
         .update({
           first_name: updatedProfile.first_name,
@@ -106,6 +113,7 @@ const AdminProfiles = () => {
 
   const handleDeleteProfile = async (profileId: string) => {
     try {
+      console.log('Deleting profile:', profileId);
       const { error } = await supabase
         .from('profiles')
         .delete()

@@ -152,10 +152,9 @@ const Orders = () => {
             <span className="font-medium">Continue Shopping</span>
           </Link>
           <h1 className="text-2xl font-bold">Your Orders</h1>
-          <div className="w-32"></div> {/* For balanced layout */}
+          <div className="w-32"></div>
         </div>
         
-        {/* Display Orders History */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6">
             <h2 className="text-xl font-bold mb-4">Order History</h2>
@@ -202,13 +201,18 @@ const Orders = () => {
                         {Array.isArray(order.items) && order.items.slice(0, 2).map((item, index) => (
                           <div key={index} className="flex items-center">
                             <div className="w-12 h-12 border rounded-md overflow-hidden">
-                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                              <img 
+                                src={item.metadata?.previewImage || item.image} 
+                                alt={item.name} 
+                                className="w-full h-full object-cover" 
+                              />
                             </div>
                             <div className="ml-3 flex-1">
                               <div className="font-medium text-sm">{item.name}</div>
                               <div className="text-xs text-gray-500">
                                 {item.size && <span>Size: {item.size}</span>}
                                 {item.quantity > 1 && <span className="ml-2">Qty: {item.quantity}</span>}
+                                {item.metadata?.view && <span className="ml-2">Design: {item.metadata.view}</span>}
                               </div>
                             </div>
                           </div>

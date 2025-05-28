@@ -1,4 +1,3 @@
-
 export interface CartItem {
   id: string;
   name: string;
@@ -6,11 +5,18 @@ export interface CartItem {
   quantity: number;
   image: string;
   productId?: string;
+  product_id?: string;
   size?: string;
   view?: string;
   backImage?: string;
   color?: string;
   options?: Record<string, string>;
+  metadata?: {
+    view?: string;
+    backImage?: string;
+    designData?: any;
+    previewImage?: string;
+  };
 }
 
 export interface Order {

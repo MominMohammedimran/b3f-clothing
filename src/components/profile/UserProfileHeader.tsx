@@ -43,7 +43,8 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
     }
     
     try {
-     
+      console.log('Signing out user...');
+      
       // Clean up auth state
       cleanupAuthState();
       

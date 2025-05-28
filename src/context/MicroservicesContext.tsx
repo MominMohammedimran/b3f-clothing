@@ -19,7 +19,7 @@ export const MicroservicesProvider: React.FC<{ children: React.ReactNode }> = ({
     const initializeMicroservices = async () => {
       try {
         // Simulate initialization process
-       
+        console.log('Initializing microservices...');
         // This is where you would perform any setup needed
         setIsReady(true);
       } catch (error) {

@@ -55,6 +55,7 @@ export class OrderMicroservice {
   // Create a new order
   public async createOrder(orderData: Partial<Order>): Promise<Order> {
     try {
+      console.log('Creating mock order with data:', orderData);
       
       const newOrderId = `order-${Date.now()}`;
       const newOrder: Order = {

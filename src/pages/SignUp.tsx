@@ -38,6 +38,7 @@ const SignUp = () => {
           </h1>
           
           {isOtpSent ? (
+            
             <VerificationForm 
               userEmail={userEmail}
               userPassword={userPassword}

@@ -1,176 +1,132 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Ban } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { X } from 'lucide-react';
 
 interface OrderStatusActionsProps {
   orderId: string;
   currentStatus: string;
-  onStatusUpdate: (orderId: string, status: string) => void;
+  onStatusUpdate: (orderId: string, status: string, reason?: string) => void;
 }
 
-const OrderStatusActions = ({ orderId, currentStatus, onStatusUpdate }: OrderStatusActionsProps) => {
-  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+const OrderStatusActions: React.FC<OrderStatusActionsProps> = ({
+  orderId,
+  currentStatus,
+  onStatusUpdate
+}) => {
+  const [selectedStatus, setSelectedStatus] = useState(currentStatus);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const updateStatus = async (newStatus: string) => {
-    if (!orderId) {
-      toast.error('Order ID is missing');
+  const statusOptions = [
+    { value: 'processing', label: 'Processing' },
+    { value: 'prepared', label: 'Prepared' },
+    { value: 'shipped', label: 'Shipped' },
+    { value: 'out_for_delivery', label: 'Out for Delivery' },
+    { value: 'delivered', label: 'Delivered' },
+    { value: 'cancelled', label: 'Cancelled' }
+  ];
+
+  const handleStatusUpdate = () => {
+    if (selectedStatus === 'cancelled' && !cancellationReason.trim()) {
+      alert('Please provide a cancellation reason');
       return;
     }
     
-    if (newStatus === currentStatus) {
-      toast.info('Order is already in this status');
-      return;
-    }
-    
-    setIsUpdating(newStatus);
-    
-    try {
-      console.log(`Updating order ${orderId} status to ${newStatus}`);
-      
-      // Update the status in orders table
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId)
-        .select('*');
-      
-      if (orderError) {
-        console.error('Error updating order status:', orderError);
-        throw orderError;
-      }
-      
-      console.log('Order status updated:', orderData);
-      
-      // Call the callback to update the UI immediately
-      onStatusUpdate(orderId, newStatus);
-      toast.success(`Order status updated to: ${newStatus}`);
-    } catch (error: any) {
-      console.error('Update failed:', error);
-      toast.error(`Failed to update order status: ${error.message}`);
-    } finally {
-      setIsUpdating(null);
-    }
+    onStatusUpdate(orderId, selectedStatus, selectedStatus === 'cancelled' ? cancellationReason : undefined);
+    setIsDialogOpen(false);
+    setCancellationReason('');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'bg-yellow-500 hover:bg-yellow-600';
-      case 'processing':
-        return 'bg-blue-500 hover:bg-blue-600';
-      case 'shipped':
-        return 'bg-purple-500 hover:bg-purple-600';
-      case 'out for delivery':
-        return 'bg-orange-500 hover:bg-orange-600';
-      case 'delivered':
-        return 'bg-green-500 hover:bg-green-600';
-      case 'cancelled':
-        return 'bg-red-500 hover:bg-red-600';
-      default:
-        return 'bg-gray-500 hover:bg-gray-600';
-    }
+  const handleCancel = () => {
+    setIsDialogOpen(true);
+    setSelectedStatus('cancelled');
   };
 
   return (
-    <div className="border rounded-md p-4">
-      <h3 className="font-semibold mb-2">Update Status</h3>
-      <div className="flex flex-wrap gap-2">
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="status">Order Status</Label>
+        <div className="flex gap-2 mt-1">
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button 
+            onClick={selectedStatus === 'cancelled' ? () => setIsDialogOpen(true) : handleStatusUpdate}
+            disabled={selectedStatus === currentStatus}
+            variant={selectedStatus === 'cancelled' ? 'destructive' : 'default'}
+          >
+            Update
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex gap-2">
         <Button 
-          size="sm" 
-          onClick={() => updateStatus('pending')}
-          disabled={currentStatus === 'pending' || isUpdating !== null}
-          className={currentStatus === 'pending' ? getStatusColor('pending') : ''}
-        >
-          {isUpdating === 'pending' ? (
-            <>
-              <Loader2 size={16} className="mr-1 animate-spin" />
-              Updating...
-            </>
-          ) : 'Pending'}
-        </Button>
-        
-        <Button 
-          size="sm" 
-          onClick={() => updateStatus('processing')}
-          disabled={currentStatus === 'processing' || isUpdating !== null}
-          className={currentStatus === 'processing' ? getStatusColor('processing') : ''}
-        >
-          {isUpdating === 'processing' ? (
-            <>
-              <Loader2 size={16} className="mr-1 animate-spin" />
-              Updating...
-            </>
-          ) : 'Processing'}
-        </Button>
-        
-        <Button 
-          size="sm" 
-          onClick={() => updateStatus('shipped')}
-          disabled={currentStatus === 'shipped' || isUpdating !== null}
-          className={currentStatus === 'shipped' ? getStatusColor('shipped') : ''}
-        >
-          {isUpdating === 'shipped' ? (
-            <>
-              <Loader2 size={16} className="mr-1 animate-spin" />
-              Updating...
-            </>
-          ) : 'Shipped'}
-        </Button>
-        
-        <Button 
-          size="sm" 
-          onClick={() => updateStatus('out for delivery')}
-          disabled={currentStatus === 'out for delivery' || isUpdating !== null}
-          className={currentStatus === 'out for delivery' ? getStatusColor('out for delivery') : ''}
-        >
-          {isUpdating === 'out for delivery' ? (
-            <>
-              <Loader2 size={16} className="mr-1 animate-spin" />
-              Updating...
-            </>
-          ) : 'Out for Delivery'}
-        </Button>
-        
-        <Button 
-          size="sm" 
-          onClick={() => updateStatus('delivered')}
-          disabled={currentStatus === 'delivered' || isUpdating !== null}
-          className={currentStatus === 'delivered' ? getStatusColor('delivered') : ''}
-        >
-          {isUpdating === 'delivered' ? (
-            <>
-              <Loader2 size={16} className="mr-1 animate-spin" />
-              Updating...
-            </>
-          ) : 'Delivered'}
-        </Button>
-        
-        <Button 
-          size="sm" 
           variant="destructive" 
-          onClick={() => updateStatus('cancelled')}
-          disabled={currentStatus === 'cancelled' || isUpdating !== null}
-          className={currentStatus === 'cancelled' ? 'bg-red-500 text-white hover:bg-red-600' : ''}
+          size="sm" 
+          onClick={handleCancel}
+          className="flex items-center gap-1"
         >
-          {isUpdating === 'cancelled' ? (
-            <>
-              <Loader2 size={16} className="mr-1 animate-spin" />
-              Updating...
-            </>
-          ) : (
-            <>
-              <Ban className="h-4 w-4 mr-1" />
-              Cancel Order
-            </>
-          )}
+          <X size={14} />
+          Cancel Order
         </Button>
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Order</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="reason">Cancellation Reason</Label>
+              <Textarea
+                id="reason"
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Please provide a reason for cancellation..."
+                rows={3}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleStatusUpdate}>
+                Confirm Cancellation
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

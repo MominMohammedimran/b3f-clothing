@@ -55,6 +55,11 @@ const Cart = () => {
     return '/placeholder.svg';
   };
 
+  // Helper function to check if item has custom design
+  const hasCustomDesign = (item: any) => {
+    return item.metadata?.previewImage || item.metadata?.designData;
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -102,17 +107,40 @@ const Cart = () => {
                 <div key={item.id} className="bg-white p-4 rounded-lg shadow border">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      <img
-                        src={getItemDisplayImage(item)}
-                        alt={item.name}
-                        className="h-20 w-20 object-cover rounded border"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/placeholder.svg';
-                        }}
-                      />
+                      {hasCustomDesign(item) ? (
+                        <div className="relative">
+                          <div className="h-20 w-20 border-2 border-dashed border-blue-400 rounded bg-blue-50 flex items-center justify-center">
+                            <img
+                              src={getItemDisplayImage(item)}
+                              alt={item.name}
+                              className="h-16 w-16 object-contain rounded"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder.svg';
+                              }}
+                            />
+                          </div>
+                          <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-1 rounded-full">
+                            ✨
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          src={getItemDisplayImage(item)}
+                          alt={item.name}
+                          className="h-20 w-20 object-cover rounded border"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          }}
+                        />
+                      )}
                       {item.metadata?.view && (
                         <div className="text-xs text-center mt-1 text-gray-500">
                           {item.metadata.view}
+                        </div>
+                      )}
+                      {item.metadata?.backImage && (
+                        <div className="text-xs text-center text-blue-600">
+                          Dual-Sided
                         </div>
                       )}
                     </div>
@@ -124,8 +152,8 @@ const Cart = () => {
                         {item.size && <p>Size: {item.size}</p>}
                         {item.color && <p>Color: {item.color}</p>}
                         {item.metadata?.view && <p>Design: {item.metadata.view}</p>}
-                        {item.metadata?.designData && (
-                          <p className="text-blue-600">✨ Custom Design</p>
+                        {hasCustomDesign(item) && (
+                          <p className="text-blue-600 font-medium">✨ Custom Design</p>
                         )}
                       </div>
                     </div>

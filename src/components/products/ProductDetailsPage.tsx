@@ -6,6 +6,8 @@ import Layout from '../layout/Layout';
 import { Product } from '../../lib/types';
 import { products } from '../../lib/data';
 import ProductDetailsContent from './details/ProductDetailsContent';
+import WishlistButton from './WishlistButton';
+import RelatedProducts from './RelatedProducts';
 
 const ProductDetailsPage = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -49,8 +51,6 @@ const ProductDetailsPage = () => {
             <ArrowLeft size={24} className="back-arrow" />
           </Link>
           <h1 className="text-2xl font-bold text-green-600">{product?.name || 'Product Details'}</h1>
-          
-          
         </div>
 
         {product ? (
@@ -60,15 +60,11 @@ const ProductDetailsPage = () => {
             <p className="text-gray-500">Product details are not available.</p>
           </div>
         )}
-
+   
         {product && <RelatedProducts product={product} onProductClick={(product) => navigate(`/product/details/${product.id}`)} />}
       </div>
     </Layout>
   );
 };
-
-// Add the import here to fix the reference issue
-import WishlistButton from './WishlistButton';
-import RelatedProducts from './RelatedProducts';
 
 export default ProductDetailsPage;

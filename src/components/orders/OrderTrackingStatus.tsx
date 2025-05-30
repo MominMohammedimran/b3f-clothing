@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { Truck, Package, CheckCircle } from 'lucide-react';
+import { Truck, Package, CheckCircle, X } from 'lucide-react';
 
 export interface OrderTrackingStatusProps {
   currentStatus: string;
   estimatedDelivery: string;
+  cancellationReason?: string;
 }
 
 const statusSteps = [
@@ -24,11 +25,13 @@ const statusMap: Record<string, string> = {
   out_for_delivery: 'out_for_delivery',
   delivered: 'delivered',
   complete: 'delivered',
+  cancelled: 'cancelled',
 };
 
 const OrderTrackingStatus: React.FC<OrderTrackingStatusProps> = ({
   currentStatus,
   estimatedDelivery,
+  cancellationReason,
 }) => {
   // Normalize status - default to processing if invalid status provided
   const normalizedStatus = currentStatus && typeof currentStatus === 'string'
@@ -36,6 +39,32 @@ const OrderTrackingStatus: React.FC<OrderTrackingStatusProps> = ({
     : 'processing';
   
   console.log('Order tracking status:', currentStatus, 'Normalized:', normalizedStatus);
+  
+  // Handle cancelled orders differently
+  if (normalizedStatus === 'cancelled') {
+    return (
+      <div className="bg-white rounded-lg mb-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Order Status</h2>
+        </div>
+
+        <div className="text-center py-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <X className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-red-600 mb-2">Order Cancelled</h3>
+          <p className="text-gray-600 mb-4">Your order has been cancelled and will not be delivered.</p>
+          
+          {cancellationReason && (
+            <div className="max-w-md mx-auto p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="font-medium text-red-800 mb-1">Cancellation Reason:</p>
+              <p className="text-red-700">{cancellationReason}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
   
   // Find the index of the current status in our steps
   const currentStatusIndex = statusSteps.findIndex(step => step.key === normalizedStatus);

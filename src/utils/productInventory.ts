@@ -35,7 +35,8 @@ export const updateProductInventory = async (
         .from('products')
         .update({ 
           stock: quantity,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          productId: `inv-${productType}-${size}` // Add required productId
         })
         .eq('id', existingItem.id);
       
@@ -54,6 +55,7 @@ export const updateProductInventory = async (
           price: 0, // Required field
           original_price: 0, // Required field according to schema
           code: `INV-${productType}-${size}`, // Required field according to schema
+          productId: `inv-${productType}-${size}`, // Add required productId field
         });
       
       if (error) {

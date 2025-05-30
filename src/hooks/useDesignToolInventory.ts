@@ -74,7 +74,10 @@ export const useDesignToolInventory = () => {
       // Update in database
       const { data, error } = await supabase
         .from('products')
-        .update({ stock: newQuantity })
+        .update({ 
+          stock: newQuantity,
+          productId: `${productType}_${size}` // Add required productId field
+        })
         .eq('category', 'inventory')
         .eq('name', `${productType}_${size}`);
       

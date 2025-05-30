@@ -10,6 +10,22 @@ const OrderComplete = () => {
   const { orderId } = useParams();
   const { orderData, loading, error } = useOrderData();
 
+  // Helper function to check if item has custom design
+  const hasCustomDesign = (item: any) => {
+    return item.metadata?.previewImage || item.metadata?.designData;
+  };
+
+  // Helper function to get display image
+  const getItemDisplayImage = (item: any) => {
+    if (item.metadata?.previewImage) {
+      return item.metadata.previewImage;
+    }
+    if (item.image) {
+      return item.image;
+    }
+    return '/placeholder.svg';
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -99,20 +115,42 @@ const OrderComplete = () => {
             <h3 className="font-medium text-lg mb-3">Order Items:</h3>
             <div className="space-y-3">
               {orderItems.map((item) => (
-                <div key={item.id} className="flex items-center space-x-4">
-                  <div className="flex-shrink-0 h-16 w-16 bg-gray-100 rounded overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-full w-full object-contain"
-                    />
+                <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg">
+                  <div className="flex-shrink-0">
+                    {hasCustomDesign(item) ? (
+                      <div className="relative">
+                        <div className="h-16 w-16 border-2 border-dashed border-blue-400 rounded bg-blue-50 flex items-center justify-center">
+                          <img
+                            src={getItemDisplayImage(item)}
+                            alt={item.name}
+                            className="h-12 w-12 object-contain rounded"
+                          />
+                        </div>
+                        <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-1 rounded-full">
+                          ✨
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={getItemDisplayImage(item)}
+                        alt={item.name}
+                        className="h-16 w-16 object-cover rounded border"
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-800 truncate">{item.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {item.size && `Size: ${item.size}`}
-                      {item.quantity > 1 && ` • Quantity: ${item.quantity}`}
-                    </p>
+                    <div className="text-sm text-gray-500 space-y-1">
+                      {item.size && <p>Size: {item.size}</p>}
+                      {item.quantity > 1 && <p>Quantity: {item.quantity}</p>}
+                      {item.metadata?.view && <p>Design: {item.metadata.view}</p>}
+                      {hasCustomDesign(item) && (
+                        <p className="text-blue-600 font-medium">✨ Custom Design</p>
+                      )}
+                      {item.metadata?.backImage && (
+                        <p className="text-purple-600 font-medium">🔄 Dual-Sided</p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex-shrink-0 text-gray-800">
                     {formatPrice(item.price * item.quantity)}

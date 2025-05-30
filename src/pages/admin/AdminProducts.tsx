@@ -7,6 +7,7 @@ import { Plus, Edit, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import ProductEditForm from '@/components/admin/ProductEditForm';
 import { Product } from '@/lib/types';
 import AdminLayout from '../../components/admin/AdminLayout';
+
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +84,7 @@ const AdminProducts = () => {
         images: productData.images || [],
         sizes: productData.sizes || [],
         tags: productData.tags || [],
+        productId: productData.productId || productData.id || `prod-${Date.now()}`, // Add required productId
         updated_at: new Date().toISOString()
       };
 

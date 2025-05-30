@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import OTPValidation from './OTPValidation';
 import { useAuth } from '@/context/AuthContext';
 import LoginForm from './LoginForm';
-import SignupForm from './SignUpForm';
+import SignupForm from './SignupForm';
 import { cleanupAuthState } from '@/context/AuthContext';
 
 type AuthMode = 'signin' | 'signup' | 'otp';

@@ -14,6 +14,7 @@ import ProductsPage from './pages/ProductsPage';
 import NotFound from './pages/NotFound';
 import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
+import ProductDetailsPage from './pages/ProductDetailsPage';
 import OrderComplete from './pages/OrderComplete';
 import OrderHistory from './pages/OrderHistory';
 import UserProfile from './pages/UserProfile';
@@ -56,8 +57,8 @@ const AppRoutes = () => {
       <Route path="/search" element={<Search />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/payment" element={<Payment />} />
-      <Route path="/product/:productId" element={<ProductDetails />} />
-      <Route path="/product/details/:productId" element={<ProductDetails />} />
+   
+      <Route path="/product/details/:productId" element={< ProductDetailsPage />} />
       <Route path="/products" element={<ProductsPage />} />
       <Route path="/products/:id" element={<ProductsPage />} />
       <Route path="/products/:category" element={<ProductsPage />} />

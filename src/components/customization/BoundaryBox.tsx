@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface BoundaryBoxProps {
@@ -7,62 +6,49 @@ interface BoundaryBoxProps {
 }
 
 const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view = 'front' }) => {
-  // Return different boundary dimensions based on product type
+  // Return different boundary dimensions based on product type - keeping within canvas bounds
   const getBoundaryStyle = () => {
     const commonStyles = "border-2 border-dashed border-blue-500 absolute z-10 pointer-events-none";
     
     switch (productType) {
       case 'tshirt':
-        if (view === 'front') {
-          return {
-            className: commonStyles,
-            style: {
-              left: '175px',
-              top: '120px',
-              width: '150px',
-              height: '200px'
-            }
-          };
-        } else if (view === 'back') {
-          return {
-            className: commonStyles,
-            style: {
-              left: '175px',
-              top: '120px',
-              width: '150px',
-              height: '200px'
-            }
-          };
-        }
-        break;
+        return {
+          className: commonStyles,
+          style: {
+            left: '20%',
+            top: '25%',
+            width: '60%',
+            height: '50%'
+          }
+        };
       case 'mug':
         return {
           className: commonStyles,
           style: {
-            left: '150px',
-            top: '100px',
-            width: '100px',
-            height: '150px'
+            left: '25%',
+            top: '30%',
+            width: '50%',
+            height: '40%'
           }
         };
       case 'cap':
         return {
           className: commonStyles,
           style: {
-            left: '150px',
-            top: '100px',
-            width: '120px',
-            height: '80px'
+            left: '25%',
+            top: '35%',
+            width: '50%',
+            height: '30%'
           }
         };
       default:
         return {
           className: commonStyles,
           style: {
-            left: '175px',
-            top: '120px',
-            width: '150px',
-            height: '200px'
+            left: '20%',
+            top: '25%',
+            width: '60%',
+            height: '50%'
           }
         };
     }

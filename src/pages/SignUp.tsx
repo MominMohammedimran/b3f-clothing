@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import SEOHelmet from '../components/seo/SEOHelmet';
 import { useSEO } from '../hooks/useSEO';
-import SignupForm from '../components/auth/SignUpForm';
+import SignupForm from '../components/auth/SignupForm';
 import VerificationForm from '../components/auth/VerificationForm';
 import { useAuth } from '@/context/AuthContext';
 
@@ -38,7 +38,6 @@ const SignUp = () => {
           </h1>
           
           {isOtpSent ? (
-
             <VerificationForm 
               userEmail={userEmail}
               userPassword={userPassword}

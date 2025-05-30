@@ -21,8 +21,12 @@ interface UseProductInventoryReturn {
 interface ProductWithInventory {
   id: string;
   product_type?: string;
-  inventory?: {
-    quantities?: Record<string, number>;
+  stock?: number;
+  metadata?: {
+    inventory?: {
+      quantities?: Record<string, number>;
+      [key: string]: any;
+    };
     [key: string]: any;
   } | string;
   [key: string]: any; // Allow other properties
@@ -69,21 +73,22 @@ export const useProductInventory = (productId?: string): UseProductInventoryRetu
         product_type: typedProduct.product_type || ''
       };
 
-      // Check if product has inventory field, safely
-      if (typedProduct && 'inventory' in typedProduct && typedProduct.inventory) {
+      // Check if product has metadata with inventory field
+      if (typedProduct && 'metadata' in typedProduct && typedProduct.metadata) {
         try {
-          // If inventory is a string, parse it
-          if (typeof typedProduct.inventory === 'string') {
-            const parsedInventory = JSON.parse(typedProduct.inventory);
-            inventoryData.quantities = parsedInventory.quantities || {};
-          } 
-          // If inventory is an object
-          else if (typeof typedProduct.inventory === 'object') {
-            const inventoryObj = typedProduct.inventory as { quantities?: Record<string, number> };
-            inventoryData.quantities = inventoryObj.quantities || {};
+          let metadata;
+          // If metadata is a string, parse it
+          if (typeof typedProduct.metadata === 'string') {
+            metadata = JSON.parse(typedProduct.metadata);
+          } else {
+            metadata = typedProduct.metadata;
+          }
+          
+          if (metadata && metadata.inventory && metadata.inventory.quantities) {
+            inventoryData.quantities = metadata.inventory.quantities;
           }
         } catch (parseError) {
-          console.error('Error parsing inventory:', parseError);
+          console.error('Error parsing metadata:', parseError);
           inventoryData.quantities = {};
         }
       }
@@ -126,30 +131,29 @@ export const useProductInventory = (productId?: string): UseProductInventoryRetu
       // Cast the product to our more specific type
       const typedProduct = product as unknown as ProductWithInventory;
 
-      // Prepare the inventory data to update
-      // If product has existing inventory, merge with new data
-      let inventoryToUpdate: InventoryData = {
-        quantities: data.quantities || {}
-      };
-
-      // Check if product has inventory field, safely
-      if (typedProduct && 'inventory' in typedProduct && typedProduct.inventory) {
-        const currentInventory = typeof typedProduct.inventory === 'string' 
-          ? JSON.parse(typedProduct.inventory) 
-          : typedProduct.inventory;
-
-        inventoryToUpdate = {
-          ...currentInventory,
-          ...data
-        };
+      // Prepare the metadata with inventory data
+      let currentMetadata = {};
+      if (typedProduct.metadata) {
+        currentMetadata = typeof typedProduct.metadata === 'string' 
+          ? JSON.parse(typedProduct.metadata) 
+          : typedProduct.metadata;
       }
 
-      // Update the product with new inventory
+      const updatedMetadata = {
+        ...currentMetadata,
+        inventory: {
+          ...((currentMetadata as any)?.inventory || {}),
+          ...data
+        }
+      };
+
+      // Update the product with new metadata - use description field for metadata storage
       const { error: updateError } = await supabase
         .from('products')
         .update({ 
-          inventory: inventoryToUpdate,
-          updated_at: new Date().toISOString()
+          description: JSON.stringify(updatedMetadata),
+          updated_at: new Date().toISOString(),
+          productId: product.productId || `prod-${Date.now()}` // Add required productId
         })
         .eq('id', productId);
 

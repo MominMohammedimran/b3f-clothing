@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Type, Image as ImageIcon, Smile } from 'lucide-react';
+import { Type, Image as ImageIcon, Smile, ShoppingCart } from 'lucide-react';
 import { formatIndianRupees } from '@/utils/currency';
 import ProductViewSelector from './ProductViewSelector';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,9 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
     stock: sizeInventory[activeProduct]?.[selectedSize] || 0,
     sizes: availableSizes
   };
+
+  const isDesignValid = validateDesign();
+  const isInStock = sizeInventory[activeProduct]?.[selectedSize] > 0;
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
@@ -126,7 +129,18 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
           </div>
         </div>
         
-        <div className="mt-6">
+        <div className="mt-6 space-y-3">
+          {/* Add to Cart Button */}
+          <Button
+            onClick={onAddToCart}
+            disabled={!isDesignValid || !isInStock}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Add to Cart
+          </Button>
+
+          {/* Place Order Button */}
           <ProductPlaceOrder
             product={currentProduct}
             size={selectedSize}
@@ -137,7 +151,7 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
         </div>
         
         {/* Error messages */}
-        {!validateDesign() && (
+        {!isDesignValid && (
           <p className="mt-2 text-sm text-red-500">
             {isDualSided 
               ? "Please complete both front and back designs"
@@ -145,7 +159,7 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
             }
           </p>
         )}
-        {sizeInventory[activeProduct][selectedSize] <= 0 && (
+        {!isInStock && (
           <p className="mt-2 text-sm text-red-500">
             This size is currently out of stock
           </p>

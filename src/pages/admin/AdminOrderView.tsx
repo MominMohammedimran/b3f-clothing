@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatOrderStatus, formatOrderDate, formatAddress } from '@/utils/orderUtils';
+import OrderDesignDownload from '@/components/admin/orders/OrderDesignDownload';
 
 interface Order {
   id: string;
@@ -137,6 +138,12 @@ const AdminOrderView = () => {
               <p><span className="font-medium">Phone:</span> {order.shipping_address?.phone || 'N/A'}</p>
               <p><span className="font-medium">Email:</span> {order.shipping_address?.email || 'N/A'}</p>
             </div>
+            
+            {/* Add Download Button Below Shipping Address */}
+            <OrderDesignDownload 
+              items={order.items} 
+              orderNumber={order.order_number} 
+            />
           </div>
         </div>
 
@@ -144,23 +151,47 @@ const AdminOrderView = () => {
           <h2 className="text-lg font-semibold mb-4">Order Items</h2>
           <div className="space-y-3">
             {order.items.map((item: any, index: number) => (
-              <div key={index} className="flex items-center space-x-4 p-3 border rounded">
-                {item.image && (
+              <div key={index} className="flex items-start space-x-4 p-3 border rounded">
+                <div className="relative w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                  {/* Show preview image if available, otherwise show product image */}
                   <img 
-                    src={item.image} 
+                    src={item.metadata?.previewImage || item.image || '/placeholder.svg'} 
                     alt={item.name}
-                    className="w-16 h-16 object-cover rounded"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
                   />
-                )}
+                  
+                  {/* Show design overlay if preview exists */}
+                  {item.metadata?.previewImage && item.metadata.previewImage !== item.image && (
+                    <div className="absolute inset-0 z-10">
+                      <img
+                        src={item.metadata.previewImage}
+                        alt={`${item.name} design`}
+                        className="w-full h-full object-contain"
+                        style={{ zIndex: 10 }}
+                      />
+                    </div>
+                  )}
+                </div>
+                
                 <div className="flex-1">
                   <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-gray-500">
-                    Quantity: {item.quantity} | Price: ₹{item.price}
-                    {item.size && ` | Size: ${item.size}`}
-                  </p>
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <p>Quantity: {item.quantity} | Price: ₹{item.price}</p>
+                    {item.size && <p>Size: {item.size}</p>}
+                    {item.color && <p>Color: {item.color}</p>}
+                    {item.metadata?.view && <p>View: {item.metadata.view}</p>}
+                    {item.metadata?.backImage && <p>Design Type: Dual-Sided</p>}
+                  </div>
                 </div>
+                
                 <div className="text-right">
                   <p className="font-medium">₹{item.price * item.quantity}</p>
+                  {item.metadata?.previewImage && (
+                    <p className="text-xs text-green-600 mt-1">Custom Design</p>
+                  )}
                 </div>
               </div>
             ))}

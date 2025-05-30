@@ -41,7 +41,8 @@ export interface Order {
 }
 
 export interface Product {
-  id: string;
+    productId?: string; // Adding this for backwards compatibility
+  
   code?: string;
   name: string;
   description?: string;
@@ -57,7 +58,7 @@ export interface Product {
   tags?: string[];
   stock?: number;
   sizes?: string[];
-  productId?: string; // Adding this for backwards compatibility
+id: string;
   options?: Record<string, string[]>;
 }
 

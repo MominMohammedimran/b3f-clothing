@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { fabric } from 'fabric';
 import { useColor } from '@/context/ColorContext';
@@ -8,6 +7,7 @@ import { useText } from '@/context/TextContext';
 import { useEmoji } from '@/context/EmojiContext';
 import BoundaryRestrictor from './BoundaryRestrictor';
 import CanvasControls from './CanvasControls';
+import BoundaryBox from '../customization/BoundaryBox';
 
 interface DesignCanvasProps {
   activeProduct?: string;
@@ -289,16 +289,9 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
             <div className="text-gray-600">Loading canvas...</div>
           </div>
         )}
-        <div 
-          id="design-boundary" 
-          className="absolute border-2 border-dashed border-blue-500 pointer-events-none"
-          style={{
-            top: '10%',
-            left: '10%',
-            width: '80%',
-            height: '80%',
-            zIndex: 10
-          }}
+        <BoundaryBox 
+          productType={props.activeProduct || 'tshirt'} 
+          view={props.productView || 'front'} 
         />
         <BoundaryRestrictor canvas={canvas} boundaryId="design-boundary" />
       </div>

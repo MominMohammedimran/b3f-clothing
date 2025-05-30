@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Product } from '@/lib/types';
 import ProductDetails from '../ProductDetails';
+import ProductImageGallery from '../ProductImageGallery';
 
 interface ProductDetailsContentProps {
   product: Product;
@@ -12,19 +13,17 @@ const ProductDetailsContent = ({ product }: ProductDetailsContentProps) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-      <div className="aspect-square">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover rounded-lg"
-        />
-      </div>
+      
+      <ProductImageGallery  images={[product.image, ...(product.images || []).filter(img => img && img !== product.image)]}
+      productName={product.name}/>
       
       <ProductDetails 
         product={product} 
         selectedSize={selectedSize}
         setSelectedSize={setSelectedSize}
       />
+ 
+
     </div>
   );
 };

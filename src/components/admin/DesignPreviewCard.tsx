@@ -17,15 +17,19 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
   orderNumber,
   productName
 }) => {
-  const downloadDesignAsPNG = async () => {
+  const downloadDesignAsWebP = async () => {
     try {
+      console.log('Starting download process...', { designData, previewImage });
+      
       if (!designData && !previewImage) {
         console.error('No design data or preview image available');
         return;
       }
 
       // If we have design data, recreate the canvas and export
-      if (designData) {
+      if (designData && typeof designData === 'object') {
+        console.log('Processing design data:', designData);
+        
         // Create a temporary canvas element
         const tempCanvasElement = document.createElement('canvas');
         tempCanvasElement.width = designData.width || 500;
@@ -35,59 +39,77 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
         const tempCanvas = new fabric.Canvas(tempCanvasElement, {
           width: designData.width || 500,
           height: designData.height || 600,
-          backgroundColor: 'transparent'
+          backgroundColor: 'white'
         });
 
         // Load the design data into the temporary canvas
-        tempCanvas.loadFromJSON(designData, () => {
-          // Filter out background objects for clean export
-          const designObjects = tempCanvas.getObjects().filter(obj => !obj.data?.isBackground);
-          
-          if (designObjects.length > 0) {
-            // Create a new canvas with only design elements
-            const exportCanvasElement = document.createElement('canvas');
-            exportCanvasElement.width = tempCanvas.width!;
-            exportCanvasElement.height = tempCanvas.height!;
-            
-            const exportCanvas = new fabric.Canvas(exportCanvasElement, {
-              width: tempCanvas.width!,
-              height: tempCanvas.height!,
-              backgroundColor: 'transparent'
-            });
+        await new Promise<void>((resolve, reject) => {
+          tempCanvas.loadFromJSON(designData, () => {
+            try {
+              console.log('Canvas loaded, generating export...');
+              
+              // Filter out background objects for design-only export
+              const designObjects = tempCanvas.getObjects().filter(obj => 
+                !obj.data?.isBackground
+              );
 
-            // Add only design objects
-            designObjects.forEach(obj => {
-              const clonedObj = fabric.util.object.clone(obj);
-              exportCanvas.add(clonedObj);
-            });
+              if (designObjects.length === 0) {
+                console.log('No design elements found, downloading preview image');
+                tempCanvas.dispose();
+                downloadPreviewImage();
+                resolve();
+                return;
+              }
 
-            exportCanvas.renderAll();
+              // Create a new canvas with only design elements
+              const exportCanvas = document.createElement('canvas');
+              exportCanvas.width = tempCanvas.width!;
+              exportCanvas.height = tempCanvas.height!;
+              const ctx = exportCanvas.getContext('2d');
+              
+              if (ctx) {
+                // Set white background
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+                
+                // Render each design object
+                designObjects.forEach(obj => {
+                  try {
+                    obj.render(ctx);
+                  } catch (err) {
+                    console.warn('Error rendering object:', err);
+                  }
+                });
+                
+                // Generate WebP data URL
+                const dataURL = exportCanvas.toDataURL('image/webp', 0.9);
+                
+                // Create download link
+                const link = document.createElement('a');
+                link.href = dataURL;
+                link.download = `${orderNumber}-${productName}-design.webp`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                console.log('Download completed successfully');
+              }
 
-            // Generate PNG data URL
-            const dataURL = exportCanvas.toDataURL({
-              format: 'png',
-              quality: 1,
-              multiplier: 2
-            });
-
-            // Create download link
-            const link = document.createElement('a');
-            link.href = dataURL;
-            link.download = `${orderNumber}-${productName}-design.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // Clean up
-            exportCanvas.dispose();
-            tempCanvas.dispose();
-          } else {
-            // Fall back to preview image if no design objects
-            downloadPreviewImage();
-          }
+              // Clean up
+              tempCanvas.dispose();
+              resolve();
+            } catch (error) {
+              console.error('Error during export:', error);
+              tempCanvas.dispose();
+              // Fallback to preview image
+              downloadPreviewImage();
+              resolve();
+            }
+          });
         });
       } else {
         // Fall back to preview image
+        console.log('Using preview image for download');
         downloadPreviewImage();
       }
     } catch (error) {
@@ -100,15 +122,20 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
   const downloadPreviewImage = () => {
     if (previewImage) {
       try {
+        console.log('Downloading preview image:', previewImage);
+        
+        // Create download link
         const link = document.createElement('a');
         link.href = previewImage;
-        link.download = `${orderNumber}-${productName}-preview.png`;
+        link.download = `${orderNumber}-${productName}-preview.webp`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       } catch (error) {
         console.error('Error downloading preview image:', error);
       }
+    } else {
+      console.error('No preview image available for download');
     }
   };
 
@@ -145,11 +172,11 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
           <Button
             size="sm"
             variant="outline"
-            onClick={downloadDesignAsPNG}
+            onClick={downloadDesignAsWebP}
             className="flex items-center gap-1"
           >
             <Download size={14} />
-            Download PNG
+            Download WebP
           </Button>
         </div>
       </div>
@@ -161,6 +188,7 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
             alt="Design Preview"
             className="w-full max-w-32 h-auto border rounded"
             onError={(e) => {
+              console.error('Preview image failed to load:', previewImage);
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />

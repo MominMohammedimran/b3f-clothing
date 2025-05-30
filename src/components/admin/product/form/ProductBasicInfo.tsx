@@ -22,6 +22,7 @@ const CATEGORIES = [
   "Home Decor",
   "Books",
   "Sports",
+  'tshirts',
   "Other"
 ];
 

@@ -120,11 +120,11 @@ const DesignTool = () => {
   const handleViewChange = (view: string) => {
     if (canvas && isDualSided) {
       if (productView === 'front') {
-        const frontDataUrl = canvas.toDataURL({ format: 'png', quality: 1 });
+        const frontDataUrl = canvas.toDataURL({ format: 'webp', quality: 0.9 });
         setFrontDesign(frontDataUrl);
         setDesignComplete(prev => ({...prev, front: hasDesignElements()}));
       } else if (productView === 'back') {
-        const backDataUrl = canvas.toDataURL({ format: 'png', quality: 1 });
+        const backDataUrl = canvas.toDataURL({ format: 'webp', quality: 0.9 });
         setBackDesign(backDataUrl);
         setDesignComplete(prev => ({...prev, back: hasDesignElements()}));
       }
@@ -146,7 +146,7 @@ const DesignTool = () => {
    
     if (checked) {
       if (canvas && productView === 'front') {
-        const frontDataUrl = canvas.toDataURL({ format: 'png', quality: 1 });
+        const frontDataUrl = canvas.toDataURL({ format: 'webp', quality: 0.9 });
         setFrontDesign(frontDataUrl);
         setDesignComplete(prev => ({...prev, front: hasDesignElements()}));
       }
@@ -174,44 +174,18 @@ const DesignTool = () => {
     if (!canvas) return null;
     
     try {
-      // Get only design objects (exclude background)
-      const designObjects = canvas.getObjects().filter(obj => !obj.data?.isBackground);
-      
-      if (designObjects.length === 0) {
-        return null;
-      }
-
-      // Create a temporary canvas for preview generation
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvas.width!;
-      tempCanvas.height = canvas.height!;
-      const tempFabricCanvas = new fabric.Canvas(tempCanvas, {
-        width: canvas.width!,
-        height: canvas.height!,
-        backgroundColor: 'transparent'
-      });
-
-      // Add only design objects to temp canvas
-      designObjects.forEach(obj => {
-        const clonedObj = fabric.util.object.clone(obj);
-        tempFabricCanvas.add(clonedObj);
-      });
-
-      tempFabricCanvas.renderAll();
-
-      // Generate data URL
-      const previewDataUrl = tempFabricCanvas.toDataURL({
+      // Generate the full canvas with both background and design elements
+      const previewDataUrl = canvas.toDataURL({
         format: 'png',
-        quality: 1
+        quality: 1.0,
+        multiplier: 1
       });
-
-      // Clean up
-      tempFabricCanvas.dispose();
-
+      
       return previewDataUrl;
     } catch (error) {
       console.error('Error generating design preview:', error);
-      return canvas.toDataURL({ format: 'png', quality: 1 });
+      // Fallback to full canvas export
+      return canvas.toDataURL({ format: 'png', quality: 1.0 });
     }
   };
 
@@ -248,7 +222,7 @@ const DesignTool = () => {
         return;
       }
 
-      // Get canvas data for storage
+      // Get canvas data for storage and generate proper preview
       const canvasJSON = canvas.toJSON();
       const previewImage = generateDesignPreview();
      
@@ -466,8 +440,8 @@ const DesignTool = () => {
       <EmojiModal
         isOpen={isEmojiModalOpen}
         onClose={() => setIsEmojiModalOpen(false)}
-        onAddEmoji={(emoji) => {
-          addEmojiToCanvas(emoji);
+        onAddEmoji={(emoji, fontSize) => {
+          addEmojiToCanvas(emoji, fontSize);
           setIsEmojiModalOpen(false);
         }}
       />

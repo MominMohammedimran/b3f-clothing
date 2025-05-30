@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import SEOHelmet from '../components/seo/SEOHelmet';
 import { useSEO } from '../hooks/useSEO';
-import SignupForm from '../components/auth/SignupForm';
+import SignUpForm from '../components/auth/SignUpForm';
 import VerificationForm from '../components/auth/VerificationForm';
 import { useAuth } from '@/context/AuthContext';
 
@@ -45,7 +45,7 @@ const SignUp = () => {
               onBack={() => setIsOtpSent(false)}
             />
           ) : (
-            <SignupForm 
+            <SignUpForm 
               onVerificationSent={(email, password, data) => {
                 setUserEmail(email);
                 setUserPassword(password);

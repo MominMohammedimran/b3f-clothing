@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Send ,ArrowLeft} from 'lucide-react';
+import {Link} from 'react-router-dom'
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -56,6 +57,14 @@ const Contact = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 max-w-5xl">
+         <div className="flex items-center mb-4 mt-4">
+                        <Link to="/" className="mr-2">
+                          <ArrowLeft size={24} className="back-arrow" />
+                        </Link>
+                        <h1 className="text-2xl font-bold text-green-600">Back</h1>
+                        
+                        
+                      </div>
         <h1 className="text-3xl font-bold mb-6">Contact Us</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

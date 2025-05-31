@@ -1,11 +1,20 @@
 
 import React from 'react';
 import Layout from '../components/layout/Layout';
-
+import { Link } from 'react-router-dom';
+import{ArrowLeft} from 'lucide-react'
 const About = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 max-w-4xl">
+         <div className="flex items-center mb-4 mt-4">
+                        <Link to="/" className="mr-2">
+                          <ArrowLeft size={24} className="back-arrow" />
+                        </Link>
+                        <h1 className="text-2xl font-bold text-green-600">Back</h1>
+                        
+                        
+                      </div>
         <h1 className="text-3xl font-bold mb-6">About Us</h1>
         
         <div className="bg-white rounded-xl p-6 shadow-md">

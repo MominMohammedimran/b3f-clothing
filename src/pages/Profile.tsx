@@ -1,7 +1,9 @@
 
 import React from 'react';
+import{Link} from 'react-router-dom'
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../context/AuthContext';
+import {ArrowLeft } from 'lucide-react'
 
 const Profile = () => {
   const { currentUser } = useAuth();
@@ -9,6 +11,14 @@ const Profile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 max-w-4xl">
+        <div className="flex items-center mb-4 mt-4">
+                <Link to="/" className="mr-2">
+                  <ArrowLeft size={24} className="back-arrow" />
+                </Link>
+                <h1 className="text-2xl font-bold text-green-600">Back</h1>
+                
+                
+              </div>
         <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
         
         {currentUser ? (

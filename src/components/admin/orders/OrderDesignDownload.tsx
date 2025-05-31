@@ -14,7 +14,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
   const downloadDesignFiles = async () => {
     try {
       const designItems = items.filter(item => 
-        item.metadata?.previewImage || item.metadata?.designData || item.metadata?.backImage
+        item.metadata?.previewImage || item.metadata?.designData || item.metadata?.backImage || item.image
       );
 
       if (designItems.length === 0) {
@@ -29,7 +29,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
         if (item.metadata?.previewImage) {
           await downloadImage(
             item.metadata.previewImage,
-            `${orderNumber}_${item.name}_${item.metadata.view || 'front'}_design.png`
+            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_${item.metadata.view || 'front'}_design.png`
           );
         }
 
@@ -37,7 +37,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
         if (item.metadata?.backImage) {
           await downloadImage(
             item.metadata.backImage,
-            `${orderNumber}_${item.name}_back_design.png`
+            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_back_design.png`
           );
         }
 
@@ -45,7 +45,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
         if (!item.metadata?.previewImage && item.image) {
           await downloadImage(
             item.image,
-            `${orderNumber}_${item.name}_product_image.png`
+            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_product_image.png`
           );
         }
 
@@ -55,7 +55,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
         }
       }
 
-      toast.success(`Downloaded design files for order ${orderNumber}`);
+      toast.success(`Downloaded ${designItems.length} design files for order ${orderNumber}`);
     } catch (error) {
       console.error('Error downloading design files:', error);
       toast.error('Failed to download design files');
@@ -71,6 +71,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
           const link = document.createElement('a');
           link.href = imageUrl;
           link.download = filename;
+          link.style.display = 'none';
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -84,6 +85,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
               const link = document.createElement('a');
               link.href = url;
               link.download = filename;
+              link.style.display = 'none';
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
@@ -97,6 +99,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
               link.href = imageUrl;
               link.download = filename;
               link.target = '_blank';
+              link.style.display = 'none';
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
@@ -110,7 +113,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
   };
 
   const hasDesignFiles = items.some(item => 
-    item.metadata?.previewImage || item.metadata?.designData || item.metadata?.backImage
+    item.metadata?.previewImage || item.metadata?.designData || item.metadata?.backImage || item.image
   );
 
   if (!hasDesignFiles) {
@@ -118,7 +121,8 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
   }
 
   return (
-    <div className="mt-4">
+    <div className="mt-4 pt-4 border-t">
+      <h4 className="text-sm font-medium text-gray-900 mb-2">Design Files</h4>
       <Button
         onClick={downloadDesignFiles}
         variant="outline"
@@ -126,7 +130,9 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
         className="w-full"
       >
         <Download className="h-4 w-4 mr-2" />
-        Download Design Files
+        Download All Design Files ({items.filter(item => 
+          item.metadata?.previewImage || item.metadata?.designData || item.metadata?.backImage || item.image
+        ).length} files)
       </Button>
     </div>
   );

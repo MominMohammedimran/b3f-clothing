@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -33,6 +32,7 @@ export interface AuthContextType {
   signOut: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string) => Promise<any>;
+  signInWithGoogle: () => Promise<any>; // Adding Google sign-in method
   userProfile: any;
   refreshUserProfile: () => Promise<void>;
 }
@@ -44,6 +44,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   signIn: async () => ({}),
   signUp: async () => ({}),
+  signInWithGoogle: async () => ({}), // Adding default implementation
   userProfile: null,
   refreshUserProfile: async () => {}
 });
@@ -84,8 +85,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return { data, error: null };
     } catch (error: any) {
       console.error('Sign in error:', error);
-      toast.error(error.message || 'Failed to sign in');
-      return { error };
+      return { data: null, error };
     } finally {
       setLoading(false);
     }
@@ -127,20 +127,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         } catch (profileError) {
           console.error('Error creating user profile:', profileError);
         }
-        
-        // Simulate verification for development purposes
-        const token = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        console.log('Verification token created:', token);
-        // In a production app, this token would be sent via email
       }
       
-      toast.success('Sign up successful! Check your email for verification or use token: 123456');
       return { data, error: null };
     } catch (error: any) {
       console.error('Sign up error:', error);
-      toast.error(error.message || 'Failed to sign up');
       return { error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add Google sign-in function
+  const signInWithGoogle = async () => {
+    try {
+      setLoading(true);
+      // Clean up existing auth state
+      cleanupAuthState();
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error('Google sign-in error:', error);
+      return { data: null, error };
     } finally {
       setLoading(false);
     }
@@ -328,6 +345,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signOut,
     signIn,
     signUp,
+    signInWithGoogle, // Adding Google sign-in to context value
     userProfile,
     refreshUserProfile
   };

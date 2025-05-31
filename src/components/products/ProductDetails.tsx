@@ -1,99 +1,153 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Product } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
-import ProductPlaceOrder from '@/components/products/ProductPlaceOrder';
-import { Button } from '@/components/ui/button';
-import { ShoppingBag } from 'lucide-react';
-import { useCart } from '@/context/CartContext';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import ProductSizeSelector from './ProductSizeSelector';
+import ProductQuantitySelector from './ProductQuantitySelector';
+import ProductActionButtons from './ProductActionButtons';
 
-interface ProductDetailsProps {
+export interface ProductDetailsProps {
   product: Product;
-  selectedSize: string;
-  setSelectedSize: (size: string) => void;
+  selectedSize?: string;
+  setSelectedSize?: (size: string) => void;
+  selectedSizes?: string[];
+  onSizeToggle?: (size: string) => void;
+  quantity?: number;
+  onQuantityChange?: (quantity: number) => void;
+  allowMultipleSizes?: boolean;
 }
 
-const ProductDetails = ({ product, selectedSize, setSelectedSize }: ProductDetailsProps) => {
-  const { addToCart } = useCart();
-  const { currentUser } = useAuth();
-  const navigate = useNavigate();
+const ProductDetails: React.FC<ProductDetailsProps> = ({
+  product,
+  selectedSize,
+  setSelectedSize,
+  selectedSizes,
+  onSizeToggle,
+  quantity: propQuantity,
+  onQuantityChange,
+  allowMultipleSizes = false,
+}) => {
+  const [internalQuantity, setInternalQuantity] = useState(1);
+  const [internalSelectedSizes, setInternalSelectedSizes] = useState<string[]>([]);
   
-  const handleAddToCart = async () => {
-    if (!currentUser) {
-      toast.error('Please sign in to add to cart');
-      navigate('/signin');
-      return;
-    }
-    
-    if (product) {
-      await addToCart({
-        ...product,
-        size: selectedSize || undefined
-      }, 1);
-      
-      toast.success(`${product.name} added to cart`);
+  // Use props or internal state
+  const quantity = propQuantity ?? internalQuantity;
+  const currentSelectedSizes = selectedSizes ?? internalSelectedSizes;
+  
+  const handleQuantityChange = (newQuantity: number) => {
+    if (onQuantityChange) {
+      onQuantityChange(newQuantity);
+    } else {
+      setInternalQuantity(newQuantity);
     }
   };
-  
-  return (
-    <div>
-      <div className="flex justify-between items-start">
-        <h1 className="text-2xl font-bold">{product?.name}</h1>
-      </div>
-      
-      <div className="mt-2">
-        <span className="text-2xl font-bold text-blue-600">{formatCurrency(product?.price || 0)}</span>
-        {product?.discount_percentage > 0 && (
-          <span className="ml-2 text-gray-500 line-through">{formatCurrency(product?.original_price || 0)}</span>
-        )}
-      </div>
-      
-      <div className="mt-4">
-        <p className="text-gray-700">{product?.description}</p>
-      </div>
-      
-      {product?.sizes && product.sizes.length > 0 && (
-        <div className="mt-6">
-          <h3 className="font-semibold mb-2">Select Size</h3>
-          <div className="flex flex-wrap gap-2">
-            {product.sizes.map((size) => (
-              <button
-                key={size}
-                onClick={() => setSelectedSize(size)}
-                className={`px-4 py-2 border rounded-md ${
-                  selectedSize === size ? 'bg-blue-600 text-white' : 'bg-white'
-                }`}
-              >
-                {size}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      <div className="mt-6">
-        <div className="flex gap-3">
-          <Button 
-            onClick={handleAddToCart} 
-            variant="outline" 
-            className="flex-1"
-          >
-            <ShoppingBag size={16} className="mr-2" />
-            Add to Cart
-          </Button>
-          
-          <ProductPlaceOrder
-            product={product}
-            size={selectedSize}
-            className="flex-1"
-          />
-        </div>
-      </div>
+
+  const handleSizeToggle = (size: string) => {
+    if (onSizeToggle) {
+      onSizeToggle(size);
+    } else if (setSelectedSize && !allowMultipleSizes) {
+      setSelectedSize(size);
+    } else {
+      // Internal state management for multiple sizes
+      setInternalSelectedSizes(prev => 
+        prev.includes(size) 
+          ? prev.filter(s => s !== size)
+          : [...prev, size]
+      );
+    }
+  };
+
+  // Calculate total price based on selected sizes
+  const effectiveSelectedSizes = allowMultipleSizes ? currentSelectedSizes : (selectedSize ? [selectedSize] : []);
+  const priceMultiplier = effectiveSelectedSizes.length > 1 ? 2 : 1;
+  const totalPrice = product.price * priceMultiplier;
+
+  // Create size quantities from product data
+  const sizeQuantities: Record<string, number> = {};
+  if (product.sizes) {
+    product.sizes.forEach(size => {
+      sizeQuantities[size] = product.stock || 0;
+    });
+  }
+
+return (
+  <div className="space-y-8 bg-white p-6 rounded-xl shadow-md relative">
+    {/* Product Title + Price (using z-index) */}
+    <div className="relative">
+      <p className="text-xl font-semibold text-gray-900 tracking-tight">
+        Name : <span className="text-gray-600">{product.name}</span>
+      </p>
+      {/* Price positioned absolutely, right side of name */}
+   <span
+        className="absolute top-1/2 right-0 -translate-y-1/2 text-2xl font-semibold text-white drop-shadow-md select-none 
+         bg-black px-2 py-1 rounded-lg shadow-md z-20"
+        style={{ whiteSpace: "nowrap" }}
+           >
+         ₹{totalPrice}
+    </span>
+
+
     </div>
-  );
+
+    {/* Description */}
+    <p className="text-lg font-semibold text-gray-900 ">
+      Description : <span className="text-gray-600">{product.description}</span>
+    </p>
+
+    {/* Size Selector */}
+    {product.sizes && product.sizes.length > 0 && (
+      <ProductSizeSelector
+        sizes={product.sizes}
+        sizeQuantities={sizeQuantities}
+        selectedSizes={
+          allowMultipleSizes ? currentSelectedSizes : selectedSize ? [selectedSize] : []
+        }
+        onSizeToggle={handleSizeToggle}
+        allowMultiple={allowMultipleSizes}
+        showStock={true}
+      />
+    )}
+
+    {/* Quantity Selector */}
+    <div className='justify-items-center flex gap-3'>
+      <h3 className="text-lg font-semibold text-gray-800 mb-2s">Select Quantity</h3>
+      <ProductQuantitySelector
+        quantity={quantity}
+        maxQuantity={product.stock || 10}
+        onChange={handleQuantityChange}
+      />
+    </div>
+
+    {/* Action Buttons */}
+    <ProductActionButtons
+      product={product}
+      selectedSize={selectedSize || currentSelectedSizes[0] || ''}
+      selectedSizes={effectiveSelectedSizes}
+      quantity={quantity}
+      totalPrice={totalPrice}
+    />
+
+    {/* Discount badges */}
+    <div className="flex flex-wrap items-center gap-3 mt-2">
+      {product.originalPrice && product.originalPrice > product.price && (
+        <>
+          <span className="text-lg text-gray-400 line-through">
+            ₹{product.originalPrice * priceMultiplier}
+          </span>
+          <span className="bg-red-100 text-red-800 text-sm font-semibold px-3 py-1 rounded-full shadow">
+            {product.discountPercentage}% OFF
+          </span>
+        </>
+      )}
+      {priceMultiplier > 1 && (
+        <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full shadow">
+          Multiple Sizes Selected
+        </span>
+      )}
+    </div>
+  </div>
+);
+
+
 };
 
 export default ProductDetails;

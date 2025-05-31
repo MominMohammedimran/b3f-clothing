@@ -127,9 +127,7 @@ const Navbar = () => {
           <div className="flex items-center gap-3">
            
             
-            <Link to="/search" className="text-blue-600">
-              <Search size={20} />
-            </Link>
+            
             
             <Link to="/cart" className="flex items-center space-x-1 text-blue-600 font-medium">
               <div className="relative">
@@ -140,7 +138,7 @@ const Navbar = () => {
                   </span>
                 )}
               </div>
-              <span className="hidden sm:inline">Cart</span>
+              <span className="hidden sm:inline text-xl">Cart</span>
             </Link>
           </div>
         </div>

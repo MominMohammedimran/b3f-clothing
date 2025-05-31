@@ -1,6 +1,21 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { DEFAULT_ADMIN_PERMISSIONS } from "./adminAuth";
+
+// Provide the default admin permissions that were previously imported
+const DEFAULT_ADMIN_PERMISSIONS = [
+  "products.create",
+  "products.read",
+  "products.update",
+  "products.delete",
+  "orders.create",
+  "orders.read",
+  "orders.update",
+  "orders.delete",
+  "customers.create",
+  "customers.read",
+  "customers.update",
+  "customers.delete",
+];
 
 export const initializeAdmin = async (userId: string, email: string): Promise<void> => {
   try {
@@ -9,7 +24,7 @@ export const initializeAdmin = async (userId: string, email: string): Promise<vo
       .from('admin_users')
       .select('*')
       .eq('email', email)
-      .single();
+      .maybeSingle();
     
     if (existingAdmin) {
       console.log('Admin already exists', existingAdmin);
@@ -20,7 +35,6 @@ export const initializeAdmin = async (userId: string, email: string): Promise<vo
     const { data, error } = await supabase
       .from('admin_users')
       .insert({
-        user_id: userId,
         email: email,
         role: 'admin',
         permissions: DEFAULT_ADMIN_PERMISSIONS,

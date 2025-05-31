@@ -2,7 +2,7 @@
 import React from 'react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Wallet, Banknote } from 'lucide-react';
+import { CreditCard, Banknote } from 'lucide-react';
 
 interface PaymentMethodSelectorProps {
   paymentMethod: string;
@@ -20,14 +20,6 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
         <Label htmlFor="razorpay" className="flex items-center cursor-pointer">
           <CreditCard className="h-4 w-4 mr-2" />
           <span>Credit / Debit Card (Razorpay)</span>
-        </Label>
-      </div>
-      
-      <div className="flex items-center space-x-2 border p-4 rounded-lg hover:bg-gray-50 cursor-pointer">
-        <RadioGroupItem value="upi" id="upi" />
-        <Label htmlFor="upi" className="flex items-center cursor-pointer">
-          <Wallet className="h-4 w-4 mr-2" />
-          <span>UPI Payment</span>
         </Label>
       </div>
       

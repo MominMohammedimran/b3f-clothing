@@ -41,6 +41,9 @@ export const makePayment = async (
   // Get configuration
   const config = getRazorpayConfig();
   
+  // Log the mode for debugging
+  console.log(`Razorpay running in ${config.isTestMode ? 'TEST' : 'PRODUCTION'} mode`);
+
   // Initialize Razorpay options
   const options: RazorpayOptions = {
     key: config.apiKey,

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin } from 'lucide-react';
 import { Location } from '../../lib/types';

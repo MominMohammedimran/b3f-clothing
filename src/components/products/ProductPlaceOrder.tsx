@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 
 interface ProductPlaceOrderProps {
   product: Product;
-  size?: string;
+  selectedSize?: string;
   selectedSizes?: string[];
   variant?: "default" | "outline" | "destructive" | "secondary" | "ghost" | "link";
   size_btn?: "default" | "sm" | "lg" | "icon";
@@ -19,7 +19,7 @@ interface ProductPlaceOrderProps {
 
 const ProductPlaceOrder: React.FC<ProductPlaceOrderProps> = ({
   product,
-  size: selectedSize,
+  selectedSize,
   selectedSizes = [],
   variant = "default",
   size_btn = "default",
@@ -36,6 +36,12 @@ const ProductPlaceOrder: React.FC<ProductPlaceOrderProps> = ({
       return;
     }
     
+    // Check if size is selected
+    if (!selectedSize && (!selectedSizes || selectedSizes.length === 0)) {
+      toast.error('Please select a size before placing your order');
+      return;
+    }
+    
     try {
       // Make sure we have a valid product ID
       const productId = product.id;
@@ -48,36 +54,15 @@ const ProductPlaceOrder: React.FC<ProductPlaceOrderProps> = ({
       
       console.log('Adding to cart before checkout:', product);
       
-      // Create a valid product object by ensuring all required fields exist
-      const validProduct: Product = {
-        id: productId,
-        productId: productId, // Add productId for compatibility
+      // Add to cart with correct structure
+      await addToCart({
+        product_id: productId,
         name: product.name || 'Product',
         price: product.price || 0,
-        original_price: product.original_price || product.price || 0,
-        discount_percentage: product.discount_percentage || 0,
+        quantity: 1,
+        size: selectedSize || (selectedSizes.length > 0 ? selectedSizes[0] : undefined),
         image: product.image || '',
-        description: product.description || '',
-        rating: product.rating || 0,
-        category: product.category || '',
-        tags: product.tags || [],
-        code: product.code || productId,
-        stock: product.stock || 10,
-      };
-      
-      // If we have multiple sizes selected, use those
-      if (selectedSizes && selectedSizes.length > 0) {
-        await addToCart({
-          ...validProduct,
-          selectedSizes: selectedSizes,
-        }, 1);
-      } else {
-        // Otherwise use the single size
-        await addToCart({
-          ...validProduct,
-          size: selectedSize,
-        }, 1);
-      }
+      });
       
       toast.success(`${product.name} added to cart`);
       

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
@@ -35,16 +36,28 @@ const OrderHistory = () => {
 
         const transformedOrders: Order[] = data?.map(order => ({
           id: order.id,
+          orderNumber: order.order_number,
           order_number: order.order_number,
+          userId: order.user_id,
           user_id: order.user_id,
+          userEmail: '', // Not available in database
+          user_email: '', // Not available in database
           items: Array.isArray(order.items) ? order.items as any[] : [],
           total: order.total,
-          status: order.status,
+          status: order.status as 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'pending',
+          paymentMethod: order.payment_method,
           payment_method: order.payment_method,
+          shippingAddress: typeof order.shipping_address === 'string' 
+            ? JSON.parse(order.shipping_address) 
+            : order.shipping_address,
           shipping_address: order.shipping_address,
+          deliveryFee: order.delivery_fee,
           delivery_fee: order.delivery_fee,
+          createdAt: order.created_at,
           created_at: order.created_at,
-          updated_at: order.updated_at
+          updatedAt: order.updated_at,
+          updated_at: order.updated_at,
+          date: order.date || order.created_at
         })) || [];
 
         setOrders(transformedOrders);
@@ -89,9 +102,9 @@ const OrderHistory = () => {
               <div key={order.id} className="bg-white p-6 rounded-lg shadow border">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="font-semibold">Order #{order.order_number}</h3>
+                    <h3 className="font-semibold">Order #{order.orderNumber}</h3>
                     <p className="text-sm text-gray-600">
-                      {new Date(order.created_at).toLocaleDateString()}
+                      {new Date(order.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="text-right">

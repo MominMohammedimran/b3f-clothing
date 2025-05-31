@@ -34,7 +34,7 @@ const AdminNavbar = () => {
 
   return (
     <nav className="bg-blue-900 text-white shadow-md">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 mt-10">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
           <Link to="/admin/dashboard" className="text-xl font-bold">

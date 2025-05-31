@@ -14,7 +14,7 @@ interface UserDetailsDialogProps {
   user: UserProfile;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onViewOrderHistory: (userId: string) => void; // Update to accept userId parameter
+  onViewOrderHistory: () => void;
 }
 
 const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ 
@@ -124,7 +124,7 @@ const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
         <DialogFooter className="flex justify-between">
           <Button 
             variant="outline" 
-            onClick={() => onViewOrderHistory(user.id)}
+            onClick={onViewOrderHistory}
           >
             View Order History
           </Button>

@@ -5,6 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import ProfileSettings from '../../components/account/ProfileSettings';
+import OrdersHistory from '../../components/account/OrdersHistory';
+import AddressSettings from '../../components/account/AddressSettings';
+import AppSettings from '../../components/account/AppSettings';
+import RewardPoints from '../../components/account/RewardPoints';
 
 interface UserProfileInfoProps {
   profile: any;
@@ -18,7 +24,7 @@ const UserProfileInfo: React.FC<UserProfileInfoProps> = ({ profile }) => {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+   const [activeTab, setActiveTab] = useState("settings");
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -52,78 +58,21 @@ const UserProfileInfo: React.FC<UserProfileInfoProps> = ({ profile }) => {
   };
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold">Personal Information</h2>
-        {!isEditing ? (
-          <Button variant="outline" onClick={() => setIsEditing(true)}>
-            Edit Profile
-          </Button>
-        ) : (
-          <Button variant="outline" onClick={() => setIsEditing(false)}>
-            Cancel
-          </Button>
-        )}
-      </div>
-      
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Label htmlFor="firstName">First Name</Label>
-            <Input
-              id="firstName"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              className="mt-1"
-              disabled={!isEditing}
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="lastName">Last Name</Label>
-            <Input
-              id="lastName"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              className="mt-1"
-              disabled={!isEditing}
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              value={profile?.email || ''}
-              className="mt-1"
-              disabled
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="phoneNumber">Phone Number</Label>
-            <Input
-              id="phoneNumber"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleChange}
-              className="mt-1"
-              disabled={!isEditing}
-            />
-          </div>
-        </div>
-        
-        {isEditing && (
-          <div className="mt-6">
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        )}
-      </form>
-    </div>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid grid-cols-2 md:grid-cols-2 w-full mb-8">
+               <TabsTrigger value="settings" className="  text-xl md:block">Settings</TabsTrigger>
+               <TabsTrigger value="rewards" className=" text-xl md:block">Rewards</TabsTrigger>
+                
+              </TabsList>
+           
+            
+              <TabsContent value="settings">
+                <AppSettings />
+              </TabsContent>
+                <TabsContent value="rewards">
+                <RewardPoints />
+              </TabsContent>
+            </Tabs>
   );
 };
 

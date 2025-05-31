@@ -1,119 +1,106 @@
 
 /**
- * Security Utility Functions
+ * Security utility functions for the application
  */
 
-// Function to check password strength
-export const checkPasswordStrength = (password: string) => {
-  // Initialize score and feedback
-  let strength = 'weak';
-  let message = 'Password is too weak';
-  
-  // If password is empty, return default weak status
-  if (!password) {
-    return { strength, message };
-  }
-  
-  // Check password length
-  if (password.length < 8) {
-    return { strength, message: 'Password should be at least 8 characters long' };
-  }
-  
-  // Check for uppercase, lowercase, numbers, and special characters
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumbers = /\d/.test(password);
-  const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
-  
-  // Calculate score based on criteria
-  let score = 0;
-  if (password.length >= 8) score++;
-  if (password.length >= 12) score++;
-  if (hasUpperCase) score++;
-  if (hasLowerCase) score++;
-  if (hasNumbers) score++;
-  if (hasSpecialChars) score++;
-  
-  // Set strength and message based on score
-  if (score >= 5) {
-    strength = 'strong';
-    message = 'Strong password';
-  } else if (score >= 3) {
-    strength = 'medium';
-    message = 'Medium-strength password';
-  }
-  
-  // Add specific feedback
-  if (!hasUpperCase) message += ', add uppercase letters';
-  if (!hasLowerCase) message += ', add lowercase letters';
-  if (!hasNumbers) message += ', add numbers';
-  if (!hasSpecialChars) message += ', add special characters';
-  
-  return { strength, message };
-};
-
-// Function to sanitize user inputs (prevent XSS)
-export const sanitizeInput = (input: string): string => {
-  if (!input) return '';
-  return input
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
-};
-
-// Function to validate email format
-export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return emailRegex.test(email);
-};
-
-// Function to prevent SQL injection in search queries
-export const sanitizeSearchQuery = (query: string): string => {
-  if (!query) return '';
-  // Remove SQL commands and special characters
-  return query
-    .replace(/[;'"\\]/g, '')
-    .replace(/--/g, '')
-    .replace(/\/\*/g, '')
-    .replace(/\*\//g, '');
-};
-
-// Generate a CSRF token
-export const generateCSRFToken = (): string => {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
-};
-
-// Function to check session security (added to fix build error)
-export const checkSessionSecurity = async (): Promise<boolean> => {
-  // This function would validate the security of the current session
-  // In a real app, this would check for token validity, expiration, etc.
-  try {
-    // Check for token existence in localStorage
-    const hasToken = localStorage.getItem('supabase.auth.token') !== null;
-    return hasToken;
-  } catch (error) {
-    console.error('Session security check failed:', error);
-    return false;
+/**
+ * Enforce HTTPS in production environment
+ */
+export const enforceHttps = (): void => {
+  if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+    window.location.replace(`https:${window.location.href.substring(window.location.protocol.length)}`);
   }
 };
 
-// Function to enforce HTTPS (added to fix build error)
-export const enforceHttps = (): boolean => {
-  if (typeof window !== 'undefined') {
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-      window.location.href = window.location.href.replace('http:', 'https:');
-      return false;
+/**
+ * Set Content Security Policy via meta tag (only CSP can be set this way)
+ */
+export const setContentSecurityPolicy = (): void => {
+  if (typeof document !== 'undefined') {
+    // Only CSP can be set via meta tag
+    const existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+    if (!existingCSP) {
+      const meta = document.createElement('meta');
+      meta.setAttribute('http-equiv', 'Content-Security-Policy');
+      meta.setAttribute('content', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://api.razorpay.com https://cdn.gpteng.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com;");
+      document.head.appendChild(meta);
     }
   }
-  return true;
 };
 
-// Function to verify SSL certificate (added to fix build error)
-export const verifySslCertificate = (): boolean => {
-  // In a browser environment, this is handled automatically
-  // This is a placeholder function to satisfy the type requirements
-  return true;
+/**
+ * Check password strength
+ */
+export const checkPasswordStrength = (password: string): { score: number; feedback: string[]; strength: string; message: string } => {
+  const feedback: string[] = [];
+  let score = 0;
+
+  if (password.length >= 8) {
+    score += 1;
+  } else {
+    feedback.push('Password should be at least 8 characters long');
+  }
+
+  if (/[a-z]/.test(password)) {
+    score += 1;
+  } else {
+    feedback.push('Include lowercase letters');
+  }
+
+  if (/[A-Z]/.test(password)) {
+    score += 1;
+  } else {
+    feedback.push('Include uppercase letters');
+  }
+
+  if (/\d/.test(password)) {
+    score += 1;
+  } else {
+    feedback.push('Include numbers');
+  }
+
+  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    score += 1;
+  } else {
+    feedback.push('Include special characters');
+  }
+
+  let strength = 'Weak';
+  let message = 'Password is too weak';
+
+  if (score >= 4) {
+    strength = 'Strong';
+    message = 'Password is strong';
+  } else if (score >= 3) {
+    strength = 'Medium';
+    message = 'Password is medium strength';
+  }
+
+  return { score, feedback, strength, message };
+};
+
+/**
+ * Check session security
+ */
+export const checkSessionSecurity = (): boolean => {
+  // Basic session security checks
+  return typeof window !== 'undefined' && 
+         window.location.protocol === 'https:';
+};
+
+/**
+ * Initialize all security measures
+ */
+export const initializeSecurity = (): void => {
+  enforceHttps();
+  setContentSecurityPolicy();
+};
+
+// Export all functions for use in other parts of the application
+export default {
+  enforceHttps,
+  setContentSecurityPolicy,
+  checkPasswordStrength,
+  checkSessionSecurity,
+  initializeSecurity
 };

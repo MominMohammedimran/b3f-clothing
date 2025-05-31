@@ -37,14 +37,12 @@ export interface RazorpayOptions {
 
 // Environment configuration
 export const getRazorpayConfig = () => {
-  // Always use live mode
-  const isLiveMode = true;
-  
-  // Use the live API key
-  const apiKey = "rzp_live_2Mc4YyXZYcwqy8";
+  const isTestMode = process.env.NODE_ENV !== 'production';
+  // The API key will be retrieved from the edge function which has access to secrets
+  const apiKey = "rzp_live_FQUylFpHDtgrDj"; // This will be used as fallback, but edge function will provide the correct key
   
   return {
-    isTestMode: !isLiveMode,
+    isTestMode,
     apiKey
   };
 };

@@ -1,149 +1,127 @@
 
-import { useSupabaseClient } from './useSupabase';
-import { TrackingInfo } from '../lib/types';
-import { useQuery } from '@tanstack/react-query';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Order, TrackingInfo } from '@/lib/types';
+import { toast } from 'sonner';
 
-export const useOrderTracking = (orderId: string | undefined) => {
-  const supabase = useSupabaseClient() as SupabaseClient;
+export const useOrderTracking = () => {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchTracking = async (): Promise<TrackingInfo> => {
-    if (!orderId) throw new Error('Order ID is missing');
-
+  const fetchOrders = async (userId?: string) => {
     try {
-      // First try to get tracking info from order_tracking table
-      const { data: trackingData, error: trackingError } = await supabase
-        .from('order_tracking')
-        .select('*')
-        .eq('order_id', orderId)
-        .maybeSingle();
-      
-      if (!trackingError && trackingData) {
-        console.log('Found tracking data:', trackingData);
-        return trackingData as TrackingInfo;
-      }
+      setLoading(true);
+      setError(null);
 
-      // If no tracking data, get order data to generate tracking
-      const { data: orderData, error: orderError } = await supabase
+      let query = supabase
         .from('orders')
-        .select('status, created_at, updated_at')
-        .eq('id', orderId)
-        .maybeSingle();
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (orderError) {
-        console.error('Order fetch error:', orderError);
-        throw new Error('Could not find order information');
+      if (userId) {
+        query = query.eq('user_id', userId);
       }
 
-      if (!orderData) {
-        throw new Error('Order not found');
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) {
+        throw fetchError;
       }
 
-      // Generate tracking info from order status
-      const today = new Date();
-      const createdAt = new Date(orderData.created_at);
-      const updatedAt = new Date(orderData.updated_at || today);
-      const orderStatus = orderData.status?.toLowerCase() || 'processing';
+      if (data) {
+        // Transform the data to match our Order interface
+        const transformedOrders: Order[] = data.map((order: any) => ({
+          id: order.id,
+          orderNumber: order.order_number,
+          order_number: order.order_number,
+          userId: order.user_id,
+          user_id: order.user_id,
+          userEmail: order.user_email || '',
+          user_email: order.user_email || '',
+          items: Array.isArray(order.items) ? order.items : [],
+          total: Number(order.total),
+          status: order.status as 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'pending',
+          paymentMethod: order.payment_method,
+          payment_method: order.payment_method,
+          shippingAddress: typeof order.shipping_address === 'string' 
+            ? JSON.parse(order.shipping_address) 
+            : order.shipping_address,
+          shipping_address: order.shipping_address,
+          deliveryFee: Number(order.delivery_fee || 0),
+          delivery_fee: Number(order.delivery_fee || 0),
+          createdAt: order.created_at,
+          created_at: order.created_at,
+          updatedAt: order.updated_at,
+          updated_at: order.updated_at,
+          date: order.date || order.created_at,
+          cancellationReason: order.cancellation_reason || undefined,
+          cancellation_reason: order.cancellation_reason || undefined,
+        }));
 
-      // Create tracking history from order status
-      const history = [];
-      
-      // Always add processing status
-      history.push({
-        status: 'processing',
-        timestamp: createdAt.toISOString(),
-        location: 'B3F Prints and Mens Wear Shop',
-        description: 'Order is being processed'
-      });
-
-      if (['shipped', 'out_for_delivery', 'delivered'].includes(orderStatus)) {
-        history.push({
-          status: 'shipped',
-          timestamp: new Date(updatedAt.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          location: 'Distribution Center',
-          description: 'Order has been shipped'
-        });
+        setOrders(transformedOrders);
       }
-
-      if (['out_for_delivery', 'delivered'].includes(orderStatus)) {
-        history.push({
-          status: 'out_for_delivery',
-          timestamp: new Date(updatedAt.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          location: 'Local Delivery Hub',
-          description: 'Order is out for delivery'
-        });
-      }
-
-      if (orderStatus === 'delivered') {
-        history.push({
-          status: 'delivered',
-          timestamp: updatedAt.toISOString(),
-          location: 'Delivery Address',
-          description: 'Order has been delivered'
-        });
-      }
-
-      // Determine estimated delivery date (5 days from order creation)
-      const estimatedDeliveryDate = new Date(createdAt);
-      estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 5);
-      
-      // Create tracking info from order data
-      const trackingInfo: TrackingInfo = {
-        id: `tracking-${orderId}`,
-        order_id: orderId,
-        status: orderStatus,
-        timestamp: updatedAt.toISOString(),
-        location: orderStatus === 'delivered' ? 'Delivered' : 
-                orderStatus === 'shipped' || orderStatus === 'out_for_delivery' ? 'Out for delivery' : 
-                'Processing Center',
-        currentLocation: orderStatus === 'delivered' ? 'Delivered' : 
-                        orderStatus === 'shipped' || orderStatus === 'out_for_delivery' ? 'Out for delivery' : 
-                        'Processing Center',
-        estimatedDelivery: estimatedDeliveryDate.toLocaleDateString(),
-        date: createdAt.toLocaleDateString(),
-        time: createdAt.toLocaleTimeString(),
-        history
-      };
-
-      // Create entry in order_tracking table for future reference
-      try {
-        const { error } = await supabase
-          .from('order_tracking')
-          .insert([{
-            order_id: orderId,
-            status: orderStatus,
-            current_location: trackingInfo.currentLocation,
-            estimated_delivery: estimatedDeliveryDate.toISOString(),
-            history: history,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }]);
-        
-        if (error) {
-          console.error('Error creating tracking record:', error);
-        }
-      } catch (err) {
-        console.error('Failed to create tracking record:', err);
-      }
-
-      return trackingInfo;
-    } catch (error) {
-      console.error('Error fetching tracking:', error);
-      throw error;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch orders';
+      setError(errorMessage);
+      console.error('Error fetching orders:', err);
+      toast.error('Failed to load orders');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const {
-    data: tracking,
-    isLoading,
-    error
-  } = useQuery({
-    queryKey: ['tracking', orderId],
-    queryFn: fetchTracking,
-    enabled: !!orderId,
-    staleTime: 60000,
-    retry: 1
-  });
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
 
-  return { tracking, loading: isLoading, error };
+      if (error) throw error;
+
+      // Update local state
+      setOrders(prev => prev.map(order => 
+        order.id === orderId 
+          ? { 
+              ...order, 
+              status: newStatus as 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'pending', 
+              updatedAt: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          : order
+      ));
+
+      toast.success('Order status updated successfully');
+      return true;
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      toast.error('Failed to update order status');
+      return false;
+    }
+  };
+
+  // Use the correct property name from the database schema
+  const getOrderWithCancellation = (order: any) => {
+    return {
+      ...order,
+      cancellation_reason: order.cancellation_reason || undefined
+    };
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  return {
+    orders,
+    loading,
+    error,
+    fetchOrders,
+    updateOrderStatus,
+    getOrderWithCancellation
+  };
 };

@@ -1,267 +1,355 @@
 
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { toast } from 'sonner';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableCell
-} from "@/components/ui/table";
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Eye, Search, Filter, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import OrderDetailsDialog from '../../components/admin/OrderDetailsDialog';
-import OrderListItem from '@/components/admin/orders/OrderListItem';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Trash2 } from 'lucide-react';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { CartItem } from '@/lib/types';
 
-// Define a local Order interface to avoid conflicts with the imported type
 interface AdminOrder {
   id: string;
   order_number: string;
-  user_email: string;
+  user_id: string;
   total: number;
   status: string;
   created_at: string;
-  items?: any[];
-  delivery_fee?: number;
-  payment_method?: string;
+  items: CartItem[];
+  user_email?: string;
+  user_name?: string;
   shipping_address?: any;
-  updated_at?: string;
-  user_id?: string;
+  payment_method?: string;
 }
 
 const AdminOrders = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
-  const [deleteOrderId, setDeleteOrderId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
 
-  // Use React Query for better data fetching
-  const { 
-    data: ordersData = [], 
-    isLoading, 
-    error, 
-    refetch 
+  const {
+    data: orders = [],
+    isLoading,
+    error,
+    refetch
   } = useQuery({
-    queryKey: ['adminOrders'],
-    queryFn: fetchOrders,
-    retry: 3,
-    staleTime: 1000 * 30, // 30 seconds
-    refetchOnWindowFocus: true
-  });
-
-  async function fetchOrders(): Promise<AdminOrder[]> {
-    try {
-      console.log('Fetching orders from Supabase...');
-      // Try to get orders from Supabase
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*, profiles:user_id(email)')
-        .order('created_at', { ascending: false });
+    queryKey: ['adminOrders', searchTerm, statusFilter],
+    queryFn: async () => {
+      console.log('Fetching orders...');
       
+      let query = supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (statusFilter && statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      if (searchTerm) {
+        query = query.or(`order_number.ilike.%${searchTerm}%`);
+      }
+
+      const { data: ordersData, error: ordersError } = await query;
+
       if (ordersError) {
-        console.error('Supabase error:', ordersError);
+        console.error('Error fetching orders:', ordersError);
         throw ordersError;
       }
-      
-      if (ordersData && ordersData.length > 0) {
-        console.log(`Retrieved ${ordersData.length} orders`);
-        // Format the orders with email from profiles
-        const formattedOrders = ordersData.map((order: any) => ({
-          ...order,
-          user_email: order.profiles?.email || 'customer@example.com',
-        }));
-        
-        return formattedOrders as AdminOrder[];
+
+      // Fetch user profiles for each order and transform data
+      const ordersWithUserInfo = await Promise.all(
+        (ordersData || []).map(async (order) => {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('email, first_name, last_name')
+              .eq('id', order.user_id)
+              .maybeSingle();
+
+            // Transform items to CartItem[] format
+            const transformedItems: CartItem[] = Array.isArray(order.items) 
+              ? order.items.map((item: any) => ({
+                  id: item.id || item.product_id || 'unknown',
+                  name: item.name || 'Unknown Product',
+                  price: Number(item.price) || 0,
+                  quantity: Number(item.quantity) || 1,
+                  image: item.image || '',
+                  productId: item.product_id,
+                  size: item.size,
+                  color: item.color
+                }))
+              : [];
+
+            const transformedOrder: AdminOrder = {
+              id: order.id,
+              order_number: order.order_number || '',
+              user_id: order.user_id,
+              total: Number(order.total) || 0,
+              status: order.status || 'pending',
+              created_at: order.created_at,
+              items: transformedItems,
+              user_email: profile?.email || 'Unknown',
+              user_name: profile?.first_name && profile?.last_name 
+                ? `${profile.first_name} ${profile.last_name}`.trim()
+                : profile?.first_name || profile?.last_name || 'Unknown',
+              shipping_address: order.shipping_address,
+              payment_method: order.payment_method
+            };
+
+            return transformedOrder;
+          } catch (error) {
+            console.error('Error fetching user profile:', error);
+            
+            // Fallback transformation
+            const transformedItems: CartItem[] = Array.isArray(order.items) 
+              ? order.items.map((item: any) => ({
+                  id: item.id || item.product_id || 'unknown',
+                  name: item.name || 'Unknown Product',
+                  price: Number(item.price) || 0,
+                  quantity: Number(item.quantity) || 1,
+                  image: item.image || '',
+                  productId: item.product_id,
+                  size: item.size,
+                  color: item.color
+                }))
+              : [];
+
+            return {
+              id: order.id,
+              order_number: order.order_number || '',
+              user_id: order.user_id,
+              total: Number(order.total) || 0,
+              status: order.status || 'pending',
+              created_at: order.created_at,
+              items: transformedItems,
+              user_email: 'Unknown',
+              user_name: 'Unknown',
+              shipping_address: order.shipping_address,
+              payment_method: order.payment_method
+            };
+          }
+        })
+      );
+
+      console.log('Orders fetched:', ordersWithUserInfo);
+      return ordersWithUserInfo;
+    },
+    staleTime: 30000
+  });
+
+  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      // Also update the tracking table
+      const { error: trackingError } = await supabase
+        .from('order_tracking')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('order_id', orderId);
+
+      if (trackingError) {
+        console.error('Error updating tracking:', trackingError);
       }
-      
-      console.log('No orders found');
-      // Return empty array if no orders
-      return [];
+
+      toast.success('Order status updated successfully');
+      refetch();
+      setShowOrderDetails(false);
     } catch (error) {
-      console.error('Failed to load orders:', error);
-      toast.error('Failed to load orders');
-      return [];
+      console.error('Error updating order status:', error);
+      toast.error('Failed to update order status');
     }
-  }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'shipped':
+        return 'bg-purple-100 text-purple-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   const handleViewOrder = (order: AdminOrder) => {
     setSelectedOrder(order);
     setShowOrderDetails(true);
   };
 
-  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
-    try {
-      // Update in database
-      const { data, error } = await supabase
-        .from('orders')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId)
-        .select();
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Update local state
-      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
-      
-      // If the currently selected order is the one being updated, update it
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder({
-          ...selectedOrder,
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        });
-      }
-      
-      toast.success(`Order status updated to ${newStatus}`);
-    } catch (error: any) {
-      toast.error(`Failed to update order status: ${error.message}`);
-    }
-  };
-
-  const handleDeleteOrder = async (orderId: string) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', orderId);
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Update local state
-      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
-      toast.success('Order deleted successfully');
-      
-      // Close the dialog if the deleted order was selected
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setShowOrderDetails(false);
-        setSelectedOrder(null);
-      }
-      
-      setDeleteOrderId(null);
-    } catch (error: any) {
-      toast.error(`Failed to delete order: ${error.message}`);
-    }
-  };
-
-  const renderOrdersTable = () => {
-    if (isLoading) {
-      return (
-        <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="ml-2 text-gray-600">Loading orders...</span>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="text-center py-8">
-          <p className="text-red-500">Error loading orders. Please try again.</p>
-          <Button onClick={() => refetch()} className="mt-4">Retry</Button>
-        </div>
-      );
-    }
-
+  if (isLoading) {
     return (
-      <Table>
-        <TableCaption>List of all orders</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Order #</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {ordersData.length > 0 ? (
-            ordersData.map((order) => (
-              <OrderListItem 
-                key={order.id}
-                order={order}
-                onView={() => handleViewOrder(order)}
-                onStatusUpdate={handleStatusUpdate}
-                onDelete={() => setDeleteOrderId(order.id)}
-              />
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-8">No orders found</TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      <AdminLayout title="Orders">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </AdminLayout>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <AdminLayout title="Orders">
+        <div className="text-center py-8">
+          <p className="text-red-500 mb-4">Error loading orders.</p>
+          <Button onClick={() => refetch()}>Retry</Button>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
-    <AdminLayout>
-      <div className="bg-white rounded-lg shadow p-6 pt-0">
-        <div className="flex justify-between items-center sticky top-0 bg-white py-4 z-10">
-          <h1 className="text-2xl font-bold">Orders</h1>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => refetch()}>Refresh</Button>
+    <AdminLayout title="Orders Management">
+      <div className="space-y-6">
+        {/* Header Actions */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-4 flex-1">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search orders..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="shipped">Shipped</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
         </div>
-        
-        {renderOrdersTable()}
+
+        {/* Orders List */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          {orders.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <p>No orders found.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Order
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {orders.map((order) => (
+                    <tr key={order.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {order.order_number}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {order.items.length} item(s)
+                          </div>
+                        </div>
+                      </td>
+                      
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {order.user_name || 'Unknown'}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {order.user_email || 'No email'}
+                        </div>
+                      </td>
+                      
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status}
+                        </Badge>
+                      </td>
+                      
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ₹{order.total.toFixed(2)}
+                      </td>
+                      
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </td>
+                      
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleViewOrder(order)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Order Details Dialog */}
       {selectedOrder && (
-        <OrderDetailsDialog 
-          order={selectedOrder as any}
+        <OrderDetailsDialog
+          order={selectedOrder}
           open={showOrderDetails}
           onOpenChange={setShowOrderDetails}
           onStatusUpdate={handleStatusUpdate}
-          onDeleteOrder={() => setDeleteOrderId(selectedOrder.id)}
         />
       )}
-      
-      <AlertDialog open={!!deleteOrderId} onOpenChange={(open) => !open && setDeleteOrderId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this order?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The order will be permanently removed from the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => deleteOrderId && handleDeleteOrder(deleteOrderId)}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </AdminLayout>
   );
 };

@@ -70,11 +70,11 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, onClose, onAddImage }) 
           <DialogTitle>Add Image</DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue="upload" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-4">
+        <Tabs defaultValue="upload" value={activeTab} onValueChange={setActiveTab} className="w-full ">
+          <TabsList className="grid grid-cols-2 mb-4">
             <TabsTrigger value="upload">Upload</TabsTrigger>
             <TabsTrigger value="url">Image URL</TabsTrigger>
-            <TabsTrigger value="sample">Sample Images</TabsTrigger>
+          
           </TabsList>
           
           <TabsContent value="upload" className="space-y-4">

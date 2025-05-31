@@ -15,6 +15,7 @@ const ProductPage = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string>('');
+  const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,10 +50,10 @@ const ProductPage = () => {
             tags: Array.isArray(data.tags) ? data.tags : 
                  (typeof data.tags === 'string' ? JSON.parse(data.tags) : []),
             // Fix the images/additionalImages type issue
-            additionalImages: Array.isArray(data.images) ? data.images : 
-                             (typeof data.images === 'string' ? JSON.parse(data.images) : []),
             images: Array.isArray(data.images) ? data.images : 
                    (typeof data.images === 'string' ? JSON.parse(data.images) : []),
+            additionalImages: Array.isArray(data.images) ? data.images : 
+                             (typeof data.images === 'string' ? JSON.parse(data.images) : []),
             stock: data.stock || 0
           };
           
@@ -73,7 +74,7 @@ const ProductPage = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="container-custom py-8">
+        <div className="container-custom py-8 mt-10">
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
           </div>
@@ -85,7 +86,7 @@ const ProductPage = () => {
   if (!product) {
     return (
       <Layout>
-        <div className="container-custom py-8">
+        <div className="container-custom py-8 mt-10">
           <div className="text-center">
             <h2 className="text-2xl font-bold">Product not found</h2>
             <p className="mt-2 text-gray-600">The product you're looking for doesn't exist or has been removed.</p>
@@ -97,12 +98,12 @@ const ProductPage = () => {
 
   return (
     <Layout>
-      <div className="container-custom px-18 py-5" >
+      <div className="container-custom px-18 py-5 mt-10" >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <ProductImage 
             image={product.image} 
             name={product.name} 
-            additionalImages={product.additionalImages}
+            additionalImages={product.images}
           />
           
           <div>
@@ -110,11 +111,14 @@ const ProductPage = () => {
               product={product} 
               selectedSize={selectedSize} 
               setSelectedSize={setSelectedSize}
+              quantity={quantity}
+              onQuantityChange={setQuantity}
             />
             
             <ProductActionButtons 
               product={product} 
               selectedSize={selectedSize}
+              quantity={quantity}
             />
           </div>
         </div>

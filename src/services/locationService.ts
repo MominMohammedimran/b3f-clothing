@@ -1,34 +1,35 @@
-
 import { Location } from '../lib/types';
 import { supabase } from '../integrations/supabase/client';
 
-export const createLocation = async (location: Location) => {
+// Create a new location
+export const createLocation = async (location: Location): Promise<Location> => {
   const { data, error } = await supabase
     .from('locations')
     .insert({
       name: location.name,
-      code: location.code
-      // Don't include fields that don't exist in the database
+      code: location.code ?? null
     })
-    .select();
+    .select()
+    .single(); // single() ensures only one row is returned
 
   if (error) throw error;
-  return data?.[0] as Location;
+  return data;
 };
 
-export const addLocation = async (location: Location) => {
-  return createLocation(location);
-};
+// Add location alias
+export const addLocation = createLocation;
 
+// Get all locations
 export const fetchAllLocations = async (): Promise<Location[]> => {
   const { data, error } = await supabase
     .from('locations')
-    .select('id, name, code');  // Only select columns that exist in the database
+    .select('*');
 
   if (error) throw error;
-  return (data || []) as Location[];
+  return data ?? [];
 };
 
+// Get a single location by ID
 export const getLocationById = async (id: string): Promise<Location> => {
   const { data, error } = await supabase
     .from('locations')
@@ -37,29 +38,31 @@ export const getLocationById = async (id: string): Promise<Location> => {
     .single();
 
   if (error) throw error;
-  return data as Location;
+  return data;
 };
 
-export const updateLocation = async (id: string, updates: Partial<Location>) => {
-  const updateData: any = {
-    updated_at: new Date().toISOString()
-  };
-  
-  // Only include fields that exist in the database
-  if (updates.name !== undefined) updateData.name = updates.name;
-  if (updates.code !== undefined) updateData.code = updates.code;
-  
+// Update an existing location
+export const updateLocation = async (
+  id: string,
+  updates: Partial<Location>
+): Promise<Location> => {
   const { data, error } = await supabase
     .from('locations')
-    .update(updateData)
+    .update({
+      name: updates.name,
+      code: updates.code ?? null,
+      updated_at: new Date().toISOString()
+    })
     .eq('id', id)
-    .select();
+    .select()
+    .single();
 
   if (error) throw error;
-  return data?.[0] as Location;
+  return data;
 };
 
-export const deleteLocation = async (id: string) => {
+// Delete a location
+export const deleteLocation = async (id: string): Promise<{ success: boolean }> => {
   const { error } = await supabase
     .from('locations')
     .delete()
@@ -69,25 +72,24 @@ export const deleteLocation = async (id: string) => {
   return { success: true };
 };
 
-// Custom hook for location service
-export const useLocationService = () => {
-  return {
-    fetchAllLocations,
-    getLocationById,
-    createLocation,
-    updateLocation,
-    deleteLocation,
-    addLocation
-  };
-};
+// Hook-style wrapper
+export const useLocationService = () => ({
+  fetchAllLocations,
+  getLocationById,
+  createLocation,
+  updateLocation,
+  deleteLocation,
+  addLocation
+});
 
+// Default export for flexibility
 const locationService = {
   createLocation,
+  addLocation,
   fetchAllLocations,
   getLocationById,
   updateLocation,
-  deleteLocation,
-  addLocation,
+  deleteLocation
 };
 
 export default locationService;

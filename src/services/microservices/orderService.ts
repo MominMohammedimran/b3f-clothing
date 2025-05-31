@@ -1,13 +1,15 @@
 
 import { EdgeFunctionApiService } from './api';
-import { Order, ShippingAddress } from '@/lib/types';
+import { Order } from '@/lib/types';
 import { NotificationType, sendNotification } from '../notificationService';
 
 // Mock order data with placeholder images
 const mockOrders: Record<string, Order> = {
   'order-1': {
     id: 'order-1',
+    userId: 'user-1',
     user_id: 'user-1',
+    orderNumber: 'ORD12345',
     order_number: 'ORD12345',
     status: 'processing',
     total: 2499.99,
@@ -29,16 +31,30 @@ const mockOrders: Record<string, Order> = {
         image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500'
       }
     ],
+    date: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
     created_at: new Date().toISOString(),
+    shippingAddress: {
+      name: 'John Doe',
+      street: '123 Main St',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      zipcode: '400001',
+      country: 'India',
+      id: 'address-1',
+      user_id: 'user-1'
+    },
     shipping_address: {
       name: 'John Doe',
       street: '123 Main St',
       city: 'Mumbai',
       state: 'Maharashtra',
-      zipCode: '400001',
-      country: 'India',
+      zipcode: '400001',
+      country: 'India'
     },
+    paymentMethod: 'credit_card',
     payment_method: 'credit_card',
+    deliveryFee: 99.99,
     delivery_fee: 99.99
   }
 };
@@ -58,22 +74,27 @@ export class OrderMicroservice {
       const newOrderId = `order-${Date.now()}`;
       const newOrder: Order = {
         id: newOrderId,
-        user_id: orderData.user_id || 'anonymous',
+        userId: orderData.userId || orderData.user_id || 'anonymous',
+        user_id: orderData.userId || orderData.user_id || 'anonymous',
+        orderNumber: `ORD${Math.floor(100000 + Math.random() * 900000)}`,
         order_number: `ORD${Math.floor(100000 + Math.random() * 900000)}`,
-        status: 'pending',
+        status: 'processing',
         total: orderData.total || 0,
         items: orderData.items || [],
+        date: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         created_at: new Date().toISOString(),
-        shipping_address: orderData.shipping_address || {} as ShippingAddress,
-        payment_method: orderData.payment_method || 'cod',
-        delivery_fee: orderData.delivery_fee || 0
+        shippingAddress: orderData.shippingAddress,
+        shipping_address: orderData.shippingAddress || orderData.shipping_address,
+        paymentMethod: orderData.paymentMethod || orderData.payment_method || 'cod',
+        payment_method: orderData.paymentMethod || orderData.payment_method || 'cod'
       };
       
       mockOrders[newOrderId] = newOrder;
 
-      if (newOrder.user_id) {
+      if (newOrder.userId) {
         await sendNotification({
-          userId: newOrder.user_id,
+          userId: newOrder.userId,
           orderId: newOrder.id,
           type: NotificationType.ORDER_CONFIRMED,
           data: {
@@ -106,7 +127,7 @@ export class OrderMicroservice {
   // Get orders for a user
   public async getUserOrders(userId: string): Promise<Order[]> {
     try {
-      return Object.values(mockOrders).filter(order => order.user_id === userId);
+      return Object.values(mockOrders).filter(order => order.userId === userId || order.user_id === userId);
     } catch (error) {
       console.error('Error fetching user orders:', error);
       throw error;
@@ -121,10 +142,11 @@ export class OrderMicroservice {
         throw new Error('Order not found');
       }
       
-      order.status = status;
+      order.status = status as any;
+      order.updatedAt = new Date().toISOString();
       order.updated_at = new Date().toISOString();
       
-      if (order.user_id) {
+      if (order.userId) {
         let notificationType: NotificationType;
         let notificationData = {};
 
@@ -144,7 +166,7 @@ export class OrderMicroservice {
         }
 
         await sendNotification({
-          userId: order.user_id,
+          userId: order.userId,
           orderId,
           type: notificationType,
           data: notificationData
@@ -167,7 +189,9 @@ export class OrderMicroservice {
       }
       
       order.status = 'cancelled';
+      order.updatedAt = new Date().toISOString();
       order.updated_at = new Date().toISOString();
+      order.cancellationReason = reason;
       order.cancellation_reason = reason;
 
       return order;

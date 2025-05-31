@@ -13,9 +13,9 @@ const ProductViewer: React.FC<ProductViewerProps> = ({ productType, view, design
     if (productType === 'tshirt') {
       switch (view) {
         case 'front':
-          return 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500';
+          return 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-sub-images/tshirt-front.webp';
         case 'back':
-          return 'https://images.unsplash.com/photo-1622445275576-721325763afe?w=500&h=500';
+          return 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-sub-images/tshirt-back.webp';
         case 'left':
         case 'right':
           return 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=500&h=500';
@@ -23,9 +23,9 @@ const ProductViewer: React.FC<ProductViewerProps> = ({ productType, view, design
           return 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500';
       }
     } else if (productType === 'mug') {
-      return 'https://images.unsplash.com/photo-1577909189516-32f7a7471582?w=500&h=500';
+      return 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/mug-sub-images/mug-plain.webp';
     } else if (productType === 'cap') {
-      return 'https://images.unsplash.com/photo-1556306535-0f09a537f0a3?w=500&h=500';
+      return 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-sub-images/cap-plain.webp';
     } else if (productType === 'pant') {
       return 'https://images.unsplash.com/photo-1604176424472-9e9468137a3c?w=500&h=500';
     } else if (productType === 'nightPant') {
@@ -33,7 +33,7 @@ const ProductViewer: React.FC<ProductViewerProps> = ({ productType, view, design
     }
     
     // Fallback image
-    return 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=500&h=500';
+    return 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=300&h=500';
   };
   
   return (

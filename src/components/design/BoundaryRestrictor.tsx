@@ -1,143 +1,88 @@
+
 import React, { useEffect } from 'react';
 import { fabric } from 'fabric';
 
 interface BoundaryRestrictorProps {
   canvas: fabric.Canvas | null;
-  boundaryId?: string;
+  boundaryId: string;
 }
 
-const BoundaryRestrictor: React.FC<BoundaryRestrictorProps> = ({ canvas, boundaryId = 'design-boundary' }) => {
+const BoundaryRestrictor: React.FC<BoundaryRestrictorProps> = ({ canvas, boundaryId }) => {
   useEffect(() => {
     if (!canvas) return;
-    
-    // Get the boundary element dimensions
-    const boundaryElement = document.getElementById(boundaryId);
-    if (!boundaryElement) {
-      console.error(`Boundary element with id "${boundaryId}" not found`);
-      return;
-    }
-    
-    // Calculate boundary coordinates based on canvas zoom and pan
-    const calculateBoundaryCoords = () => {
+
+    const restrictToBoundary = () => {
+      const boundaryElement = document.getElementById(boundaryId);
+      
+      if (!boundaryElement) {
+        console.warn(`Boundary element with id "${boundaryId}" not found`);
+        return;
+      }
+
       const boundaryRect = boundaryElement.getBoundingClientRect();
-      const canvasRect = canvas.getElement().getBoundingClientRect();
-      
-      // Get boundary position relative to canvas
-      const relativeLeft = boundaryRect.left - canvasRect.left;
-      const relativeTop = boundaryRect.top - canvasRect.top;
-      
-      return {
-        left: relativeLeft / canvas.getZoom(),
-        top: relativeTop / canvas.getZoom(),
-        right: (relativeLeft + boundaryRect.width) / canvas.getZoom(),
-        bottom: (relativeTop + boundaryRect.height) / canvas.getZoom(),
-        width: boundaryRect.width / canvas.getZoom(),
-        height: boundaryRect.height / canvas.getZoom()
+      const canvasElement = canvas.getElement();
+      const canvasRect = canvasElement.getBoundingClientRect();
+
+      // Calculate boundary relative to canvas
+      const boundary = {
+        left: boundaryRect.left - canvasRect.left,
+        top: boundaryRect.top - canvasRect.top,
+        width: boundaryRect.width,
+        height: boundaryRect.height
       };
-    };
-    
-    // Restrict objects to boundary during movement
-    const restrictToBoundary = (e: fabric.IEvent) => {
-      const boundary = calculateBoundaryCoords();
-      const target = e.target;
-      
-      if (!target || target.data?.isBackground) return;
-      
-      // Get the object's bounding rect
-      const objBounds = target.getBoundingRect();
-      
-      // Calculate new position ensuring object stays within boundary
-      let newLeft = target.left ?? 0;
-      let newTop = target.top ?? 0;
-      
-      // Ensure object doesn't go outside boundary
-      const objHalfWidth = objBounds.width / 2;
-      const objHalfHeight = objBounds.height / 2;
-      
-      // Horizontal constraints
-      if (newLeft - objHalfWidth < boundary.left) {
-        newLeft = boundary.left + objHalfWidth;
-      } else if (newLeft + objHalfWidth > boundary.right) {
-        newLeft = boundary.right - objHalfWidth;
-      }
-      
-      // Vertical constraints
-      if (newTop - objHalfHeight < boundary.top) {
-        newTop = boundary.top + objHalfHeight;
-      } else if (newTop + objHalfHeight > boundary.bottom) {
-        newTop = boundary.bottom - objHalfHeight;
-      }
-      
-      // Only update if position changed
-      if (newLeft !== target.left || newTop !== target.top) {
-        target.set({
-          left: newLeft,
-          top: newTop
-        });
-        target.setCoords();
-      }
-    };
-    
-    // Handle object scaling to keep within bounds
-    const restrictScaling = (e: fabric.IEvent) => {
-      const target = e.target;
-      if (!target || target.data?.isBackground) return;
-      
-      const boundary = calculateBoundaryCoords();
-      const objBounds = target.getBoundingRect();
-      
-      // Check if scaled object exceeds boundary
-      if (objBounds.left < boundary.left || 
-          objBounds.top < boundary.top || 
-          objBounds.left + objBounds.width > boundary.right || 
-          objBounds.top + objBounds.height > boundary.bottom) {
-        
-        // Calculate max scale that fits within boundary
-        const maxScaleX = boundary.width / (objBounds.width / (target.scaleX || 1));
-        const maxScaleY = boundary.height / (objBounds.height / (target.scaleY || 1));
-        const maxScale = Math.min(maxScaleX, maxScaleY, target.scaleX || 1, target.scaleY || 1);
-        
-        target.set({
-          scaleX: maxScale,
-          scaleY: maxScale
-        });
-        target.setCoords();
-      }
-    };
-    
-    // Center new objects within boundary
-    const centerNewObject = (e: fabric.IEvent) => {
-      const boundary = calculateBoundaryCoords();
-      const target = e.target;
-      
-      if (!target || target.data?.isBackground || target.data?.positioned) return;
-      
-      // Center the object within the boundary
-      target.set({
-        left: boundary.left + boundary.width / 2,
-        top: boundary.top + boundary.height / 2,
-        data: { ...target.data, positioned: true }
+
+      canvas.on('object:moving', function(e) {
+        const obj = e.target;
+        if (!obj) return;
+
+        const objBounds = obj.getBoundingRect();
+
+        // Restrict horizontal movement
+        if (objBounds.left < boundary.left) {
+          obj.set('left', obj.left! + (boundary.left - objBounds.left));
+        }
+        if (objBounds.left + objBounds.width > boundary.left + boundary.width) {
+          obj.set('left', obj.left! - ((objBounds.left + objBounds.width) - (boundary.left + boundary.width)));
+        }
+
+        // Restrict vertical movement
+        if (objBounds.top < boundary.top) {
+          obj.set('top', obj.top! + (boundary.top - objBounds.top));
+        }
+        if (objBounds.top + objBounds.height > boundary.top + boundary.height) {
+          obj.set('top', obj.top! - ((objBounds.top + objBounds.height) - (boundary.top + boundary.height)));
+        }
       });
-      
-      target.setCoords();
+
+      canvas.on('object:scaling', function(e) {
+        const obj = e.target;
+        if (!obj) return;
+
+        const objBounds = obj.getBoundingRect();
+
+        // Prevent scaling beyond boundary
+        if (objBounds.width > boundary.width || objBounds.height > boundary.height) {
+          const scaleX = Math.min(boundary.width / objBounds.width, obj.scaleX!);
+          const scaleY = Math.min(boundary.height / objBounds.height, obj.scaleY!);
+          const scale = Math.min(scaleX, scaleY);
+          
+          obj.set({
+            scaleX: scale,
+            scaleY: scale
+          });
+        }
+      });
     };
-    
-    // Add event listeners
-    canvas.on('object:moving', restrictToBoundary);
-    canvas.on('object:scaling', restrictScaling);
-    canvas.on('object:modified', restrictToBoundary);
-    canvas.on('object:added', centerNewObject);
-    
+
+    // Apply restrictions after a short delay to ensure DOM is ready
+    const timer = setTimeout(restrictToBoundary, 200);
+
     return () => {
-      // Clean up event listeners
-      canvas.off('object:moving', restrictToBoundary);
-      canvas.off('object:scaling', restrictScaling);
-      canvas.off('object:modified', restrictToBoundary);
-      canvas.off('object:added', centerNewObject);
+      clearTimeout(timer);
     };
   }, [canvas, boundaryId]);
-  
-  return null; // This is a logic-only component
+
+  return null;
 };
 
 export default BoundaryRestrictor;

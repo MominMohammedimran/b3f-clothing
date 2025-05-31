@@ -1,8 +1,10 @@
 
 import React from 'react';
-import { Type, Image as ImageIcon, Smile } from 'lucide-react';
+import { Type, Image as ImageIcon, Smile, ShoppingCart } from 'lucide-react';
 import { formatIndianRupees } from '@/utils/currency';
 import ProductViewSelector from './ProductViewSelector';
+import { Button } from '@/components/ui/button';
+import ProductPlaceOrder from '@/components/products/ProductPlaceOrder';
 
 interface CustomizationSidebarProps {
   activeProduct: string;
@@ -39,98 +41,143 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
   onAddToCart,
   validateDesign
 }) => {
+  const availableSizes = Object.keys(sizeInventory[activeProduct] || {});
+
+  // Create a product object for the ProductPlaceOrder component
+  const currentProduct = {
+    id: `${activeProduct}-custom`,
+    code: `CUSTOM-${activeProduct.toUpperCase()}`,
+    name: `Custom ${products[activeProduct]?.name || 'Product'}`,
+    price: isDualSided && activeProduct === 'tshirt' ? 300 : products[activeProduct]?.price || 200,
+    image: products[activeProduct]?.image || '',
+    category: activeProduct,
+    description: `Custom designed ${products[activeProduct]?.name || 'product'}`,
+    stock: sizeInventory[activeProduct]?.[selectedSize] || 0,
+    sizes: availableSizes
+  };
+
+  const isDesignValid = validateDesign();
+  const isInStock = sizeInventory[activeProduct]?.[selectedSize] > 0;
+
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-6 sticky top-20">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
       <ProductViewSelector 
         productType={activeProduct}
         currentView={productView}
         onViewChange={onViewChange}
         selectedSize={selectedSize}
         onSizeChange={onSizeChange}
+        availableSizes={availableSizes}
+        sizeInventory={sizeInventory[activeProduct] || {}}
         isDualSided={isDualSided}
-        onDualSidedChange={activeProduct === 'tshirt' ? onDualSidedChange : undefined}
+        onDualSidedChange={onDualSidedChange}
       />
-      
-      {/* Available stock info */}
-      <div className="mt-2 p-2 bg-gray-50 rounded-md">
-        <p className="text-sm text-gray-600">
-          Available stock: <span className="font-medium">{sizeInventory[activeProduct][selectedSize] || 0}</span> items
-        </p>
-      </div>
-      
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-3">Customization Options</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <button 
+
+      {/* Design Tools */}
+      <div className="space-y-2">
+        <h3 className="font-medium text-gray-900">Design Tools</h3>
+        <div className="grid grid-cols-3 gap-2">
+          <Button
             onClick={onOpenTextModal}
-            className="flex flex-col items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
+            variant="outline"
+            size="sm"
+            className="flex flex-col items-center p-2 h-auto"
           >
-            <Type size={24} className="mb-2 text-blue-600" />
-            <span className="text-sm font-medium">Add Text</span>
-          </button>
-          
-          <button 
+            <Type className="w-4 h-4 mb-1" />
+            <span className="text-xs">Text</span>
+          </Button>
+          <Button
             onClick={onOpenImageModal}
-            className="flex flex-col items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
+            variant="outline"
+            size="sm"
+            className="flex flex-col items-center p-2 h-auto"
           >
-            <ImageIcon size={24} className="mb-2 text-blue-600" />
-            <span className="text-sm font-medium">Add Image</span>
-          </button>
-          
-          <button 
+            <ImageIcon className="w-4 h-4 mb-1" />
+            <span className="text-xs">Image</span>
+          </Button>
+          <Button
             onClick={onOpenEmojiModal}
-            className="flex flex-col items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
+            variant="outline"
+            size="sm"
+            className="flex flex-col items-center p-2 h-auto"
           >
-            <Smile size={24} className="mb-2 text-blue-600" />
-            <span className="text-sm font-medium">Add Emoji</span>
-          </button>
+            <Smile className="w-4 h-4 mb-1" />
+            <span className="text-xs">Emoji</span>
+          </Button>
         </div>
       </div>
+
+      {/* Product Price */}
+      <div className="bg-gray-50 p-3 rounded-lg">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm text-gray-600">Price</span>
+          <span className="font-semibold text-lg">
+            {formatIndianRupees(currentProduct.price)}
+          </span>
+        </div>
+        {isDualSided && activeProduct === 'tshirt' && (
+          <p className="text-xs text-blue-600">Dual-sided design applied</p>
+        )}
+      </div>
+
+      {/* Stock Status */}
+      {selectedSize && (
+        <div className="text-sm">
+          <span className={`px-2 py-1 rounded text-xs ${
+            isInStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {isInStock ? `In Stock (${currentProduct.stock})` : 'Out of Stock'}
+          </span>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="space-y-2">
+        <p className='text-center text-sm'> If you want to share your design in privately, <br/>please click below</p>
+       <Button
+        onClick={() => {
+        window.open('https://wa.me/919581319687?text=I%20want%20to%20share%20my%20design%20privately', '_blank');
+           
+        }}
+         variant="outline"
+        className="w-full"
+         
+        >
+        WhatsApp us
+   </Button>
+
+        <Button
+          onClick={onSaveDesign}
+          variant="outline"
+          className="w-full"
+          disabled={!isDesignValid}
+        >
+          Save Design
+        </Button>
+        <Button
+          onClick={onAddToCart}
+          className="w-full"
+          disabled={!isDesignValid || !selectedSize || !isInStock}
+        >
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          Add to Cart
+        </Button>
+         <Button
       
-      <div className="mt-6 pt-4 border-t">
-        <div className="flex justify-between mb-4">
-          <h2 className="text-lg font-semibold">Product Details</h2>
-          <div className="font-bold text-green-600">
-            {formatIndianRupees(isDualSided && activeProduct === 'tshirt' ? 300 : products[activeProduct]?.price)}
-          </div>
-        </div>
-        
-        <div className="flex space-x-3 mt-6">
-          <button
-            onClick={onSaveDesign}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Save Design
-          </button>
-          
-          <button
-            onClick={onAddToCart}
-            disabled={!validateDesign() || sizeInventory[activeProduct][selectedSize] <= 0}
-            className={`flex-1 px-4 py-2 text-white rounded-md ${
-              !validateDesign() || sizeInventory[activeProduct][selectedSize] <= 0 
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-green-600 hover:bg-green-700'
-            }`}
-          >
-            Add to Cart
-          </button>
-        </div>
-        
-        {/* Error messages */}
-        {!validateDesign() && (
-          <p className="mt-2 text-sm text-red-500">
-            {isDualSided 
-              ? "Please complete both front and back designs"
-              : "Please add some design elements"
-            }
-          </p>
-        )}
-        {sizeInventory[activeProduct][selectedSize] <= 0 && (
-          <p className="mt-2 text-sm text-red-500">
-            This size is currently out of stock
-          </p>
-        )}
+          className="w-full"
+          disabled={!isDesignValid || !selectedSize || !isInStock}
+        >
+         
+         {/* ProductPlaceOrder for additional functionality */}
+                 <ProductPlaceOrder 
+                 product={currentProduct}
+              selectedSize={selectedSize}
+                 />
+        </Button>
       </div>
+
+    
+      
     </div>
   );
 };

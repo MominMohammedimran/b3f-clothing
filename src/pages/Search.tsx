@@ -143,7 +143,7 @@ const Search = () => {
   
   return (
     <Layout>
-      <div className="container-custom">
+      <div className="container-custom mt-10">
         <div className="flex items-center mb-4 mt-4 animate-fade-in">
           <Link to="/" className="mr-2">
             <ArrowLeft size={24} className="back-arrow" />

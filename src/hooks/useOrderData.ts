@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Order, CartItem, ShippingAddress } from '@/lib/types';
+import { Order, CartItem } from '@/lib/types';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -51,28 +51,38 @@ export const useOrderData = () => {
             options: item.options
           }));
         
-          // Parse shipping_address if it's a string
-          const parsedShippingAddress = data.shipping_address ? 
-            (typeof data.shipping_address === 'string' ? 
-              JSON.parse(data.shipping_address) : data.shipping_address) : null;
-          
-          // Create a properly typed order object
-          const typedOrder: Order = {
+          // Transform to match Order interface
+          const transformedOrder: Order = {
             id: data.id,
-            order_number: data.order_number,
+            userId: data.user_id,
             user_id: data.user_id,
+            userEmail: '', // Not available in database
+            user_email: '', // Not available in database
+            orderNumber: data.order_number,
+            order_number: data.order_number,
             total: data.total,
-            status: data.status,
+            deliveryFee: data.delivery_fee,
+            delivery_fee: data.delivery_fee,
             items: itemsWithIds,
-            payment_method: data.payment_method,
-            delivery_fee: data.delivery_fee || 0,
-            shipping_address: parsedShippingAddress as ShippingAddress,
+            status: data.status as 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'pending',
+            date: data.date || data.created_at,
+            createdAt: data.created_at,
             created_at: data.created_at,
+            updatedAt: data.updated_at,
             updated_at: data.updated_at,
-            date: data.date
+            paymentMethod: data.payment_method,
+            payment_method: data.payment_method,
+            shippingAddress: typeof data.shipping_address === 'string' 
+              ? JSON.parse(data.shipping_address) 
+              : data.shipping_address,
+            shipping_address: data.shipping_address,
+            paymentDetails: {},
+            payment_details: {},
+            cancellationReason: (data as any).cancellation_reason || undefined,
+            cancellation_reason: (data as any).cancellation_reason || undefined
           };
           
-          setOrderData(typedOrder);
+          setOrderData(transformedOrder);
         } else {
           // Fallback to local storage
           const storedOrders = localStorage.getItem('orderHistory');

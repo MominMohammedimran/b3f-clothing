@@ -17,8 +17,8 @@ const ProductDetailsHeader: React.FC<ProductDetailsHeaderProps> = ({ product }) 
       <div className="mb-4 text-2xl font-semibold text-green-600 flex items-center justify-between">
         <div>
           <span>₹{product.price}</span>
-          {product.original_price && (
-            <span className="ml-2 text-sm text-gray-500 line-through">₹{product.original_price}</span>
+          {product.originalPrice && (
+            <span className="ml-2 text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
           )}
         </div>
         
@@ -29,8 +29,8 @@ const ProductDetailsHeader: React.FC<ProductDetailsHeaderProps> = ({ product }) 
         <div className="flex items-center mr-4">
           {Array.from({ length: 5 }).map((_, i) => {
             const starValue = i + 1;
-            const isFull = starValue <= (product.rating || 0);
-            const isHalf = !isFull && starValue - 0.5 <= (product.rating || 0);
+            const isFull = starValue <= product.rating;
+            const isHalf = !isFull && starValue - 0.5 <= product.rating;
 
             return isFull ? (
               <Star key={i} size={16} className="text-yellow-400" />

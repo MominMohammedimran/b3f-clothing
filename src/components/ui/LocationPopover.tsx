@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Check, Radius } from 'lucide-react';
 import { Location } from '../../lib/types';
@@ -6,8 +7,6 @@ import {
   PopoverContent,
   PopoverTrigger 
 } from '@/components/ui/popover';
-
-// Define locations with code property included
 const locations: Location[] = [
   { id: '1', name: 'Andhra Pradesh', code: 'AP' },
   { id: '2', name: 'Telangana', code: 'TG' },
@@ -28,10 +27,9 @@ const locations: Location[] = [
   { id: '17', name: 'Texas', code: 'TX' },
   { id: '18', name: 'Florida', code: 'FL' }
 ];
-
 interface LocationPopoverProps {
   locations;
-  currentLocation: Location;
+  currentLocation: Location ;
   onSelectLocation: (location: Location) => void;
   triggerClassName?: string;
 }
@@ -51,7 +49,7 @@ const LocationPopover: React.FC<LocationPopoverProps> = ({
     } else {
       const filtered = locations.filter(location => 
         location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (location.code && location.code.toLowerCase().includes(searchQuery.toLowerCase()))
+        location.code.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredLocations(filtered);
     }

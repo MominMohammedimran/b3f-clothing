@@ -28,8 +28,8 @@ const OrdersHistory = () => {
             // Find the associated product
             const product = products.find(p => p.id === firstItem.productId);
             
-            // Get the display date, using created_at or date field
-            const displayDate = order.created_at || '';
+            // Get the display date, using createdAt, created_at, or date field
+            const displayDate = order.createdAt || order.created_at || order.date || '';
             
             return (
               <div key={`${order.id}-${index}`} className="bg-gray-50 p-4 rounded-lg">

@@ -1,70 +1,63 @@
+
 import React from 'react';
 
 interface BoundaryBoxProps {
   productType: string;
-  view?: string;
+  view: string;
 }
 
-const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view = 'front' }) => {
-  // Return different boundary dimensions based on product type - keeping within canvas bounds
+const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view }) => {
   const getBoundaryStyle = () => {
-    const commonStyles = "border-2 border-dashed border-blue-500 absolute z-10 pointer-events-none";
-    
+    let style = {
+      position: 'absolute' as const,
+      border: '2px dashed #3b82f6',
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      pointerEvents: 'none' as const,
+      zIndex: 10,
+    };
+
     switch (productType) {
       case 'tshirt':
         return {
-          className: commonStyles,
-          style: {
-            left: '20%',
-            top: '25%',
-            width: '60%',
-            height: '50%'
-          }
+          ...style,
+          top: view === 'back' ? '160px' : '180px',
+          left: view ==='back'? '150px':'154px',
+          width: '90px',
+          height: '110px',
         };
       case 'mug':
         return {
-          className: commonStyles,
-          style: {
-            left: '25%',
-            top: '30%',
-            width: '50%',
-            height: '40%'
-          }
+          ...style,
+          top: '140px',
+          left: '115px',
+          width: '130px',
+          height: '155px',
         };
       case 'cap':
         return {
-          className: commonStyles,
-          style: {
-            left: '25%',
-            top: '35%',
-            width: '50%',
-            height: '30%'
-          }
+          ...style,
+          top: '110px',
+          left: '122px',
+          width: '150px',
+          height: '90px',
         };
       default:
         return {
-          className: commonStyles,
-          style: {
-            left: '20%',
-            top: '25%',
-            width: '60%',
-            height: '50%'
-          }
+          ...style,
+          top: '100px',
+          left: '150px',
+          width: '200px',
+          height: '250px',
         };
     }
   };
 
-  const boundaryStyle = getBoundaryStyle();
-
   return (
-    <div 
-      className={boundaryStyle.className}
-      style={boundaryStyle.style}
-    >
-      <div className="absolute -top-6 left-0 right-0 text-center text-xs text-blue-600 font-medium">
-        Design Area
-      </div>
-    </div>
+    <div
+      id="design-boundary"
+      style={getBoundaryStyle()}
+      className="design-boundary"
+    />
   );
 };
 

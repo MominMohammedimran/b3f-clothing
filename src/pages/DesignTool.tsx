@@ -4,9 +4,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '../components/layout/Layout';
-import { useAuth } from '../context/AuthContext';
-import { useLocation } from '../context/LocationContext';
-import { useCart } from '../context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
+import DesignContextProviders from '@/context/DesignContextProviders';
 import TextModal from '../components/design/TextModal';
 import ImageModal from '../components/design/ImageModal';
 import EmojiModal from '../components/design/EmojiModal';
@@ -14,20 +14,8 @@ import ProductSelector from '../components/design/ProductSelector';
 import DesignCanvas from '../components/design/DesignCanvas';
 import CustomizationSidebar from '../components/design/CustomizationSidebar';
 import { useDesignCanvas } from '@/hooks/useDesignCanvas';
-import { useProductInventory } from '@/hooks/useProductInventory';
-
-// Product interface
-interface Product {
-  name: string;
-  price: number;
-  image: string;
-}
-
-const products: Record<string, Product> = {
-  tshirt: { name: 'T-shirt', price: 200, image: '/lovable-uploads/design-tool-page/tshirt-print.png' },
-  mug: { name: 'Mug', price: 200, image: '/lovable-uploads/design-tool-page/mug-print.png' },
-  cap: { name: 'Cap', price: 150, image: '/lovable-uploads/design-tool-page/cap-print.png' }
-};
+import { useDesignToolInventory } from '@/hooks/useDesignToolInventory';
+import { useDesignProducts } from '@/hooks/useDesignProducts';
 
 const DesignTool = () => {
   const navigate = useNavigate();
@@ -41,20 +29,20 @@ const DesignTool = () => {
   const [emojiSearch, setEmojiSearch] = useState('');
   const [filteredEmojis, setFilteredEmojis] = useState<string[]>([]);
   const [isDualSided, setIsDualSided] = useState(false);
-  
+ 
   const { currentUser } = useAuth();
-  const { currentLocation } = useLocation();
   const { addToCart } = useCart();
-  const { sizeInventory, fetchProductInventory, updateInventory } = useProductInventory();
-  
+  const { sizeInventory, fetchProductInventory, updateInventory } = useDesignToolInventory();
+  const { products, loading: productsLoading } = useDesignProducts();
+ 
   const emojis = [
-    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', 
-    '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', 
-    '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', 
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
+    '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+    '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜',
     '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏'
   ];
 
-  // Initialize design canvas
+  // Initialize design canvas with new controls
   const {
     canvas,
     canvasRef,
@@ -79,11 +67,12 @@ const DesignTool = () => {
     addTextToCanvas,
     handleAddImage,
     addEmojiToCanvas,
-    checkDesignStatus
+    checkDesignStatus,
+    undo,
+    redo,
+    clearCanvas
   } = useDesignCanvas({
-    activeProduct,
-    productView,
-    isDualSided
+    activeProduct
   });
 
   useEffect(() => {
@@ -108,11 +97,11 @@ const DesignTool = () => {
       setFilteredEmojis(emojis);
       return;
     }
-    
+   
     const filtered = emojis.filter(emoji => {
       return emoji.includes(emojiSearch);
     });
-    
+   
     setFilteredEmojis(filtered.length > 0 ? filtered : emojis);
   }, [emojiSearch]);
 
@@ -131,18 +120,18 @@ const DesignTool = () => {
   const handleViewChange = (view: string) => {
     if (canvas && isDualSided) {
       if (productView === 'front') {
-        const frontDataUrl = canvas.toDataURL({ format: 'png', quality: 1 });
+        const frontDataUrl = canvas.toDataURL({ format: 'webp', quality: 0.9 });
         setFrontDesign(frontDataUrl);
         setDesignComplete(prev => ({...prev, front: hasDesignElements()}));
       } else if (productView === 'back') {
-        const backDataUrl = canvas.toDataURL({ format: 'png', quality: 1 });
+        const backDataUrl = canvas.toDataURL({ format: 'webp', quality: 0.9 });
         setBackDesign(backDataUrl);
         setDesignComplete(prev => ({...prev, back: hasDesignElements()}));
       }
     }
-    
+   
     setProductView(view);
-    
+   
     setTimeout(() => {
       if (view === 'front' && frontDesign && isDualSided) {
         loadDesignToCanvas(frontDesign);
@@ -154,18 +143,18 @@ const DesignTool = () => {
 
   const handleDualSidedChange = (checked: boolean) => {
     setIsDualSided(checked);
-    
+   
     if (checked) {
       if (canvas && productView === 'front') {
-        const frontDataUrl = canvas.toDataURL({ format: 'png', quality: 1 });
+        const frontDataUrl = canvas.toDataURL({ format: 'webp', quality: 0.9 });
         setFrontDesign(frontDataUrl);
         setDesignComplete(prev => ({...prev, front: hasDesignElements()}));
       }
-      
+     
       toast("Dual-sided printing enabled", {
         description: "Please design both front and back sides",
       });
-      
+     
     } else {
       setFrontDesign(null);
       setBackDesign(null);
@@ -177,11 +166,30 @@ const DesignTool = () => {
     if (!isDualSided) {
       return hasDesignElements();
     }
-    
+   
     return designComplete.front && designComplete.back;
   };
 
-  const handleAddToCart = () => {
+  const generateDesignPreview = () => {
+    if (!canvas) return null;
+    
+    try {
+      // Generate the full canvas with both background and design elements
+      const previewDataUrl = canvas.toDataURL({
+        format: 'png',
+        quality: 1.0,
+        multiplier: 1
+      });
+      
+      return previewDataUrl;
+    } catch (error) {
+      console.error('Error generating design preview:', error);
+      // Fallback to full canvas export
+      return canvas.toDataURL({ format: 'png', quality: 1.0 });
+    }
+  };
+
+  const handleAddToCart = async () => {
     if (!currentUser) {
       toast.error("Sign in required", {
         description: "Please sign in to add items to cart",
@@ -205,89 +213,94 @@ const DesignTool = () => {
 
     try {
       if (!canvas) return;
-      
+     
       // Check inventory
-      if (sizeInventory[activeProduct][selectedSize] <= 0) {
+      if (sizeInventory[activeProduct] && sizeInventory[activeProduct][selectedSize] <= 0) {
         toast.error("Out of stock", {
-          description: `${products[activeProduct].name} in size ${selectedSize} is currently out of stock`,
+          description: `${products[activeProduct]?.name} in size ${selectedSize} is currently out of stock`,
         });
         return;
       }
-      
+
+      // Get canvas data for storage and generate proper preview
+      const canvasJSON = canvas.toJSON();
+      const previewImage = generateDesignPreview();
+     
       if (isDualSided && activeProduct === 'tshirt') {
         // Save current side if needed
+        let currentPreview = previewImage;
         if (productView === 'front') {
-          setFrontDesign(canvas.toDataURL({ format: 'png', quality: 1 }));
+          setFrontDesign(currentPreview!);
         } else if (productView === 'back') {
-          setBackDesign(canvas.toDataURL({ format: 'png', quality: 1 }));
+          setBackDesign(currentPreview!);
         }
-        
+       
         if (!frontDesign || !backDesign) {
           toast.error("Incomplete design", {
             description: "Please design both front and back sides for dual-sided printing",
           });
           return;
         }
-        
+       
         const customProduct = {
-          id: `custom-${activeProduct}-dual-${Date.now()}`,
+          product_id: `custom-${activeProduct}-dual-${Date.now()}`,
           name: `Custom ${products[activeProduct]?.name || 'Product'} (Dual-Sided)`,
           price: 300,
           image: frontDesign,
-          productId: `custom-${activeProduct}-dual-${Date.now()}`,
           quantity: 1,
           size: selectedSize,
-          view: 'Dual-Sided',
-          backImage: backDesign
+          metadata: {
+            view: 'Dual-Sided',
+            backImage: backDesign,
+            designData: canvasJSON,
+            previewImage: frontDesign
+          }
         };
-        
-        addToCart(customProduct);
-        
+       
+        await addToCart(customProduct);
+       
         // Update inventory
-        updateInventory(activeProduct, selectedSize, -1)
-          .then(success => {
-            if (success) {
-              toast.success("Added to cart", {
-                description: "Dual-sided design added to cart successfully"
-              });
-              
-              setTimeout(() => {
-                navigate('/cart');
-              }, 1000);
-            }
+        const success = await updateInventory(activeProduct, selectedSize, -1);
+        if (success) {
+          toast.success("Added to cart", {
+            description: "Dual-sided design added to cart successfully"
           });
-        
+         
+          setTimeout(() => {
+            navigate('/cart');
+          }, 1000);
+        }
+       
       } else {
-        const designDataUrl = canvas.toDataURL({ format: 'png', quality: 1 });
-        
         const customProduct = {
-          id: `custom-${activeProduct}-${Date.now()}`,
+          product_id: `custom-${activeProduct}-${Date.now()}`,
           name: `Custom ${products[activeProduct]?.name || 'Product'}`,
           price: products[activeProduct]?.price || 200,
-          image: designDataUrl,
-          productId: `custom-${activeProduct}-${Date.now()}`,
+          image: previewImage || '/placeholder.svg',
           quantity: 1,
           size: selectedSize,
-          view: productView
+          metadata: {
+            view: productView,
+            designData: canvasJSON,
+            previewImage: previewImage
+          }
         };
-        
-        addToCart(customProduct);
-        
+       
+        await addToCart(customProduct);
+       
         // Update inventory
-        updateInventory(activeProduct, selectedSize, -1)
-          .then(success => {
-            if (success) {
-              toast.success("Added to cart", {
-                description: "Design added to cart successfully"
-              });
-              
-              setTimeout(() => {
-                navigate('/cart');
-              }, 1000);
-            }
+        const success = await updateInventory(activeProduct, selectedSize, -1);
+        if (success) {
+          toast.success("Added to cart", {
+            description: "Design added to cart successfully"
           });
+         
+          setTimeout(() => {
+            navigate('/cart');
+          }, 1000);
+        }
       }
-      
+     
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error("Failed to add to cart", {
@@ -306,17 +319,14 @@ const DesignTool = () => {
     }
 
     try {
-      const designDataUrl = canvas.toDataURL({
-        format: 'png',
-        quality: 1
-      });
-      
-      // Save to browser storage for now (could be replaced with actual database storage later)
-      localStorage.setItem(`design-${Date.now()}`, designDataUrl);
-      
-      toast.success("Design saved", {
-        description: "Your design has been saved successfully"
-      });
+      const designDataUrl = generateDesignPreview();
+     
+      if (designDataUrl) {
+        localStorage.setItem(`design-${Date.now()}`, designDataUrl);
+        toast.success("Design saved", {
+          description: "Your design has been saved successfully"
+        });
+      }
     } catch (error) {
       console.error('Error saving design:', error);
       toast.error("Save failed", {
@@ -325,101 +335,118 @@ const DesignTool = () => {
     }
   };
 
+  if (productsLoading) {
+    return (
+      <Layout>
+        <div className="container-custom px-4">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="container-custom px-4">
-        <div className="flex items-center justify-between mb-6">
-          <Link
-            to="/"
-            className="flex items-center text-blue-600 hover:text-blue-800"
-          >
-            <ArrowLeft className="mr-1" size={20} />
-            <span className="text-sm font-medium">Back</span>
-          </Link>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Design Your Product</h1>
-          <div className="w-20"></div>
+      <DesignContextProviders>
+        <div className="container-custom px-4">
+          <div className="flex items-center justify-between mb-6">
+            <Link
+              to="/"
+              className="flex items-center text-blue-600 hover:text-blue-800"
+            >
+              <ArrowLeft className="mr-1" size={20} />
+              <span className="text-sm font-medium">Back</span>
+            </Link>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-800">Design Your Product</h1>
+            <div className="w-20"></div>
+          </div>
+         
+          <ProductSelector
+            products={products}
+            activeProduct={activeProduct}
+            isDualSided={isDualSided}
+            onProductSelect={handleProductChange}
+          />
+         
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 justify-items-center">
+              <DesignCanvas
+                activeProduct={activeProduct}
+                productView={productView}
+                canvas={canvas}
+                setCanvas={setCanvas}
+                undoStack={undoStack}
+                redoStack={redoStack}
+                setUndoStack={setUndoStack}
+                setRedoStack={setRedoStack}
+                setDesignImage={setDesignImage}
+                setCanvasInitialized={setCanvasInitialized}
+                canvasRef={canvasRef}
+                fabricCanvasRef={fabricCanvasRef}
+                setDesignComplete={setDesignComplete}
+                designComplete={designComplete}
+                checkDesignStatus={checkDesignStatus}
+                undo={undo}
+                redo={redo}
+                clearCanvas={clearCanvas}
+              />
+             
+              {isDualSided && activeProduct === 'tshirt' && (
+                <div className="mt-2 text-center">
+                  <span className="text-blue-600 font-medium">
+                    Currently designing: {productView === 'front' ? 'Front Side' : 'Back Side'}
+                    {productView === 'front' && designComplete.front && ' ✅'}
+                    {productView === 'back' && designComplete.back && ' ✅'}
+                  </span>
+                </div>
+              )}
+            </div>
+           
+            <div className="md:col-span-1">
+              <CustomizationSidebar
+                activeProduct={activeProduct}
+                productView={productView}
+                onViewChange={handleViewChange}
+                selectedSize={selectedSize}
+                onSizeChange={setSelectedSize}
+                isDualSided={isDualSided}
+                onDualSidedChange={handleDualSidedChange}
+                sizeInventory={sizeInventory}
+                products={products}
+                onOpenTextModal={() => setIsTextModalOpen(true)}
+                onOpenImageModal={() => setIsImageModalOpen(true)}
+                onOpenEmojiModal={() => setIsEmojiModalOpen(true)}
+                onSaveDesign={saveDesign}
+                onAddToCart={handleAddToCart}
+                validateDesign={validateDesign}
+              />
+            </div>
+          </div>
         </div>
-        
-        <ProductSelector 
-          products={products} 
-          activeProduct={activeProduct} 
-          isDualSided={isDualSided}
-          onProductSelect={handleProductChange} 
+       
+        <TextModal
+          isOpen={isTextModalOpen}
+          onClose={() => setIsTextModalOpen(false)}
+          onAddText={addTextToCanvas}
         />
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
-            <DesignCanvas
-              activeProduct={activeProduct}
-              productView={productView}
-              canvas={canvas}
-              setCanvas={setCanvas}
-              undoStack={undoStack}
-              redoStack={redoStack}
-              setUndoStack={setUndoStack}
-              setRedoStack={setRedoStack}
-              setDesignImage={setDesignImage}
-              setCanvasInitialized={setCanvasInitialized}
-              canvasRef={canvasRef}
-              fabricCanvasRef={fabricCanvasRef}
-              setDesignComplete={setDesignComplete}
-              designComplete={designComplete}
-              checkDesignStatus={checkDesignStatus}
-            />
-            
-            {isDualSided && activeProduct === 'tshirt' && (
-              <div className="mt-2 text-center">
-                <span className="text-blue-600 font-medium">
-                  Currently designing: {productView === 'front' ? 'Front Side' : 'Back Side'}
-                  {productView === 'front' && designComplete.front && ' ✅'}
-                  {productView === 'back' && designComplete.back && ' ✅'}
-                </span>
-              </div>
-            )}
-          </div>
-          
-          <div className="md:col-span-1">
-            <CustomizationSidebar
-              activeProduct={activeProduct}
-              productView={productView}
-              onViewChange={handleViewChange}
-              selectedSize={selectedSize}
-              onSizeChange={setSelectedSize}
-              isDualSided={isDualSided}
-              onDualSidedChange={handleDualSidedChange}
-              sizeInventory={sizeInventory}
-              products={products}
-              onOpenTextModal={() => setIsTextModalOpen(true)}
-              onOpenImageModal={() => setIsImageModalOpen(true)}
-              onOpenEmojiModal={() => setIsEmojiModalOpen(true)}
-              onSaveDesign={saveDesign}
-              onAddToCart={handleAddToCart}
-              validateDesign={validateDesign}
-            />
-          </div>
-        </div>
-      </div>
-      
-      <TextModal 
-        isOpen={isTextModalOpen}
-        onClose={() => setIsTextModalOpen(false)}
-        onAddText={addTextToCanvas}
-      />
-      
-      <ImageModal
-        isOpen={isImageModalOpen}
-        onClose={() => setIsImageModalOpen(false)}
-        onAddImage={handleAddImage}
-      />
-      
-      <EmojiModal 
-        isOpen={isEmojiModalOpen}
-        onClose={() => setIsEmojiModalOpen(false)}
-        onAddEmoji={(emoji) => {
-          addEmojiToCanvas(emoji);
-          setIsEmojiModalOpen(false);
-        }}
-      />
+       
+        <ImageModal
+          isOpen={isImageModalOpen}
+          onClose={() => setIsImageModalOpen(false)}
+          onAddImage={handleAddImage}
+        />
+       
+        <EmojiModal
+          isOpen={isEmojiModalOpen}
+          onClose={() => setIsEmojiModalOpen(false)}
+          onAddEmoji={(emoji) => {
+            addEmojiToCanvas(emoji);
+            setIsEmojiModalOpen(false);
+          }}
+        />
+      </DesignContextProviders>
     </Layout>
   );
 };

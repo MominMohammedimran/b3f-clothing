@@ -85,7 +85,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
       } catch (error) {
         console.error('Failed to load locations:', error);
         // Set default location as fallback
-        const defaultLocation: Location = { id: '1', name: 'Andhra Pradesh', code: 'AP' };
+        const defaultLocation = { id: '1', name: 'Andhra Pradesh', code: 'AP' };
         setCurrentLocation(defaultLocation);
         localStorage.setItem('currentLocation', JSON.stringify(defaultLocation));
         toast.error('Failed to load locations');

@@ -1,202 +1,304 @@
-import React, { useEffect, useRef } from 'react';
+
+import React, { useRef, useEffect, useState } from 'react';
 import { fabric } from 'fabric';
-import { Undo, Redo, Trash, X } from 'lucide-react';
+import { useColor } from '@/context/ColorContext';
+import { useFont } from '@/context/FontContext';
+import { useImage } from '@/context/ImageContext';
+import { useText } from '@/context/TextContext';
+import { useEmoji } from '@/context/EmojiContext';
+import BoundaryRestrictor from './BoundaryRestrictor';
+import CanvasControls from './CanvasControls';
+import BoundaryBox from '../customization/BoundaryBox';
+import CanvasBackground from './CanvasBackground';
 
 interface DesignCanvasProps {
-  activeProduct: string;
-  productView: string;
-  canvas: fabric.Canvas | null;
-  setCanvas: React.Dispatch<React.SetStateAction<fabric.Canvas | null>>;
-  undoStack: string[];
-  redoStack: string[];
-  setUndoStack: React.Dispatch<React.SetStateAction<string[]>>;
-  setRedoStack: React.Dispatch<React.SetStateAction<string[]>>;
-  setDesignImage: React.Dispatch<React.SetStateAction<string | undefined>>;
-  setCanvasInitialized: React.Dispatch<React.SetStateAction<boolean>>;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
-  fabricCanvasRef: React.MutableRefObject<fabric.Canvas | null>;
-  setDesignComplete: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  designComplete: Record<string, boolean>;
-  checkDesignStatus: () => void;
+  activeProduct?: string;
+  productView?: string;
+  canvas?: fabric.Canvas | null;
+  setCanvas?: React.Dispatch<React.SetStateAction<fabric.Canvas | null>>;
+  undoStack?: string[];
+  redoStack?: string[];
+  setUndoStack?: React.Dispatch<React.SetStateAction<string[]>>;
+  setRedoStack?: React.Dispatch<React.SetStateAction<string[]>>;
+  setDesignImage?: React.Dispatch<React.SetStateAction<string | undefined>>;
+  setCanvasInitialized?: React.Dispatch<React.SetStateAction<boolean>>;
+  canvasRef?: React.RefObject<HTMLCanvasElement>;
+  fabricCanvasRef?: React.MutableRefObject<fabric.Canvas | null>;
+  setDesignComplete?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  designComplete?: Record<string, boolean>;
+  checkDesignStatus?: (canvasInstance?: fabric.Canvas | null) => boolean;
+  undo?: () => void;
+  redo?: () => void;
+  clearCanvas?: () => void;
 }
 
-const DesignCanvas: React.FC<DesignCanvasProps> = ({
-  activeProduct,
-  productView,
-  canvas,
-  undoStack,
-  redoStack,
-  setUndoStack,
-  setRedoStack,
-  setDesignImage,
-  canvasRef,
-  checkDesignStatus,
-  designComplete
-}) => {
-  const handleUndo = () => {
-    if (undoStack.length <= 1 || !canvas) return;
-    
-    try {
-      const currentState = undoStack.pop();
-      if (currentState && undoStack.length > 0) {
-        setRedoStack([...redoStack, currentState]);
-        const prevState = undoStack[undoStack.length - 1];
-        canvas.loadFromJSON(JSON.parse(prevState), canvas.renderAll.bind(canvas));
-        updateDesignImage();
-        checkDesignStatus();
+const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
+  const localCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [localCanvas, setLocalCanvas] = useState<fabric.Canvas | null>(null);
+  const [canvasReady, setCanvasReady] = useState(false);
+  const { selectedColor } = useColor();
+  const { selectedFont } = useFont();
+  const { selectedImage } = useImage();
+  const { text, setText } = useText();
+  const { selectedEmoji } = useEmoji();
+  
+  // Use provided refs or local refs if not provided
+  const canvasRef = props.canvasRef || localCanvasRef;
+  const canvas = props.canvas || localCanvas;
+  const setCanvas = props.setCanvas || setLocalCanvas;
+  const undoStack = props.undoStack || [];
+  const redoStack = props.redoStack || [];
+
+  useEffect(() => {
+    const initializeCanvas = () => {
+      const canvasElement = canvasRef.current;
+      if (!canvasElement) {
+        console.error('Canvas element not found, retrying...');
+        setTimeout(initializeCanvas, 100);
+        return;
       }
-    } catch (error) {
-      console.error('Error handling undo:', error);
+
+      try {
+        // Dispose existing canvas if any
+        if (canvas) {
+          canvas.dispose();
+        }
+
+        const newCanvas = new fabric.Canvas(canvasElement, {
+          backgroundColor: 'black',
+          height: 400,
+          width: 400,
+          preserveObjectStacking: true,
+          selection: true,
+          renderOnAddRemove: true,
+          allowTouchScrolling: false,
+          imageSmoothingEnabled: false,
+        });
+
+        // Enable object selection and manipulation
+        newCanvas.selection = true;
+        newCanvas.skipTargetFind = false;
+        newCanvas.selectable = true;
+
+        setCanvas(newCanvas);
+        setCanvasReady(true);
+        
+        if (props.setCanvasInitialized) {
+          props.setCanvasInitialized(true);
+        }
+
+        console.log('Canvas initialized successfully');
+      } catch (error) {
+        console.error('Error initializing canvas:', error);
+        setTimeout(initializeCanvas, 100);
+      }
+    };
+
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(initializeCanvas, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (canvas) {
+        canvas.dispose();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!canvas || !canvasReady) return;
+
+    const addTextToCanvas = () => {
+      if (!text.trim()) return;
+
+      const textObject = new fabric.IText(text, {
+        left: 250,
+        top: 300,
+        fontSize: 24,
+        fontFamily: selectedFont,
+        fill: selectedColor,
+        selectable: true,
+        evented: true,
+        hasRotatingPoint: true,
+        hasControls: true,
+        hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
+        lockScalingX: false,
+        lockScalingY: false,
+        lockRotation: false,
+        borderColor: '#4169E1',
+        cornerColor: '#4169E1',
+        cornerSize: 12,
+        transparentCorners: false,
+        borderScaleFactor: 2,
+        data: {
+          type: 'text',
+        },
+      });
+
+      canvas.add(textObject);
+      canvas.setActiveObject(textObject);
+      canvas.renderAll();
+      setText('');
+      
+      // Save canvas state if callback provided
+      if (props.setUndoStack && props.undoStack) {
+        props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
+      }
+      
+      // Update design status if callback provided
+      if (props.checkDesignStatus) {
+        props.checkDesignStatus(canvas);
+      }
+    };
+
+    addTextToCanvas();
+  }, [text, selectedFont, selectedColor, canvas, canvasReady, setText]);
+
+  useEffect(() => {
+    if (!canvas || !canvasReady || !selectedImage) return;
+
+    const addImageToCanvas = (url: string) => {
+      fabric.Image.fromURL(url, (img) => {
+        img.set({
+          left: 250,
+          top: 300,
+          scaleX: 0.3,
+          scaleY: 0.3,
+          selectable: true,
+          evented: true,
+          hasRotatingPoint: true,
+          hasControls: true,
+          hasBorders: true,
+          lockMovementX: false,
+          lockMovementY: false,
+          lockScalingX: false,
+          lockScalingY: false,
+          lockRotation: false,
+          borderColor: '#4169E1',
+          cornerColor: '#4169E1',
+          cornerSize: 12,
+          transparentCorners: false,
+          borderScaleFactor: 2,
+          data: {
+            type: 'image',
+          },
+        });
+        
+        canvas.add(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+        
+        // Save canvas state if callback provided
+        if (props.setUndoStack && props.undoStack) {
+          props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
+        }
+        
+        // Update design status if callback provided
+        if (props.checkDesignStatus) {
+          props.checkDesignStatus(canvas);
+        }
+      });
+    };
+
+    addImageToCanvas(selectedImage);
+  }, [selectedImage, canvas, canvasReady]);
+
+  useEffect(() => {
+    if (!canvas || !canvasReady || !selectedEmoji) return;
+
+    const addEmojiToCanvas = (emoji: string) => {
+      const emojiObject = new fabric.IText(emoji, {
+        left: 250,
+        top: 300,
+        fontSize: 48,
+        selectable: true,
+        evented: true,
+        hasRotatingPoint: true,
+        hasControls: true,
+        hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
+        lockScalingX: false,
+        lockScalingY: false,
+        lockRotation: false,
+        borderColor: '#4169E1',
+        cornerColor: '#4169E1',
+        cornerSize: 12,
+        transparentCorners: false,
+        borderScaleFactor: 2,
+        data: {
+          type: 'emoji',
+        },
+      });
+      
+      canvas.add(emojiObject);
+      canvas.setActiveObject(emojiObject);
+      canvas.renderAll();
+      
+      // Save canvas state if callback provided
+      if (props.setUndoStack && props.undoStack) {
+        props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
+      }
+      
+      // Update design status if callback provided
+      if (props.checkDesignStatus) {
+        props.checkDesignStatus(canvas);
+      }
+    };
+
+    addEmojiToCanvas(selectedEmoji);
+  }, [selectedEmoji, canvas, canvasReady]);
+
+  const handleUndo = () => {
+    if (props.undo) {
+      props.undo();
     }
   };
 
   const handleRedo = () => {
-    if (redoStack.length === 0 || !canvas) return;
-    
-    try {
-      const stateToRestore = redoStack.pop();
-      if (stateToRestore) {
-        setUndoStack([...undoStack, stateToRestore]);
-        canvas.loadFromJSON(JSON.parse(stateToRestore), canvas.renderAll.bind(canvas));
-        updateDesignImage();
-        checkDesignStatus();
-      }
-    } catch (error) {
-      console.error('Error handling redo:', error);
+    if (props.redo) {
+      props.redo();
     }
   };
 
-  const clearCanvas = () => {
-    if (!canvas) return;
-    
-    try {
-      // Keep only background object
-      const backgroundObject = canvas.getObjects().find(obj => obj.data?.isBackground);
-      canvas.clear();
-      
-      if (backgroundObject) {
-        canvas.add(backgroundObject);
-        canvas.sendToBack(backgroundObject);
-      }
-      
-      canvas.renderAll();
-      saveCanvasState(canvas);
-      updateDesignImage();
-      checkDesignStatus();
-    } catch (error) {
-      console.error('Error clearing canvas:', error);
-    }
-  };
-
-  const removeSelectedObject = () => {
-    if (!canvas) return;
-    
-    try {
-      const activeObject = canvas.getActiveObject();
-      if (activeObject && !activeObject.data?.isBackground) {
-        canvas.remove(activeObject);
-        canvas.renderAll();
-        saveCanvasState(canvas);
-        updateDesignImage();
-        checkDesignStatus();
-      }
-    } catch (error) {
-      console.error('Error removing selected object:', error);
-    }
-  };
-
-  const saveCanvasState = (canvasInstance: fabric.Canvas) => {
-    if (!canvasInstance) return;
-    
-    try {
-      const newState = JSON.stringify(canvasInstance.toJSON());
-      setUndoStack(prev => [...prev, newState]);
-      setRedoStack([]);
-      updateDesignImage();
-    } catch (error) {
-      console.error('Error saving canvas state:', error);
-    }
-  };
-
-  const updateDesignImage = () => {
-    if (!canvas) return;
-    
-    try {
-      const dataUrl = canvas.toDataURL({
-        format: 'png',
-        quality: 1
-      });
-      setDesignImage(dataUrl);
-    } catch (error) {
-      console.error('Error updating design image:', error);
+  const handleClear = () => {
+    if (props.clearCanvas) {
+      props.clearCanvas();
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Design Canvas</h2>
-        <div className="flex space-x-2">
-          <button
-            onClick={handleUndo}
-            disabled={undoStack.length <= 1}
-            className={`p-2 rounded-md ${
-              undoStack.length <= 1 ? 'text-gray-400 bg-gray-100' : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-            }`}
-            title="Undo"
-          >
-            <Undo size={20} />
-          </button>
-          <button
-            onClick={handleRedo}
-            disabled={redoStack.length === 0}
-            className={`p-2 rounded-md ${
-              redoStack.length === 0 ? 'text-gray-400 bg-gray-100' : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-            }`}
-            title="Redo"
-          >
-            <Redo size={20} />
-          </button>
-          <button
-            onClick={clearCanvas}
-            className="p-2 rounded-md text-red-600 bg-red-50 hover:bg-red-100"
-            title="Clear Canvas"
-          >
-            <Trash size={20} />
-          </button>
-          <button
-            onClick={removeSelectedObject}
-            className="p-2 rounded-md text-red-600 bg-red-50 hover:bg-red-100"
-            title="Remove Selected Object"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      </div>
-      
-      <div 
-        className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center mt-4" 
-        style={{ 
-          height: activeProduct === 'tshirt' ? '500px' : activeProduct === 'mug' ? '300px' : '300px', 
-          width: '100%' 
-        }}
-      >
-        <canvas id="design-canvas" ref={canvasRef}></canvas>
-      </div>
-      
-      {/* Design guidance and status */}
-      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-        <h3 className="text-sm font-medium text-blue-700">Design Status:</h3>
-        <ul className="text-sm text-blue-600 mt-1">
-          {Object.entries(designComplete).map(([side, isComplete]) => (
-            <li key={side} className="flex items-center">
-              <span className={`mr-1 ${isComplete ? 'text-green-500' : 'text-gray-400'}`}>
-                {isComplete ? '✓' : '○'}
-              </span>
-              {side.charAt(0).toUpperCase() + side.slice(1)} design {isComplete ? 'complete' : 'incomplete'}
-            </li>
-          ))}
-        </ul>
+    <div className="design-canvas-container">
+      <CanvasControls
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onClear={handleClear}
+        canUndo={undoStack.length > 1}
+        canRedo={redoStack.length > 0}
+      />
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          className="border border-gray-300 rounded-lg shadow-lg"
+          style={{ touchAction: 'none' }}
+        />
+        {!canvasReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+            <div className="text-gray-600">Loading canvas...</div>
+          </div>
+        )}
+        <BoundaryBox 
+          productType={props.activeProduct || 'tshirt'} 
+          view={props.productView || 'front'} 
+        />
+        <CanvasBackground
+          canvas={canvas}
+          productType={props.activeProduct || 'tshirt'}
+          view={props.productView || 'front'}
+        />
+        <BoundaryRestrictor canvas={canvas} boundaryId="design-boundary" />
       </div>
     </div>
   );

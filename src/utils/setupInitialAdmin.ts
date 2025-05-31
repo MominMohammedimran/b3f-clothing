@@ -92,7 +92,6 @@ export const ensureAdminExists = async () => {
     
     // If admin exists, return true
     if (existingAdmin) {
-      console.log('Specific admin user exists:', existingAdmin);
       return true;
     }
     

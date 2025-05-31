@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { SupabaseClient, User } from '@supabase/supabase-js';
-import { toast } from 'sonner';
+import { toast } from '@/utils/toastWrapper';
 import { supabase as supabaseClient } from "../integrations/supabase/client";
 
 // Create a Supabase client context
@@ -56,6 +56,7 @@ export const useAuth = () => {
   const supabase = useSupabaseClient();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
   
   useEffect(() => {
     if (!supabase) {
@@ -78,6 +79,8 @@ export const useAuth = () => {
                 .select('*')
                 .eq('id', currentUser.id)
                 .maybeSingle();
+              
+              setUserProfile(profile || null);
               
               if (!profile && !error) {
                 // Create profile if it doesn't exist
@@ -103,13 +106,27 @@ export const useAuth = () => {
           toast.success('Signed in successfully!');
         } else if (event === 'SIGNED_OUT') {
           toast.info('Signed out');
+          setUserProfile(null);
         }
       }
     );
     
     // Get initial user
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user);
+      if (data.user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .maybeSingle();
+          
+          setUserProfile(profile || null);
+        } catch (error) {
+          // Handle error silently
+        }
+      }
       setLoading(false);
     });
     
@@ -121,10 +138,31 @@ export const useAuth = () => {
   return {
     user,
     currentUser: user, // Alias for consistency with AuthContext
+    userProfile,
     loading,
     signIn: async (email: string, password: string) => {
       if (!supabase) return { error: { message: 'Supabase client not initialized' } };
       try {
+        // First check if user exists
+        const { data: userExists, error: checkError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('email', email)
+          .maybeSingle();
+          
+        if (checkError) {
+          console.error('Error checking if user exists:', checkError);
+        }
+        
+        // If user doesn't exist, show clear message
+        if (!userExists) {
+          toast.error('Email is not registered', {
+            description: 'Please create an account first.'
+          });
+          return { error: { message: 'Email is not registered' } };
+        }
+        
+        // If user exists, attempt to sign in
         const response = await supabase.auth.signInWithPassword({ email, password });
         if (response.error) throw response.error;
         return response;

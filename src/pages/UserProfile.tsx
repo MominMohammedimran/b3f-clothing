@@ -108,7 +108,7 @@ const UserProfile = () => {
     const defaultProfile = createDefaultProfile(currentUser);
     return (
       <Layout>
-        <div className="container-custom py-8">
+        <div className="container-custom py-8 mt-10">
           <UserProfileHeader 
             name={defaultProfile.display_name}
             email={defaultProfile.email}
@@ -128,7 +128,7 @@ const UserProfile = () => {
   
   return (
     <Layout>
-      <div className="container-custom py-8">
+      <div className="container-custom py-8 mt-10">
         {currentUser ? (
           <>
             <UserProfileHeader 

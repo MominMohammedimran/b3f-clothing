@@ -49,7 +49,7 @@ export const useDesignProducts = () => {
             id: product.id,
             name: product.name,
             price: product.price,
-            image: product.image || 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-print.png',
+            image: product.image || 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-print.webp',
             code: product.code
           };
         });
@@ -62,21 +62,21 @@ export const useDesignProducts = () => {
             id: 'default-tshirt',
             name: 'T-shirt', 
             price: 200, 
-            image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-print.png',
+            image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-print.webp',
             code: 'TSHIRT_PRINT'
           },
           mug: { 
             id: 'default-mug',
             name: 'Mug', 
             price: 200, 
-            image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/mug-print.png',
+            image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/mug-print.webp',
             code: 'MUG_PRINT'
           },
           cap: { 
             id: 'default-cap',
             name: 'Cap', 
             price: 150, 
-            image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-print.png',
+            image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-print.webp',
             code: 'CAP_PRINT'
           }
         });
@@ -92,21 +92,21 @@ export const useDesignProducts = () => {
           id: 'default-tshirt',
           name: 'T-shirt', 
           price: 200, 
-          image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-print.png',
+          image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-print.webp',
           code: 'TSHIRT_PRINT'
         },
         mug: { 
           id: 'default-mug',
           name: 'Mug', 
           price: 200, 
-          image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/mug-print.png',
+          image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public//design-tool-page/mug-print.webp',
           code: 'MUG_PRINT'
         },
         cap: { 
           id: 'default-cap',
           name: 'Cap', 
           price: 150, 
-          image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-print.png',
+          image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-print.webp',
           code: 'CAP_PRINT'
         }
       });

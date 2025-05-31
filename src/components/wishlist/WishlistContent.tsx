@@ -62,9 +62,9 @@ const WishlistContent: React.FC = () => {
               )}
               <div className="mt-2">
                 <span className="font-medium text-lg">₹{item.price}</span>
-                {item.originalPrice && item.originalPrice > item.price && (
+                {item.original_price && item.original_price > item.price && (
                   <span className="text-sm text-gray-400 line-through ml-2">
-                    ₹{item.originalPrice}
+                    ₹{item.original_price}
                   </span>
                 )}
               </div>

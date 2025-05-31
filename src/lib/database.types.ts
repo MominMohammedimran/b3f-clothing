@@ -184,49 +184,6 @@ export interface Database {
         }
         Relationships: []
       }
-      order_tracking: {
-        Row: {
-          id: string;
-          order_id: string;
-          status: string;
-          current_location: string | null;
-          estimated_delivery: string | null;
-          tracking_number: string | null;
-          timestamp: string;
-          description: string | null;
-          history?: Json | null;
-        };
-        Insert: {
-          id?: string;
-          order_id: string;
-          status: string;
-          current_location?: string | null;
-          estimated_delivery?: string | null;
-          tracking_number?: string | null;
-          timestamp?: string;
-          description?: string | null;
-          history?: Json | null;
-        };
-        Update: {
-          id?: string;
-          order_id?: string;
-          status?: string;
-          current_location?: string | null;
-          estimated_delivery?: string | null;
-          tracking_number?: string | null;
-          timestamp?: string;
-          description?: string | null;
-          history?: Json | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "order_tracking_order_id_fkey",
-            columns: ["order_id"],
-            referencedRelation: "orders",
-            referencedColumns: ["id"];
-          }
-        ];
-      }
       products: {
         Row: {
           id: string
@@ -239,7 +196,6 @@ export interface Database {
           image: string | null
           images: Json | null
           rating: number
-          productId:string
           category: string
           tags: Json | null
           sizes: Json | null
@@ -259,7 +215,6 @@ export interface Database {
           images?: Json | null
           rating?: number
           category: string
-           productId:string
           tags?: Json | null
           sizes?: Json | null
           stock?: number | null
@@ -278,7 +233,6 @@ export interface Database {
           images?: Json | null
           rating?: number
           category?: string
-           productId:string
           tags?: Json | null
           sizes?: Json | null
           stock?: number | null
@@ -395,17 +349,10 @@ export interface Database {
         }
         Relationships: []
       }
-    };
-    Views: {};
-    Functions: {
-      is_admin: {
-        Args: {
-          user_email: string;
-        };
-        Returns: boolean;
-      };
-    };
-    Enums: {};
-    CompositeTypes: {};
-  };
+    }
+    Views: {}
+    Functions: {}
+    Enums: {}
+    CompositeTypes: {}
+  }
 }

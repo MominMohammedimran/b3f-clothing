@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,8 +6,8 @@ import { Search } from "lucide-react";
 import { Location } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
 
-
-const locations: Location[] = [
+// Define locations with necessary properties
+const staticLocations: Location[] = [
   { id: '1', name: 'Andhra Pradesh', code: 'AP' },
   { id: '2', name: 'Telangana', code: 'TG' },
   { id: '3', name: 'Karnataka', code: 'KA' },
@@ -28,6 +27,7 @@ const locations: Location[] = [
   { id: '17', name: 'Texas', code: 'TX' },
   { id: '18', name: 'Florida', code: 'FL' }
 ];
+
 interface LocationPopupProps {
   isOpen: boolean;
   onClose: () => void;
@@ -51,6 +51,7 @@ const LocationPopup: React.FC<LocationPopupProps> = ({
     const fetchLocations = async () => {
       setLoading(true);
       try {
+        // Query only the columns that actually exist in the locations table
         const { data, error } = await supabase
           .from('locations')
           .select('id, name, code')
@@ -58,20 +59,24 @@ const LocationPopup: React.FC<LocationPopupProps> = ({
         
         if (error) throw error;
         
-        if (data) {
-          setLocations(data as Location[]);
-          setFilteredLocations(data as Location[]);
+        if (data && data.length > 0) {
+          // Map the data to conform to our Location interface
+          const formattedData: Location[] = data.map(loc => ({
+            id: loc.id,
+            name: loc.name,
+            code: loc.code
+            // Other properties are optional in our updated Location interface
+          }));
+          setLocations(formattedData);
+          setFilteredLocations(formattedData);
+        } else {
+          // Fallback to static data if no data from API
+          setLocations(staticLocations);
+          setFilteredLocations(staticLocations);
         }
       } catch (error) {
         console.error('Error fetching locations:', error);
         // Fallback to static data if API fails
-        const staticLocations: Location[] = [
-          { id: '1', name: 'Mumbai', code: 'BOM' },
-          { id: '2', name: 'Delhi', code: 'DEL' },
-          { id: '3', name: 'Bangalore', code: 'BLR' },
-          { id: '4', name: 'Hyderabad', code: 'HYD' },
-          { id: '5', name: 'Chennai', code: 'MAA' }
-        ];
         setLocations(staticLocations);
         setFilteredLocations(staticLocations);
       } finally {
@@ -88,7 +93,7 @@ const LocationPopup: React.FC<LocationPopupProps> = ({
   useEffect(() => {
     const filtered = locations.filter(loc => 
       loc.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      loc.code.toLowerCase().includes(searchTerm.toLowerCase())
+      (loc.code && loc.code.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     setFilteredLocations(filtered);
   }, [searchTerm, locations]);

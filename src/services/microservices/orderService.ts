@@ -1,6 +1,6 @@
 
 import { EdgeFunctionApiService } from './api';
-import { Order } from '@/lib/types';
+import { Order, ShippingAddress } from '@/lib/types';
 import { NotificationType, sendNotification } from '../notificationService';
 
 // Mock order data with placeholder images
@@ -37,8 +37,6 @@ const mockOrders: Record<string, Order> = {
       state: 'Maharashtra',
       zipCode: '400001',
       country: 'India',
-      id: 'address-1',
-      user_id: 'user-1'
     },
     payment_method: 'credit_card',
     delivery_fee: 99.99
@@ -61,13 +59,14 @@ export class OrderMicroservice {
       const newOrder: Order = {
         id: newOrderId,
         user_id: orderData.user_id || 'anonymous',
-        orderNumber: `ORD${Math.floor(100000 + Math.random() * 900000)}`,
+        order_number: `ORD${Math.floor(100000 + Math.random() * 900000)}`,
         status: 'pending',
         total: orderData.total || 0,
         items: orderData.items || [],
         created_at: new Date().toISOString(),
-        shippingAddress: orderData.shippingAddress,
-        paymentMethod: orderData.paymentMethod || 'cod'
+        shipping_address: orderData.shipping_address || {} as ShippingAddress,
+        payment_method: orderData.payment_method || 'cod',
+        delivery_fee: orderData.delivery_fee || 0
       };
       
       mockOrders[newOrderId] = newOrder;

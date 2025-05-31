@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Order, CartItem } from '@/lib/types';
+import { Order, CartItem, ShippingAddress } from '@/lib/types';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -51,10 +51,28 @@ export const useOrderData = () => {
             options: item.options
           }));
         
-          setOrderData({
-            ...data,
-            items: itemsWithIds
-          });
+          // Parse shipping_address if it's a string
+          const parsedShippingAddress = data.shipping_address ? 
+            (typeof data.shipping_address === 'string' ? 
+              JSON.parse(data.shipping_address) : data.shipping_address) : null;
+          
+          // Create a properly typed order object
+          const typedOrder: Order = {
+            id: data.id,
+            order_number: data.order_number,
+            user_id: data.user_id,
+            total: data.total,
+            status: data.status,
+            items: itemsWithIds,
+            payment_method: data.payment_method,
+            delivery_fee: data.delivery_fee || 0,
+            shipping_address: parsedShippingAddress as ShippingAddress,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            date: data.date
+          };
+          
+          setOrderData(typedOrder);
         } else {
           // Fallback to local storage
           const storedOrders = localStorage.getItem('orderHistory');

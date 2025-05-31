@@ -1,51 +1,37 @@
 
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-import { BrowserRouter } from 'react-router-dom'
-import { Toaster } from 'sonner'
-import { AuthProvider } from './context/AuthContext'
-import { LocationProvider } from './context/LocationContext'
-import { MicroservicesProvider } from './context/MicroservicesContext'
-import DesignContextProviders from './context/DesignContextProviders'
-import { CartProvider } from './context/CartContext'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import { AuthProvider } from './context/AuthContext';
+import { LocationProvider } from './context/LocationContext';
+import { CartProvider } from './context/CartContext';
+import { WishlistProvider } from './context/WishlistContext'; 
+import { MicroservicesProvider } from './context/MicroservicesContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import './index.css';
 
-// Import performance optimizations
-import { initPerformanceOptimizations } from './utils/performanceOptimizations';
-
-// Initialize performance optimizations
-initPerformanceOptimizations();
-
-// Create query client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false,
-      retry: 1
-    }
-  }
-});
+// Create a client
+const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
         <AuthProvider>
           <LocationProvider>
             <MicroservicesProvider>
-              <DesignContextProviders>
+              <WishlistProvider>
                 <CartProvider>
                   <App />
-                  <Toaster position="top-center" offset={12} richColors closeButton />
+                  <Toaster position="top-right" />
                 </CartProvider>
-              </DesignContextProviders>
+              </WishlistProvider>
             </MicroservicesProvider>
           </LocationProvider>
         </AuthProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
-)
+      </BrowserRouter>
+    </QueryClientProvider>
+  </React.StrictMode>
+);

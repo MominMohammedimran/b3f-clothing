@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -83,7 +84,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return { data, error: null };
     } catch (error: any) {
       console.error('Sign in error:', error);
-      return { data: null, error };
+      toast.error(error.message || 'Failed to sign in');
+      return { error };
     } finally {
       setLoading(false);
     }
@@ -125,11 +127,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         } catch (profileError) {
           console.error('Error creating user profile:', profileError);
         }
+        
+        // Simulate verification for development purposes
+        const token = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        console.log('Verification token created:', token);
+        // In a production app, this token would be sent via email
       }
       
+      toast.success('Sign up successful! Check your email for verification or use token: 123456');
       return { data, error: null };
     } catch (error: any) {
       console.error('Sign up error:', error);
+      toast.error(error.message || 'Failed to sign up');
       return { error };
     } finally {
       setLoading(false);

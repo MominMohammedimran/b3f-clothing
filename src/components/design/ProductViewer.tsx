@@ -13,7 +13,7 @@ const ProductViewer: React.FC<ProductViewerProps> = ({ productType, view, design
     if (productType === 'tshirt') {
       switch (view) {
         case 'front':
-          return 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200&h=500';
+          return 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500';
         case 'back':
           return 'https://images.unsplash.com/photo-1622445275576-721325763afe?w=500&h=500';
         case 'left':
@@ -33,7 +33,7 @@ const ProductViewer: React.FC<ProductViewerProps> = ({ productType, view, design
     }
     
     // Fallback image
-    return 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=300&h=500';
+    return 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=500&h=500';
   };
   
   return (

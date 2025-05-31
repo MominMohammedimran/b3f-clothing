@@ -1,11 +1,10 @@
 
 import React from 'react';
-import { Truck, Package, CheckCircle, X } from 'lucide-react';
+import { Truck, Package, CheckCircle } from 'lucide-react';
 
 export interface OrderTrackingStatusProps {
   currentStatus: string;
   estimatedDelivery: string;
-  cancellationReason?: string;
 }
 
 const statusSteps = [
@@ -18,69 +17,28 @@ const statusSteps = [
 const statusMap: Record<string, string> = {
   processing: 'processing',
   prepared: 'processing',
-  order_placed: 'processing',
-  pending: 'processing',
   shipped: 'shipped',
   shipping: 'shipped',
   out_for_delivery: 'out_for_delivery',
   delivered: 'delivered',
   complete: 'delivered',
-  cancelled: 'cancelled',
 };
 
 const OrderTrackingStatus: React.FC<OrderTrackingStatusProps> = ({
   currentStatus,
   estimatedDelivery,
-  cancellationReason,
 }) => {
-  // Normalize status - default to processing if invalid status provided
-  const normalizedStatus = currentStatus && typeof currentStatus === 'string'
-    ? (statusMap[currentStatus.toLowerCase()] || 'processing')
-    : 'processing';
-  
-  console.log('Order tracking status:', currentStatus, 'Normalized:', normalizedStatus);
-  
-  // Handle cancelled orders differently
-  if (normalizedStatus === 'cancelled') {
-    return (
-      <div className="bg-white rounded-lg mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Order Status</h2>
-        </div>
-
-        <div className="text-center py-8">
-          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-            <X className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-xl font-semibold text-red-600 mb-2">Order Cancelled</h3>
-          <p className="text-gray-600 mb-4">Your order has been cancelled and will not be delivered.</p>
-          
-          {cancellationReason && (
-            <div className="max-w-md mx-auto p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="font-medium text-red-800 mb-1">Cancellation Reason:</p>
-              <p className="text-red-700">{cancellationReason}</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-  
-  // Find the index of the current status in our steps
+  const normalizedStatus = statusMap[currentStatus?.toLowerCase()] || 'processing';
   const currentStatusIndex = statusSteps.findIndex(step => step.key === normalizedStatus);
-  
-  // Calculate progress percentage (handle -1 case if status not found)
-  const percentComplete = currentStatusIndex >= 0 
-    ? ((currentStatusIndex + 1) / statusSteps.length) * 100
-    : 0;
+  const percentComplete = (currentStatusIndex / (statusSteps.length - 1)) * 100;
 
   return (
-    <div className="bg-white rounded-lg mb-8">
+    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Delivery Status</h2>
         <div className="text-blue-600 text-right">
           <p className="font-medium">Estimated Delivery</p>
-          <p>{estimatedDelivery || 'To be confirmed'}</p>
+          <p>{estimatedDelivery}</p>
         </div>
       </div>
 
@@ -126,7 +84,7 @@ const OrderTrackingStatus: React.FC<OrderTrackingStatusProps> = ({
       </div>
 
       <div className="mt-4 text-sm font-medium text-blue-700 text-center">
-        Current Status: {currentStatusIndex >= 0 ? statusSteps[currentStatusIndex]?.label : 'Processing'}
+        Current Status: {statusSteps[currentStatusIndex]?.label}
       </div>
     </div>
   );

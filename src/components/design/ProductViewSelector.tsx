@@ -29,7 +29,7 @@ const ProductViewSelector: React.FC<ProductViewSelectorProps> = ({
       <h2 className="text-lg font-medium mb-3">{productType === 'tshirt' ? 'T-Shirt' : productType === 'mug' ? 'Mug' : 'Cap'} Views</h2>
       
       {productType === 'tshirt' ? (
-        <Tabs defaultValue={currentView} className="w-[100%] justify-self-center" onValueChange={onViewChange}>
+        <Tabs defaultValue={currentView} className="w-[80%] justify-self-center" onValueChange={onViewChange}>
           <TabsList className="grid grid-cols-2 mb-4 justify-between" >
             <TabsTrigger value="front">Front</TabsTrigger>
             <TabsTrigger value="back">Back</TabsTrigger>
@@ -43,7 +43,7 @@ const ProductViewSelector: React.FC<ProductViewSelectorProps> = ({
                 checked={isDualSided} 
                 onCheckedChange={(checked) => onDualSidedChange(checked === true)}
               />
-              <Label htmlFor="dual-sided" className="text-l leading-[1.5]">
+              <Label htmlFor="dual-sided" className="text-sm">
                 I want to print on both sides ({formatIndianRupees(300)})
               </Label>
             </div>
@@ -70,32 +70,32 @@ const ProductViewSelector: React.FC<ProductViewSelectorProps> = ({
       )}
       
       {/* Size selector */}
-      <div className="mt-6">
-        <h3 className="text-xl font-medium mb-3">Select Size:</h3>
-        <div className="flex flex-wrap justify-center gap-3">
+      <div className="mt-4">
+        <h3 className="text-m font-medium mb-2">Select Size:</h3>
+        <div className="flex flex-wrap gap-2">
           {productType === 'tshirt' ? (
             <>
               <button 
                 onClick={() => onSizeChange('S')}
-                className={`px-4 py-1 text-xl border rounded ${selectedSize === 'S' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
+                className={`px-8 py-3 text-xl border rounded ${selectedSize === 'S' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
               >
                 S
               </button>
               <button 
                 onClick={() => onSizeChange('M')}
-                className={`px-4 py-1 text-xl border rounded ${selectedSize === 'M' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
+                className={`px-8 py-3 text-xl border rounded ${selectedSize === 'M' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
               >
                 M
               </button>
               <button 
                 onClick={() => onSizeChange('L')}
-                className={`px-4 py-1 text-xl border rounded ${selectedSize === 'L' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
+                className={`px-8 py-3 text-xl border rounded ${selectedSize === 'L' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
               >
                 L
               </button>
               <button 
                 onClick={() => onSizeChange('XL')}
-                className={`px-4 py-1 text-xl border rounded ${selectedSize === 'XL' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
+                className={`px-8 py-3 text-xl border rounded ${selectedSize === 'XL' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
               >
                 XL
               </button>
@@ -103,7 +103,7 @@ const ProductViewSelector: React.FC<ProductViewSelectorProps> = ({
           ) : (
             <button 
               onClick={() => onSizeChange('Standard')}
-              className={`px-4 py-1 justify-center m-auto border rounded ${selectedSize === 'Standard' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
+              className={`px-3 py-1 justify-center border rounded ${selectedSize === 'Standard' ? 'bg-blue-500 text-white' : 'border-gray-300'}`}
             >
               Standard
             </button>

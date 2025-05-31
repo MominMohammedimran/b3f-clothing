@@ -6,62 +6,124 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- =============================
--- Product Catalog
--- =============================
-
--- Categories Table
-CREATE TABLE IF NOT EXISTS public.categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  description TEXT,
+-- Create tables
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  email TEXT UNIQUE NOT NULL,
+  display_name TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  avatar_url TEXT,
+  phone_number TEXT,
+  reward_points INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Products Table
+CREATE TABLE IF NOT EXISTS public.addresses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  street TEXT NOT NULL,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  zipcode TEXT NOT NULL,
+  country TEXT DEFAULT 'India',
+  is_default BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  order_number TEXT NOT NULL,
+  total NUMERIC NOT NULL,
+  status TEXT NOT NULL DEFAULT 'processing',
+  items JSONB NOT NULL,
+  payment_method TEXT NOT NULL DEFAULT 'razorpay',
+  delivery_fee NUMERIC DEFAULT 0,
+  shipping_address JSONB,
+  date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.order_tracking (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
+  status TEXT NOT NULL,
+  current_location TEXT,
+  estimated_delivery TIMESTAMP WITH TIME ZONE,
+  history JSONB DEFAULT '[]',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.carts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  product_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  price NUMERIC NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  image TEXT,
+  color TEXT,
+  size TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.wishlists (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  product_id TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, product_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.locations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.user_location_preferences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  location_id UUID REFERENCES public.locations(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, location_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create product inventory table
 CREATE TABLE IF NOT EXISTS public.products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code TEXT,
   name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
   description TEXT,
-  price NUMERIC NOT NULL,
-  category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Product Variants Table (e.g. size, color)
-CREATE TABLE IF NOT EXISTS public.product_variants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
-  size TEXT,
-  color TEXT,
+  price NUMERIC NOT NULL DEFAULT 0,
+  original_price NUMERIC NOT NULL DEFAULT 0,
+  discount_percentage NUMERIC DEFAULT 0,
+  image TEXT,
+  images JSONB,
+  rating NUMERIC DEFAULT 0,
+  category TEXT NOT NULL,
+  tags JSONB,
+  sizes JSONB,
   stock INTEGER DEFAULT 0,
-  additional_price NUMERIC DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Product Images Table
-CREATE TABLE IF NOT EXISTS public.product_images (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
-  image_url TEXT NOT NULL,
-  is_main BOOLEAN DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Reviews Table
-CREATE TABLE IF NOT EXISTS public.reviews (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
-  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-  comment TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create stored procedures
@@ -73,30 +135,26 @@ CREATE OR REPLACE FUNCTION create_order(
   p_items JSONB,
   p_payment_method TEXT,
   p_delivery_fee NUMERIC,
-  p_shipping_address JSONB,
-  p_payment_details JSONB -- ✅ ADD THIS
+  p_shipping_address JSONB
 ) RETURNS JSON AS $$
 DECLARE
   v_order_id UUID;
   v_result JSON;
 BEGIN
   INSERT INTO public.orders (
-    user_id, order_number, total, status, items,
-    payment_method, delivery_fee, shipping_address, payment_details -- ✅ ADD
+    user_id, order_number, total, status, items, payment_method, delivery_fee, shipping_address
   ) VALUES (
-    p_user_id, p_order_number, p_total, p_status, p_items,
-    p_payment_method, p_delivery_fee, p_shipping_address, p_payment_details -- ✅ ADD
+    p_user_id, p_order_number, p_total, p_status, p_items, p_payment_method, p_delivery_fee, p_shipping_address
   )
   RETURNING id INTO v_order_id;
-
+  
   SELECT row_to_json(o) INTO v_result
   FROM public.orders o
   WHERE o.id = v_order_id;
-
+  
   RETURN v_result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 
 CREATE OR REPLACE FUNCTION create_order_tracking(
   p_order_id UUID,
@@ -164,6 +222,7 @@ ALTER TABLE public.wishlists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_location_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for profiles
 CREATE POLICY "Users can view their own profile"
@@ -236,6 +295,19 @@ CREATE POLICY "Admins can view admin_users"
     auth.email() IN (SELECT email FROM public.admin_users)
   );
 
+-- RLS Policies for products
+CREATE POLICY "Public can view products"
+  ON public.products
+  FOR SELECT
+  USING (true);
+
+CREATE POLICY "Admins can manage products"
+  ON public.products
+  FOR ALL
+  USING (
+    auth.email() IN (SELECT email FROM public.admin_users)
+  );
+
 -- Insert initial data
 INSERT INTO public.locations (name, code)
 VALUES 
@@ -244,3 +316,14 @@ VALUES
   ('Kerala', 'KL'),
   ('Andhra Pradesh', 'AP')
 ON CONFLICT (code) DO NOTHING;
+
+-- Insert product inventory data
+INSERT INTO public.products (name, category, price, original_price, stock)
+VALUES 
+  ('tshirt_S', 'inventory', 0, 0, 10),
+  ('tshirt_M', 'inventory', 0, 0, 15),
+  ('tshirt_L', 'inventory', 0, 0, 8),
+  ('tshirt_XL', 'inventory', 0, 0, 5),
+  ('mug_Standard', 'inventory', 0, 0, 20),
+  ('cap_Standard', 'inventory', 0, 0, 12)
+ON CONFLICT (name) DO NOTHING;

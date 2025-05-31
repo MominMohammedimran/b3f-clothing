@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { checkSessionSecurity } from '@/utils/securityUtils';
 
 interface AuthFormSecurityWrapperProps {
-  initialMode?: 'signin' | 'signup';
+  initialMode?: 'signin' | 'signup' | 'otp';
   redirectTo?: string;
 }
 

@@ -1,18 +1,17 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Save, RefreshCw } from 'lucide-react';
-import { useDesignToolInventory } from '@/hooks/useDesignToolInventory';
+import { useProductInventory } from '@/hooks/useProductInventory';
 
 const ProductInventory = () => {
-  // Use the adapter hook instead of directly using useProductInventory
-  const { sizeInventory, fetchProductInventory, updateInventory } = useDesignToolInventory();
-  const [loading, setLoading] = React.useState(false);
-  const [updatingItem, setUpdatingItem] = React.useState<string | null>(null);
+  const { sizeInventory, fetchProductInventory, updateInventory } = useProductInventory();
+  const [loading, setLoading] = useState(false);
+  const [updatingItem, setUpdatingItem] = useState<string | null>(null);
   
-  React.useEffect(() => {
+  useEffect(() => {
     const loadInventory = async () => {
       setLoading(true);
       await fetchProductInventory();
@@ -31,10 +30,7 @@ const ProductInventory = () => {
     const itemKey = `${productType}_${size}`;
     try {
       setUpdatingItem(itemKey);
-      // Calculate the difference for the adapter interface
-      const currentQuantity = sizeInventory[productType]?.[size] || 0;
-      const delta = quantity - currentQuantity;
-      const success = await updateInventory(productType, size, delta);
+      const success = await updateInventory(productType, size, quantity - sizeInventory[productType][size]);
       
       if (success) {
         console.log(`Updated ${productType} ${size} inventory to ${quantity}`);
@@ -45,7 +41,7 @@ const ProductInventory = () => {
       setUpdatingItem(null);
     }
   };
-  
+
   const refreshInventory = async () => {
     setLoading(true);
     await fetchProductInventory();

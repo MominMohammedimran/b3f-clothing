@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Product } from '@/lib/types';
-import { formatPrice } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import ProductPlaceOrder from '@/components/products/ProductPlaceOrder';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
@@ -19,74 +20,52 @@ const ProductDetails = ({ product, selectedSize, setSelectedSize }: ProductDetai
   const { addToCart } = useCart();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-
+  
   const handleAddToCart = async () => {
     if (!currentUser) {
       toast.error('Please sign in to add to cart');
       navigate('/signin');
       return;
     }
-
-    if (!selectedSize) {
-      toast.error('Please select a size before adding to cart');
-      return;
+    
+    if (product) {
+      await addToCart({
+        ...product,
+        size: selectedSize || undefined
+      }, 1);
+      
+      toast.success(`${product.name} added to cart`);
     }
-
-    await addToCart({
-      product_id: product.productId,
-      name: product.name,
-      price: product.price,
-      quantity: 1,
-      size: selectedSize,
-      image: product.image,
-    });
-
-    toast.success(`${product.name} added to cart`);
   };
-
+  
   return (
-    <div className="space-y-6">
-      {/* Title */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-        <p className="mt-2 text-sm text-gray-600">Code :{product.category}</p>
+    <div>
+      <div className="flex justify-between items-start">
+        <h1 className="text-2xl font-bold">{product?.name}</h1>
       </div>
-
-      {/* Price */}
-      <div className="flex items-center justify-center gap-4">
-        <span className="text-2xl font-bold text-blue-600">{formatPrice(product.price)}</span>
-        {product.discountPercentage && product.discountPercentage > 0 && (
-          <>
-            <span className="text-gray-500 line-through text-lg">
-              {formatPrice(product.originalPrice || 0)}
-            </span>
-            <span className="bg-red-100 text-red-600 text-sm font-semibold px-2 py-1 rounded">
-              -{product.discountPercentage}%
-            </span>
-          </>
+      
+      <div className="mt-2">
+        <span className="text-2xl font-bold text-blue-600">{formatCurrency(product?.price || 0)}</span>
+        {product?.discount_percentage > 0 && (
+          <span className="ml-2 text-gray-500 line-through">{formatCurrency(product?.original_price || 0)}</span>
         )}
       </div>
-
-      {/* Description */}
-      <div>
-        <p className="text-gray-700 leading-relaxed">{product.description}</p>
+      
+      <div className="mt-4">
+        <p className="text-gray-700">{product?.description}</p>
       </div>
-
-      {/* Size Selector */}
-      {product.sizes && product.sizes.length > 0 && (
-        <div >
-          <h3 className="text-md font-semibold mb-2 text-gray-800">Select Size</h3>
-          <div className="flex flex-wrap gap-2 justify-center">
+      
+      {product?.sizes && product.sizes.length > 0 && (
+        <div className="mt-6">
+          <h3 className="font-semibold mb-2">Select Size</h3>
+          <div className="flex flex-wrap gap-2">
             {product.sizes.map((size) => (
               <button
                 key={size}
                 onClick={() => setSelectedSize(size)}
-                className={`px-4 py-2 border rounded-md transition-all duration-150 text-sm font-medium
-                  ${
-                    selectedSize === size
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white hover:bg-blue-50 border-gray-300'
-                  }`}
+                className={`px-4 py-2 border rounded-md ${
+                  selectedSize === size ? 'bg-blue-600 text-white' : 'bg-white'
+                }`}
               >
                 {size}
               </button>
@@ -94,15 +73,24 @@ const ProductDetails = ({ product, selectedSize, setSelectedSize }: ProductDetai
           </div>
         </div>
       )}
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-4">
-        <Button onClick={handleAddToCart} variant="outline" className="flex-1">
-          <ShoppingBag size={16} className="mr-2" />
-          Add to Cart
-        </Button>
-
-        <ProductPlaceOrder product={product} size={selectedSize} className="flex-1" />
+      
+      <div className="mt-6">
+        <div className="flex gap-3">
+          <Button 
+            onClick={handleAddToCart} 
+            variant="outline" 
+            className="flex-1"
+          >
+            <ShoppingBag size={16} className="mr-2" />
+            Add to Cart
+          </Button>
+          
+          <ProductPlaceOrder
+            product={product}
+            size={selectedSize}
+            className="flex-1"
+          />
+        </div>
       </div>
     </div>
   );

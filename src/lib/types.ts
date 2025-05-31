@@ -1,163 +1,169 @@
+
+// If this file exists, add these interfaces, otherwise create the file
+export interface Order {
+  id: string;
+  order_number: string;
+  user_id: string;
+  total: number;
+  status: string;
+  items: CartItem[];
+  payment_method: string;
+  delivery_fee: number;
+  shipping_address: ShippingAddress;
+  created_at: string;
+  updated_at?: string;
+  date?: string;
+  orderNumber?: string; // For backward compatibility
+  paymentMethod?: string; // For backward compatibility
+  deliveryFee?: number; // For backward compatibility
+  shippingAddress?: ShippingAddress; // For backward compatibility
+  cancellation_reason?: string; // Added for AdminOrderView
+  user_email?: string; // Added for display purposes in admin views
+}
+
 export interface CartItem {
   id: string;
+  productId: string;
   name: string;
   price: number;
   quantity: number;
   image: string;
-  productId?: string;
-  product_id?: string;
   size?: string;
   view?: string;
   backImage?: string;
   color?: string;
-  options?: Record<string, string>;
-  metadata?: {
-    view?: string;
-    backImage?: string;
-    designData?: any;
-    previewImage?: string;
-  };
+  options?: Record<string, any>;
 }
 
-export interface Order {
+export interface ShippingAddress {
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  street?: string;
+  addressLine1?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  postalCode?: string;
+  country?: string;
+  phone?: string;
+  id?: string; // Added to handle id references
+  user_id?: string; // Added for association with users
+}
+
+export interface UserProfile {
   id: string;
-  order_number?: string;
-  orderNumber?: string;
-  user_id: string;
-  user_email?: string;
-  items: CartItem[];
-  total: number;
-  status: string;
-  payment_method?: string;
-  paymentMethod?: string;
-  shipping_address?: any;
-  shippingAddress?: any;
-  delivery_fee?: number;
-  deliveryFee?: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  display_name?: string;
+  avatar_url?: string;
   created_at: string;
   updated_at?: string;
-  date?: string; // Adding this for backwards compatibility
-  cancellation_reason?: string;
+  phone?: string;
+  phone_number?: string; // For backward compatibility
+  address?: ShippingAddress;
+  user_id?: string;
+  auth_user?: {
+    email: string;
+    id: string;
+  };
+  reward_points?: number; // Added for AdminCustomers
 }
 
 export interface Product {
-    productId?: string; // Adding this for backwards compatibility
-  
-  code?: string;
+  id: string;
+  code: string;
   name: string;
   description?: string;
   price: number;
-  originalPrice?: number;
-  discountPercentage?: number;
-  image: string;
-  additionalImages?: string[];
+  original_price: number;
+  originalPrice?: number; // Support for camelCase
+  discount_percentage?: number;
+  discountPercentage?: number; // Support for camelCase
+  image?: string;
   images?: string[];
-  additionalImageFiles?: File[]; // For file uploads
+  additionalImages?: string[]; // For compatibility with components
+  additionalImageFiles?: File[]; // For file uploads in admin forms
   rating?: number;
-  category?: string;
+  category: string;
   tags?: string[];
-  stock?: number;
   sizes?: string[];
-id: string;
-  options?: Record<string, string[]>;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  count?: number;
-  icon?: string; // Adding icon property
-}
-
-export interface Location {
-  id: string;
-  name: string;
-  code: string;
+  stock?: number;
   created_at?: string;
   updated_at?: string;
-}
-
-export interface Review {
-  id: string;
-  user_id: string;
-  product_id: string;
-  rating: number;
-  comment?: string;
-  created_at: string;
-  userId?: string; // For backwards compatibility
-  userName?: string; // For display purposes
-  text?: string; // For backwards compatibility
-  date?: string; // For display purposes
-  helpful?: number; // For feature extension
+  productId?: string; // For compatibility with some components that use productId instead of id
 }
 
 export interface TrackingInfo {
   id: string;
   order_id: string;
   status: string;
-  location: string;
+  location?: string;
   timestamp: string;
-  description?: string;
-  currentLocation?: string; // For UI display
-  estimatedDelivery?: string; // For UI display
+  currentLocation?: string;
+  estimatedDelivery?: string;
   date?: string;
   time?: string;
-  orderId?: string; // For backwards compatibility
-  history?: { 
-    status: string;
-    timestamp: string;
-    location: string;
-    description?: string;
-  }[];
+  orderId?: string; // For backward compatibility
+  history?: TrackingHistoryItem[];
 }
 
-export interface UserProfile {
-  id: string;
-  email?: string;
-  first_name?: string;
-  last_name?: string;
-  phone?: string;
-  avatar_url?: string;
-  created_at: string;
-  updated_at?: string;
-  display_name?: string;
-  phone_number?: string;
-  reward_points?: number;
-  auth_user?: {
-    email: string;
-  };
-}
-
-export interface ShippingAddress {
-  id?: string;
-  name?: string;
-  street?: string;
-  city?: string;
-  state?: string;
-  zipcode?: string;
-  zipCode?: string; // For backwards compatibility
-  country?: string;
-  user_id?: string;
-  is_default?: boolean;
-  created_at?: string;
-  updated_at?: string;
+export interface TrackingHistoryItem {
+  status: string;
+  timestamp: string;
+  location: string;
+  description?: string;
 }
 
 export interface AdminUser {
   id: string;
   email: string;
-  role?: string | null;
+  role?: string;
   created_at: string;
-  updated_at?: string | null;
-  user_id?: string | null;
+  updated_at?: string;
+  user_id?: string;
   permissions?: string[];
 }
 
-// JSON Type for Supabase
-export type Json = 
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+// Updated Location interface with optional fields for backward compatibility
+export interface Location {
+  id: string;
+  name: string;
+  address?: string; // Made optional
+  city?: string; // Made optional
+  state?: string; // Made optional
+  country?: string; // Made optional
+  postalCode?: string; // Made optional
+  latitude?: number;
+  longitude?: number;
+  isPrimary?: boolean;
+  code: string; // Code is required
+}
+
+// Updated Category interface with icon and slug properties
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  icon?: string; // Added icon property
+  count?: number;
+}
+
+// Add Review interface that was missing
+export interface Review {
+  id: string;
+  user_id: string;
+  product_id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  userId?: string; // For backward compatibility
+  userName?: string;
+  text?: string; // For backward compatibility
+  date?: string;
+  helpful?: number;
+}

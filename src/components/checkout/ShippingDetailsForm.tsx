@@ -1,18 +1,27 @@
 
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
 } from '@/components/ui/form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 
+// Define the form data interface for type safety
 interface FormData {
   firstName: string;
   lastName: string;
@@ -31,24 +40,24 @@ interface ShippingDetailsFormProps {
   isLoading: boolean;
 }
 
-const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
-  formData,
-  onSubmit,
-  isLoading,
+const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({ 
+  formData, 
+  onSubmit, 
+  isLoading 
 }) => {
   const schema = z.object({
     firstName: z.string().min(1, 'First name is required'),
     lastName: z.string().min(1, 'Last name is required'),
     email: z.string().email('Please enter a valid email address'),
     phone: z.string().min(10, 'Phone number must be at least 10 digits'),
-    address: z.string().min(5, 'Street address is required'),
+    address: z.string().min(5, 'Address is required'),
     city: z.string().min(1, 'City is required'),
     state: z.string().min(1, 'State is required'),
     zipCode: z.string().min(4, 'Zip code is required'),
     country: z.string().min(1, 'Country is required'),
   });
 
-  const form = useForm<FormData>({
+  const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       firstName: formData.firstName || '',
@@ -63,6 +72,7 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
     },
   });
 
+  // Reset form when formData changes
   React.useEffect(() => {
     if (formData) {
       form.reset({
@@ -79,7 +89,9 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
     }
   }, [formData, form]);
 
-  const indianStates = [  { value: "AP", label: "Andhra Pradesh" },
+  // List of Indian states for dropdown
+  const indianStates = [
+    { value: "AP", label: "Andhra Pradesh" },
     { value: "AR", label: "Arunachal Pradesh" },
     { value: "AS", label: "Assam" },
     { value: "BR", label: "Bihar" },
@@ -114,7 +126,8 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
     { value: "JK", label: "Jammu and Kashmir" },
     { value: "LA", label: "Ladakh" },
     { value: "LD", label: "Lakshadweep" },
-    { value: "PY", label: "Puducherry" } ];
+    { value: "PY", label: "Puducherry" }
+  ];
 
   return (
     <Form {...form}>
@@ -126,7 +139,9 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>First Name</FormLabel>
-                <FormControl><Input {...field} placeholder="John" /></FormControl>
+                <FormControl>
+                  <Input {...field} placeholder="John" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -137,7 +152,9 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Last Name</FormLabel>
-                <FormControl><Input {...field} placeholder="Doe" /></FormControl>
+                <FormControl>
+                  <Input {...field} placeholder="Doe" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -151,7 +168,9 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email</FormLabel>
-                <FormControl><Input {...field} placeholder="email@example.com" type="email" /></FormControl>
+                <FormControl>
+                  <Input {...field} placeholder="email@example.com" type="email" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -162,7 +181,9 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
-                <FormControl><Input {...field} placeholder="9876543210" /></FormControl>
+                <FormControl>
+                  <Input {...field} placeholder="9876543210" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -174,8 +195,10 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Street Address</FormLabel>
-              <FormControl><Input {...field} placeholder="123 Main St" /></FormControl>
+              <FormLabel>Address</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="123 Main St" />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -188,7 +211,9 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>City</FormLabel>
-                <FormControl><Input {...field} placeholder="Mumbai" /></FormControl>
+                <FormControl>
+                  <Input {...field} placeholder="New York" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -200,13 +225,18 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
               <FormItem>
                 <FormLabel>State</FormLabel>
                 <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a state" />
                     </SelectTrigger>
                     <SelectContent position="popper" className="max-h-72 overflow-y-auto">
                       {indianStates.map((state) => (
-                        <SelectItem key={state.value} value={state.value}>{state.label}</SelectItem>
+                        <SelectItem key={state.value} value={state.value}>
+                          {state.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -224,7 +254,9 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Zip Code</FormLabel>
-                <FormControl><Input {...field} placeholder="400001" /></FormControl>
+                <FormControl>
+                  <Input {...field} placeholder="10001" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -235,7 +267,9 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Country</FormLabel>
-                <FormControl><Input {...field} readOnly /></FormControl>
+                <FormControl>
+                  <Input {...field} defaultValue="India" readOnly />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -243,7 +277,11 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
         </div>
 
         <div className="pt-4">
-          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
+          <Button 
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={isLoading}
+          >
             {isLoading ? 'Saving...' : 'Continue to Payment'}
           </Button>
         </div>

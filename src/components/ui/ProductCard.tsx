@@ -40,7 +40,7 @@ const ProductCard = ({
     e.stopPropagation();
     
     if (!isCustomProduct) {
-      navigate(`/product/details/${product.productId}`);
+      navigate(`/product/details/${product.id}`);
       return;
     }
     
@@ -82,23 +82,16 @@ const ProductCard = ({
   };
   
   const handleCardClick = () => {
-  const isCustomProduct = product.tags?.includes("custom");
-
-
-  if (isCustomProduct) {
-    navigate('/design-tool');
-    return;
-  }
-
-  if (onClick) {
-    onClick(product);
-    return;
-  }
-
-  navigate(`/product/details/${product.productId}`);
-};
-
-
+    if (onClick) {
+      onClick(product);
+    } else {
+      if (isCustomProduct) {
+        navigate(`/design-tool`);
+      } else {
+        navigate(`/product/details/${product.id}`);
+      }
+    }
+  };
 
   // Format price to Indian Rupees
   const formatIndianRupees = (price: number) => {
@@ -117,14 +110,14 @@ const ProductCard = ({
       onClick={handleCardClick}
     >
       <div className="relative overflow-hidden rounded-lg bg-white shadow-sm transition-shadow hover:shadow-md cursor-pointer">
-        {product.discountPercentage > 0 && (
+        {product.discount_percentage > 0 && (
           <div className="absolute left-0 top-0 z-10 bg-red-500 px-1 py-1  text-[9px] sm:text-[15px] md:text-s font-semibold text-white">
-            {product.discountPercentage}% OFF
+            {product.discount_percentage}% OFF
           </div>
         )}
         
         {isCustomProduct && (
-          <div className="absolute right-0 top- sm:top-0 md:top-0  z-10 bg-blue-500 px-1 py-1 text-[10px] sm:text-[15px] md:text-sm font-semibold text-white flex items-center">
+          <div className="absolute left-0 top-1/2 sm:top-12 md:top-12 -translate-y-1/2 z-10 bg-blue-500 px-1 py-1 text-[10px] sm:text-[15px] md:text-sm font-semibold text-white flex items-center">
             <Pencil size={10} className="mr-1" /> Customizable
           </div>
         )}
@@ -147,15 +140,15 @@ const ProductCard = ({
           <div className="flex items-center justify-between">
             <div>
               <span className="font-semibold text-green-600">{formatIndianRupees(product.price)}</span>
-              {product.originalPrice > product.price && (
-                <span className="ml-2 text-xs text-gray-400 line-through">{formatIndianRupees(product.originalPrice)}</span>
+              {product.original_price > product.price && (
+                <span className="ml-2 text-xs text-gray-400 line-through">{formatIndianRupees(product.original_price)}</span>
               )}
             </div>
             <div className="flex items-center">
               {Array.from({ length: 5 }).map((_, i) => (
                 <svg 
                   key={i} 
-                  className={`h-3 w-3 ${i < product.rating ? 'text-yellow-400' : 'text-gray-300'}`} 
+                  className={`h-3 w-3 ${i < (product.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`} 
                   fill="currentColor" 
                   viewBox="0 0 20 20"
                 >

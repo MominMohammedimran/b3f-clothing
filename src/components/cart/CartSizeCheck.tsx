@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 
 interface CartItemWithSize {
   size?: string;
@@ -25,8 +25,13 @@ export const CartSizeCheck: React.FC<CartSizeCheckProps> = ({
     const missingSize = cartItems.some(item => !item.size && (!item.selectedSizes || item.selectedSizes.length === 0));
     
     if (missingSize) {
-      toast.error("Please select size for all items before proceeding to checkout.");
-      // Don't proceed if sizes are missing
+      toast({
+        title: "Size selection recommended",
+        description: "Please select size for all items before proceeding to checkout.",
+        variant: "destructive"
+      });
+      // Continue anyway after warning
+      onProceed();
       return;
     }
     

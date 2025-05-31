@@ -1,12 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/utils/toastWrapper'; // Use the fixed toast wrapper
+import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { initializeAdmin } from '@/utils/adminAuth';
-import { Loader2 } from 'lucide-react';
 
 interface AdminEmailVerificationProps {
   email: string;
@@ -27,7 +25,11 @@ const AdminEmailVerification: React.FC<AdminEmailVerificationProps> = ({
 
   const handleVerify = async () => {
     if (!verificationCode || verificationCode.length < 6) {
-      toast.error('Please enter a valid verification code');
+      toast({
+        title: "Error",
+        description: 'Please enter a valid verification code',
+        variant: 'destructive'
+      });
       return;
     }
     
@@ -37,12 +39,10 @@ const AdminEmailVerification: React.FC<AdminEmailVerificationProps> = ({
       // For development, use default code "123456" and manually verify
       if (verificationCode === '123456') {
         // Sign in the user now that we're treating the email as verified
-        console.log('Starting signInWithPassword');
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password
         });
-        console.log('signInWithPassword done', signInData, signInError);
         
         if (signInError) throw signInError;
         
@@ -52,7 +52,11 @@ const AdminEmailVerification: React.FC<AdminEmailVerificationProps> = ({
         // Initialize admin in database
         await initializeAdmin(userId, email);
         
-        toast.success('Admin account verified and initialized successfully');
+        toast({
+          title: "Success",
+          description: 'Admin account verified and initialized successfully',
+          variant: 'success'
+        });
         onVerified();
         return;
       }
@@ -80,11 +84,19 @@ const AdminEmailVerification: React.FC<AdminEmailVerificationProps> = ({
         await initializeAdmin(userId, email);
       }
       
-      toast.success('Email verified successfully');
+      toast({
+        title: "Success",
+        description: 'Email verified successfully',
+        variant: 'success'
+      });
       onVerified();
     } catch (error: any) {
       console.error('Verification error:', error);
-      toast.error(error.message || 'Failed to verify email');
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to verify email',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -102,10 +114,18 @@ const AdminEmailVerification: React.FC<AdminEmailVerificationProps> = ({
       
       if (error) throw error;
       
-      toast.success('Verification email sent again');
+      toast({
+        title: "Success",
+        description: 'Verification email sent again',
+        variant: 'success'
+      });
     } catch (error: any) {
       console.error('Error resending code:', error);
-      toast.error(error.message || 'Failed to resend verification code');
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to resend verification code',
+        variant: 'destructive'
+      });
     } finally {
       setResendLoading(false);
     }
@@ -141,14 +161,7 @@ const AdminEmailVerification: React.FC<AdminEmailVerificationProps> = ({
               onClick={handleVerify}
               disabled={loading}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                'Verify Email'
-              )}
+              {loading ? 'Verifying...' : 'Verify Email'}
             </Button>
             
             <div className="flex justify-between items-center mt-4 pt-4 border-t">
@@ -165,14 +178,7 @@ const AdminEmailVerification: React.FC<AdminEmailVerificationProps> = ({
                 onClick={handleResendCode}
                 disabled={loading || resendLoading}
               >
-                {resendLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  'Resend Code'
-                )}
+                {resendLoading ? 'Sending...' : 'Resend Code'}
               </Button>
             </div>
             

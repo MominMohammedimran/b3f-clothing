@@ -1,10 +1,8 @@
 
 import React from 'react';
-import { Type, Image as ImageIcon, Smile, ShoppingCart } from 'lucide-react';
+import { Type, Image as ImageIcon, Smile } from 'lucide-react';
 import { formatIndianRupees } from '@/utils/currency';
 import ProductViewSelector from './ProductViewSelector';
-import { Button } from '@/components/ui/button';
-import ProductPlaceOrder from '@/components/products/ProductPlaceOrder';
 
 interface CustomizationSidebarProps {
   activeProduct: string;
@@ -41,25 +39,8 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
   onAddToCart,
   validateDesign
 }) => {
-  const availableSizes = Object.keys(sizeInventory[activeProduct] || {});
-
-  // Create a product object for the ProductPlaceOrder component
-  const currentProduct = {
-    id: `${activeProduct}-custom`,
-    name: `Custom ${products[activeProduct]?.name || 'Product'}`,
-    price: isDualSided && activeProduct === 'tshirt' ? 300 : products[activeProduct]?.price || 200,
-    image: products[activeProduct]?.image || '',
-    category: activeProduct,
-    description: `Custom designed ${products[activeProduct]?.name || 'product'}`,
-    stock: sizeInventory[activeProduct]?.[selectedSize] || 0,
-    sizes: availableSizes
-  };
-
-  const isDesignValid = validateDesign();
-  const isInStock = sizeInventory[activeProduct]?.[selectedSize] > 0;
-
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-6 sticky top-20">
       <ProductViewSelector 
         productType={activeProduct}
         currentView={productView}
@@ -70,26 +51,11 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
         onDualSidedChange={activeProduct === 'tshirt' ? onDualSidedChange : undefined}
       />
       
-      <div className="space-y-3">
-        <h3 className="font-medium text-gray-900">Size</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {availableSizes.map((size) => (
-            <div key={size} className="text-center">
-              <Button
-                variant={selectedSize === size ? "default" : "outline"}
-                size="sm"
-                onClick={() => onSizeChange(size)}
-                disabled={sizeInventory[activeProduct]?.[size] === 0}
-                className={`w-full ${sizeInventory[activeProduct]?.[size] === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {size}
-              </Button>
-              <p className="text-xs text-gray-500 mt-1">
-                Qty: {sizeInventory[activeProduct]?.[size] || 0}
-              </p>
-            </div>
-          ))}
-        </div>
+      {/* Available stock info */}
+      <div className="mt-2 p-2 bg-gray-50 rounded-md">
+        <p className="text-sm text-gray-600">
+          Available stock: <span className="font-medium">{sizeInventory[activeProduct][selectedSize] || 0}</span> items
+        </p>
       </div>
       
       <div className="mt-6">
@@ -129,29 +95,29 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
           </div>
         </div>
         
-        <div className="mt-6 space-y-3">
-          {/* Add to Cart Button */}
-          <Button
-            onClick={onAddToCart}
-            disabled={!isDesignValid || !isInStock}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+        <div className="flex space-x-3 mt-6">
+          <button
+            onClick={onSaveDesign}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            <ShoppingCart className="mr-2 h-4 w-4" />
+            Save Design
+          </button>
+          
+          <button
+            onClick={onAddToCart}
+            disabled={!validateDesign() || sizeInventory[activeProduct][selectedSize] <= 0}
+            className={`flex-1 px-4 py-2 text-white rounded-md ${
+              !validateDesign() || sizeInventory[activeProduct][selectedSize] <= 0 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-green-600 hover:bg-green-700'
+            }`}
+          >
             Add to Cart
-          </Button>
-
-          {/* Place Order Button */}
-          <ProductPlaceOrder
-            product={currentProduct}
-            size={selectedSize}
-            variant="default"
-            size_btn="default"
-            className="w-full"
-          />
+          </button>
         </div>
         
         {/* Error messages */}
-        {!isDesignValid && (
+        {!validateDesign() && (
           <p className="mt-2 text-sm text-red-500">
             {isDualSided 
               ? "Please complete both front and back designs"
@@ -159,7 +125,7 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
             }
           </p>
         )}
-        {!isInStock && (
+        {sizeInventory[activeProduct][selectedSize] <= 0 && (
           <p className="mt-2 text-sm text-red-500">
             This size is currently out of stock
           </p>

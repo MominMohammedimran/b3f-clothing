@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate ,Link} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { ArrowLeft, X, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
@@ -59,8 +58,7 @@ const Account = () => {
   if (!currentUser) {
     return (
       <Layout>
-        <div className="container-custom mt-10">
-        
+        <div className="container-custom">
           <h1 className="text-3xl font-bold mb-8 text-center">My Account</h1>
           
           <div className="bg-white rounded-lg shadow-md p-8 max-w-4xl mx-auto">
@@ -91,13 +89,7 @@ const Account = () => {
 
   return (
     <Layout>
-      <div className="container-custom pt-6 mt-10">
-           <div className="flex items-center  mt-4 animate-fade-in">
-                    <Link to="/profile" className="mr-4">
-                      <ArrowLeft size={30} className="back-arrow" />
-                    </Link>
-                    <h1 className="text-3xl font-bold">Back</h1>
-                  </div>
+      <div className="container-custom ">
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="p-6 sm:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
@@ -115,18 +107,28 @@ const Account = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-2 md:grid-cols-2 w-full mb-8">
-                <TabsTrigger value="profile"className='text-xl'>Profile</TabsTrigger>
-               
-                <TabsTrigger value="addresses" className='text-xl'>Addresses</TabsTrigger>
-                </TabsList>
+              <TabsList className="grid grid-cols-3 md:grid-cols-5 w-full mb-8">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="addresses">Addresses</TabsTrigger>
+                <TabsTrigger value="rewards" className="hidden md:block">Rewards</TabsTrigger>
+                <TabsTrigger value="settings" className="hidden md:block">Settings</TabsTrigger>
+              </TabsList>
               <TabsContent value="profile">
                 <ProfileSettings />
+              </TabsContent>
+              <TabsContent value="orders">
+                <OrdersHistory />
               </TabsContent>
               <TabsContent value="addresses">
                 <AddressSettings />
               </TabsContent>
-              
+              <TabsContent value="rewards">
+                <RewardPoints />
+              </TabsContent>
+              <TabsContent value="settings">
+                <AppSettings />
+              </TabsContent>
             </Tabs>
           </div>
         </div>

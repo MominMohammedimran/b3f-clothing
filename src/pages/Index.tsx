@@ -12,8 +12,6 @@ import { Product } from '../lib/types';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useLocation } from '../context/LocationContext';
 import { useWishlist } from '../context/WishlistContext';
-import SEOHelmet from '../components/seo/SEOHelmet';
-import { useSEO } from '../hooks/useSEO';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -24,11 +22,7 @@ const Index = () => {
   const [visibleCategories, setVisibleCategories] = useState<number>(4);
   const [startIndex, setStartIndex] = useState(0);
   const categoriesRef = useRef<HTMLDivElement>(null);
-   const seoData = useSEO({
-      title: 'B3F Prints - Custom Printing Services',
-      description: 'Design and order custom printed products including t-shirts, mugs, caps and more. Professional quality printing with fast delivery.',
-      keywords: 'custom printing, t-shirts, mugs, caps, design, personalized products'
-    });
+  
   useEffect(() => {
     window.scrollTo(0, 0);
     
@@ -59,30 +53,22 @@ const Index = () => {
   };
   
   const handleProductClick = (product: Product) => {
-       
     if (product.code.includes('TSHIRT-PRINT') || product.code.includes('MUG-PRINT')) {
       navigate(`/design-tool`);
     } else {
       navigate(`/product/details/${product.productId}`);
-  
     }
   };
 
   const bannerImages = [
-    'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/banner-images/tshirt-banner.png',
-    'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/banner-images/mug-banner.png',
-    'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/banner-images/cap-banner.png'
+    '/lovable-uploads/banner-images/tshirt-banner.png',
+    '/lovable-uploads/banner-images/mug-banner.png',
+    '/lovable-uploads/banner-images/cap-banner.png'
   ];
 
   return (
     <Layout >
-
-<SEOHelmet {...seoData} />
-      
-
-
-      
-      <div className="container-custom mt-10">
+      <div className="container-custom">
         <div className="mt-8 mb-6 animate-fade-in" >
           <ScrollArea className="w-full">
             <Banner images={bannerImages} />

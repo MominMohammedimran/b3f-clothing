@@ -25,21 +25,11 @@ const ProductActionButtons = ({ product, selectedSize }: ProductActionButtonsPro
       return;
     }
     
-    // Validate size selection
-    if (!selectedSize) {
-      toast.error('Please select a size before adding to cart');
-      return;
-    }
-    
     if (product) {
       addToCart({
-        product_id: product.id,
-        name: product.name,
-        price: product.price,
-        quantity: 1,
-        size: selectedSize,
-        image: product.image
-      });
+        ...product,
+        size: selectedSize || undefined
+      }, 1);
       
       toast.success(`${product.name} added to cart`);
     }
@@ -52,22 +42,12 @@ const ProductActionButtons = ({ product, selectedSize }: ProductActionButtonsPro
       return;
     }
     
-    // Validate size selection
-    if (!selectedSize) {
-      toast.error('Please select a size before placing your order');
-      return;
-    }
-    
     try {
       if (product) {
         await addToCart({
-          product_id: product.id,
-          name: product.name,
-          price: product.price,
-          quantity: 1,
-          size: selectedSize,
-          image: product.image
-        });
+          ...product,
+          size: selectedSize || undefined
+        }, 1);
         
         toast.success(`${product.name} added to cart`);
         

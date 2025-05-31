@@ -6,8 +6,6 @@ import Layout from '../layout/Layout';
 import { Product } from '../../lib/types';
 import { products } from '../../lib/data';
 import ProductDetailsContent from './details/ProductDetailsContent';
-import WishlistButton from './WishlistButton';
-import RelatedProducts from './RelatedProducts';
 
 const ProductDetailsPage = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -24,14 +22,15 @@ const ProductDetailsPage = () => {
       setProduct(foundProduct);
     } else {
       // Provide a default product if none found
-      const defaultProduct = {
+      const defaultProduct: Product = {
         id: productId || "default-product",
+        productId: productId || "default-product", // Add productId for compatibility
         code: "SAMPLE-001",
         name: "Sample Product",
         description: "This is a sample product description.",
         price: 99.99,
-        originalPrice: 129.99,
-        discountPercentage: 20,
+        original_price: 129.99,
+        discount_percentage: 20,
         image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500",
         rating: 4.5,
         category: "Sample Category",
@@ -45,7 +44,7 @@ const ProductDetailsPage = () => {
 
   return (
     <Layout>
-      <div className="container-custom mt-10">
+      <div className="container-custom">
         <div className="flex items-center mb-4 mt-4">
           <Link to="/" className="mr-2">
             <ArrowLeft size={24} className="back-arrow" />
@@ -60,11 +59,15 @@ const ProductDetailsPage = () => {
             <p className="text-gray-500">Product details are not available.</p>
           </div>
         )}
-   
+
         {product && <RelatedProducts product={product} onProductClick={(product) => navigate(`/product/details/${product.id}`)} />}
       </div>
     </Layout>
   );
 };
+
+// Add the import here to fix the reference issue
+import WishlistButton from './WishlistButton';
+import RelatedProducts from './RelatedProducts';
 
 export default ProductDetailsPage;

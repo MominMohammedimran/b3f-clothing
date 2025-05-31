@@ -1,70 +1,45 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/utils/toastWrapper';
+import { toast } from 'sonner';
 
 /**
  * Update product inventory in the database
  * @param productType The product type (tshirt, mug, cap)
  * @param size The product size
- * @param quantity The new quantity to set
+ * @param change The quantity change (positive or negative)
  * @returns Promise resolving to boolean indicating success
  */
 export const updateProductInventory = async (
   productType: string, 
   size: string,
-  quantity: number
+  change: number
 ): Promise<boolean> => {
   try {
-    console.log(`Updating inventory for ${productType}_${size} to ${quantity}`);
-    
-    // Check if the inventory item exists
-    const { data: existingItem, error: checkError } = await supabase
+    // First, get the current stock
+    const { data: currentData, error: fetchError } = await supabase
       .from('products')
-      .select('id, name, stock')
-      .eq('category', 'inventory')
+      .select('stock')
       .eq('name', `${productType}_${size}`)
-      .maybeSingle();
+      .eq('category', 'inventory')
+      .single();
     
-    if (checkError) {
-      console.error('Error checking inventory:', checkError);
-      throw checkError;
+    if (fetchError) {
+      console.error('Error fetching current inventory:', fetchError);
+      throw fetchError;
     }
     
-    if (existingItem) {
-      // Update existing inventory item
-      const { error } = await supabase
-        .from('products')
-        .update({ 
-          stock: quantity,
-          updated_at: new Date().toISOString(),
-          productId: `inv-${productType}-${size}` // Add required productId
-        })
-        .eq('id', existingItem.id);
-      
-      if (error) {
-        console.error('Error updating inventory:', error);
-        throw error;
-      }
-    } else {
-      // Create new inventory item with required fields based on schema
-      const { error } = await supabase
-        .from('products')
-        .insert({
-          name: `${productType}_${size}`,
-          category: 'inventory',
-          stock: quantity,
-          price: 0, // Required field
-          original_price: 0, // Required field according to schema
-          code: `INV-${productType}-${size}`, // Required field according to schema
-          productId: `inv-${productType}-${size}`, // Add required productId field
-        });
-      
-      if (error) {
-        console.error('Error creating inventory item:', error);
-        throw error;
-      }
-    }
+    const currentStock = currentData?.stock || 0;
+    const newStock = Math.max(0, currentStock + change); // Ensure stock doesn't go below 0
     
-    console.log(`Successfully updated inventory for ${productType}_${size}`);
+    // Update the stock
+    const { error } = await supabase
+      .from('products')
+      .update({ stock: newStock })
+      .eq('name', `${productType}_${size}`)
+      .eq('category', 'inventory');
+    
+    if (error) throw error;
+    
     return true;
   } catch (error) {
     console.error('Error updating product inventory:', error);
@@ -81,11 +56,9 @@ export const updateProductInventory = async (
  */
 export const getProductInventory = async () => {
   try {
-    // Since we don't have a product_inventory table yet,
-    // we'll use the products table with category='inventory'
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('name, stock')
       .eq('category', 'inventory');
     
     if (error) throw error;
@@ -97,7 +70,7 @@ export const getProductInventory = async () => {
       cap: { Standard: 0 }
     };
     
-    if (data) {
+    if (data && data.length > 0) {
       data.forEach((item: any) => {
         const [productType, size] = item.name.split('_');
         if (
@@ -123,44 +96,5 @@ export const getProductInventory = async () => {
       mug: { Standard: 20 },
       cap: { Standard: 12 }
     };
-  }
-};
-
-/**
- * Update a product in the database
- * @param productId The product ID to update
- * @param productData The updated product data
- * @returns Promise resolving to boolean indicating success
- */
-export const updateProduct = async (
-  productId: string,
-  productData: any
-): Promise<boolean> => {
-  try {
-    console.log('Updating product:', productId, productData);
-    
-    // Make sure we have a timestamp
-    const dataWithTimestamp = {
-      ...productData,
-      updated_at: new Date().toISOString()
-    };
-    
-    // Update the product with proper error handling
-    const { error } = await supabase
-      .from('products')
-      .update(dataWithTimestamp)
-      .eq('id', productId);
-    
-    if (error) {
-      console.error('Error updating product:', error);
-      throw error;
-    }
-    
-    toast.success('Product updated successfully');
-    return true;
-  } catch (error) {
-    console.error('Error updating product:', error);
-    toast.error('Failed to update product');
-    return false;
   }
 };

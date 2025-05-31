@@ -12,7 +12,6 @@ interface ProductBasicInfoProps {
   originalPrice: number;
   discountPercentage: number;
   stock: number;
-  
   errors: Record<string, string>;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCategoryChange: (value: string) => void;
@@ -26,7 +25,6 @@ const CATEGORIES = [
   "Home Decor",
   "Books",
   "Sports",
-  'tshirts',
   "Other"
 ];
 
@@ -68,7 +66,6 @@ const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
           />
           {errors.code && <p className="text-red-500 text-sm">{errors.code}</p>}
         </div>
-        
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

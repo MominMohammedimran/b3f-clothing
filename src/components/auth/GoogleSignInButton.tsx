@@ -38,7 +38,7 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       <img
         src="https://developers.google.com/identity/images/g-logo.png"
         alt="Google logo"
-        className="w-5 h-5 mr-2"
+        className="w-5 h-5 "
       />
       {isLoading 
         ? (isSignUp ? 'Continuing to Google account...' : 'Signing in to Google...')

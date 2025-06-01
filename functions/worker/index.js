@@ -5,11 +5,15 @@ const ALLOWED_ORIGINS = [
 ];
 
 function isAllowedOrigin(origin) {
-  if (!origin) return false;
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  if (origin.startsWith('http://localhost')) return true;
-  return false;
+  return true 
 }
+//whilw local developing above function should return true the npx wrangler deploy 
+//start local developing
+// this should be used while deploying
+// if (!origin) return false;
+//  if (ALLOWED_ORIGINS.includes(origin)) return true;
+ // if (origin.startsWith('http://localhost')) return true;
+  //return false;
 
 const SUPABASE_STORAGE = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/';
 

@@ -3,20 +3,28 @@ import { Product, Category, Order, TrackingInfo, Review, Location } from './type
 
 import { supabase } from '@/integrations/supabase/client';
 
+
 // Resolved product list
-export let products: Product[] = [];
+
 
 // Orders array for compatibility
 export let orders: Order[] = [];
 
-async function getProducts() {
-  const { data, error } = await supabase.from('products').select('*');
-  if (error) {
-    console.error('Error fetching products:', error);
-    return;
-  }
 
-  products = (data || []).map((product: any) => ({
+const WORKER_BASE_URL = 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/';
+
+function proxyUrl(url: string) {
+  if (!url) return '';
+  try {
+    const path = new URL(url).pathname.replace(/^\/+/, '');
+    return WORKER_BASE_URL + path;
+  } catch {
+    return url;
+  }
+}
+
+function transformProductImages(products: any[]): Product[] {
+  return products.map((product: any) => ({
     id: product.id?.toString(),
     productId: product.productId?.toString(),
     code: product.code || '',
@@ -24,8 +32,8 @@ async function getProducts() {
     price: product.price || 0,
     originalPrice: product.original_price || 0,
     discountPercentage: product.discount_percentage || 0,
-    image: product.image || '',
-    images: product.images || [],
+    image: proxyUrl(product.image || ''),
+    images: (product.images || []).map(proxyUrl),
     rating: product.rating || 0,
     category: product.category || '',
     tags: product.tags || [],
@@ -34,7 +42,17 @@ async function getProducts() {
   }));
 }
 
-// Load products on module import
+export let products: Product[] = [];
+
+async function getProducts() {
+  const { data, error } = await supabase.from('products').select('*');
+  if (error) {
+    console.error('Error fetching products:', error);
+    return;
+  }
+  products = transformProductImages(data || []);
+}
+
 getProducts();
 
 export const categories: Category[] = [

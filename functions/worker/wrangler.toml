@@ -1,11 +1,5 @@
-name = "b3f-prints-worker"
+name = "b3f-prints-proxy"
 account_id = "bd109aa80b56f640123f31a78d6d105c"
 compatibility_date = "2025-06-01"
 main = "index.js"
 workers_dev = true
-# wrangler.toml (wrangler v3.88.0^)
-[observability.logs]
-enabled = true
-
-
-

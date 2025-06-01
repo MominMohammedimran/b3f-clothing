@@ -15,17 +15,16 @@
 async function handleRequest(request) {
   const url = new URL(request.url)
   const origin = request.headers.get('Origin') || ''
-  const allowedOrigin =
-    origin === 'https://b3f-prints.pages.dev' || origin === 'http://localhost:5173'
-      ? origin
-      : ''
+  const allowedOrigins = ['https://b3f-prints.pages.dev', 'http://localhost:8080']
+
+  const corsOrigin = allowedOrigins.includes(origin) ? origin : ''
 
   // Handle CORS preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
       headers: {
-        'Access-Control-Allow-Origin': allowedOrigin,
+        'Access-Control-Allow-Origin': corsOrigin,
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Credentials': 'true',
@@ -33,24 +32,19 @@ async function handleRequest(request) {
     })
   }
 
-  // Extract proxy path
+  // Actual proxy logic
   const path = url.pathname.replace('/proxy/', '')
   const target = `https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/${path}${url.search}`
 
-  const response = await fetch(target, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/octet-stream',
-    },
-  })
+  const response = await fetch(target)
 
-  // Clone response and add CORS headers
   const modifiedResponse = new Response(response.body, response)
-  modifiedResponse.headers.set('Access-Control-Allow-Origin', allowedOrigin)
+  modifiedResponse.headers.set('Access-Control-Allow-Origin', corsOrigin)
   modifiedResponse.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
   modifiedResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type')
   modifiedResponse.headers.set('Access-Control-Allow-Credentials', 'true')
 
   return modifiedResponse
 }
+
 

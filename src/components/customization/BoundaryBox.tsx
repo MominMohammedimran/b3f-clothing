@@ -20,10 +20,10 @@ const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view }) => {
       case 'tshirt':
         return {
           ...style,
-          top: view === 'back' ? '160px' : '180px',
-          left: view ==='back'? '150px':'154px',
-          width: '90px',
-          height: '110px',
+          top: view === 'back' ? '140px' : '160px',
+          left: view ==='back'? '110px':'115px',
+          width: '80px',
+          height: '100px',
         };
       case 'mug':
         return {

@@ -2,54 +2,54 @@
 // Cloudflare Worker Script
 // Deploy this at: https://workers.cloudflare.com/
 
-// Configuration
- async function handleRequest(request: Request): Promise<Response> {
-  const origin = request.headers.get('Origin') || '';
+// ConfigurationaddEventListener('fetch', event 
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request))
+})
 
-  // Only allow your frontend domain
-  const allowedOrigin = origin === 'https://b3f-prints.pages.dev' ? origin : '';
+async function handleRequest(request) {
+  const url = new URL(request.url)
+  const origin = request.headers.get('Origin') || ''
+  const allowedOrigin =
+    origin === 'https://b3f-prints.pages.dev' || origin === 'http://localhost:5173'
+      ? origin
+      : ''
 
-  const url = new URL(request.url);
-  const targetPath = url.pathname.replace('/proxy/', '');
-  const targetUrl = `https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/${targetPath}${url.search}`;
+  // Handle CORS preflight
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': allowedOrigin,
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Credentials': 'true',
+      },
+    })
+  }
 
-  const response = await fetch(targetUrl, {
-    method: request.method,
-    headers: request.headers,
-  });
+  // Extract proxy path
+  const path = url.pathname.replace('/proxy/', '')
+  const target = `https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/${path}${url.search}`
 
-  const modifiedHeaders = new Headers(response.headers);
-  modifiedHeaders.set('Access-Control-Allow-Origin', allowedOrigin);
-  modifiedHeaders.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  modifiedHeaders.set('Access-Control-Allow-Headers', 'Content-Type');
-  modifiedHeaders.set('Access-Control-Allow-Credentials', 'true');
+  const response = await fetch(target, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/octet-stream',
+    },
+  })
 
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: modifiedHeaders,
-  });
+  // Clone response and add CORS headers
+  const modifiedResponse = new Response(response.body, response)
+  modifiedResponse.headers.set('Access-Control-Allow-Origin', allowedOrigin)
+  modifiedResponse.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  modifiedResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+  modifiedResponse.headers.set('Access-Control-Allow-Credentials', 'true')
+
+  return modifiedResponse
 }
 
-addEventListener('fetch', (event) => {
-  if (event.request.method === 'OPTIONS') {
-    const origin = event.request.headers.get('Origin') || '';
-    const allowedOrigin = origin === 'https://b3f-prints.pages.dev' ? origin : '';
-    event.respondWith(
-      new Response(null, {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': allowedOrigin,
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-          'Access-Control-Allow-Credentials': 'true',
-        },
-      }),
-    );
-  } else {
-    event.respondWith(handleRequest(event.request));
-  }
-});
+
 
 
 /**

@@ -3,7 +3,10 @@
 // Deploy this at: https://workers.cloudflare.com/
 
 // Configuration
-const ALLOWED_ORIGIN = 'https://b3f-prints.pages.dev/';
+const ALLOWED_ORIGINS = [
+  'https://b3f-prints.pages.dev',
+  'http://localhost:8080',
+];
 const BACKEND_API = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public';
 
 export default {

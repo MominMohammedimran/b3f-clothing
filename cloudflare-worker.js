@@ -4,17 +4,14 @@
 
 // Configuration
 const ALLOWED_ORIGIN = 'https://b3f-prints.pages.dev';
-const BACKEND_API = 'https://my-backend.example.com'; // Replace with your actual backend URL
+const SUPABASE_BASE_URL = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public';
 const RATE_LIMIT_PER_MINUTE = 100;
 
-// In-memory rate limiting (note: this is per worker instance)
 const rateLimitMap = new Map();
 
-// Helper function to clean up old rate limit entries
 function cleanupRateLimit() {
   const now = Date.now();
   const oneMinuteAgo = now - 60000;
-  
   for (const [ip, data] of rateLimitMap.entries()) {
     if (data.lastReset < oneMinuteAgo) {
       rateLimitMap.delete(ip);
@@ -22,32 +19,25 @@ function cleanupRateLimit() {
   }
 }
 
-// Rate limiting function
 function isRateLimited(ip) {
   cleanupRateLimit();
-  
   const now = Date.now();
   const data = rateLimitMap.get(ip) || { count: 0, lastReset: now };
-  
-  // Reset count if more than a minute has passed
   if (now - data.lastReset > 60000) {
     data.count = 0;
     data.lastReset = now;
   }
-  
   data.count++;
   rateLimitMap.set(ip, data);
-  
   return data.count > RATE_LIMIT_PER_MINUTE;
 }
 
-// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Proxy-Secure',
   'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Max-Age': '86400', // 24 hours
+  'Access-Control-Max-Age': '86400',
 };
 
 export default {
@@ -55,129 +45,90 @@ export default {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin');
     const referer = request.headers.get('Referer');
-    const userAgent = request.headers.get('User-Agent');
-    
-    // Get client IP
-    const clientIP = request.headers.get('CF-Connecting-IP') || 
-                    request.headers.get('X-Forwarded-For') || 
-                    request.headers.get('X-Real-IP') || 
-                    'unknown';
+    const clientIP =
+      request.headers.get('CF-Connecting-IP') ||
+      request.headers.get('X-Forwarded-For') ||
+      request.headers.get('X-Real-IP') ||
+      'unknown';
 
-    // Block requests from non-allowed origins
     if (origin && origin !== ALLOWED_ORIGIN) {
-      console.log(`Blocked request from unauthorized origin: ${origin}`);
-      return new Response('Forbidden - Unauthorized Origin', { 
-        status: 403,
-        headers: {
-          'Content-Type': 'text/plain',
-        }
-      });
+      return new Response('Forbidden - Unauthorized Origin', { status: 403 });
     }
 
-    // Allow requests from the allowed origin or with valid referer
-    const isAllowedOrigin = origin === ALLOWED_ORIGIN || 
-                           (referer && referer.startsWith(ALLOWED_ORIGIN));
-
+    const isAllowedOrigin = origin === ALLOWED_ORIGIN || (referer && referer.startsWith(ALLOWED_ORIGIN));
     if (!isAllowedOrigin) {
-      console.log(`Blocked request. Origin: ${origin}, Referer: ${referer}`);
-      return new Response('Forbidden - Invalid Origin', { 
-        status: 403,
-        headers: {
-          'Content-Type': 'text/plain',
-        }
-      });
+      return new Response('Forbidden - Invalid Origin', { status: 403 });
     }
 
-    // Handle preflight OPTIONS requests
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 200,
-        headers: corsHeaders,
-      });
+      return new Response(null, { status: 200, headers: corsHeaders });
     }
 
-    // Rate limiting
     if (isRateLimited(clientIP)) {
-      console.log(`Rate limited IP: ${clientIP}`);
-      return new Response('Too Many Requests', { 
+      return new Response('Too Many Requests', {
         status: 429,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/plain',
-          'Retry-After': '60',
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain', 'Retry-After': '60' },
       });
     }
 
     try {
-      // Rewrite URL path - remove /proxy prefix if present
       let targetPath = url.pathname;
-      if (targetPath.startsWith('/proxy')) {
-        targetPath = targetPath.replace('/proxy', '');
+      if (targetPath.startsWith('/proxy/')) {
+        targetPath = targetPath.replace('/proxy/', ''); // Remove prefix
+      } else {
+        return new Response('Bad Request - missing /proxy/', { status: 400 });
       }
-      
-      // Construct the backend URL
-      const backendUrl = `${BACKEND_API}${targetPath}${url.search}`;
-      
-      console.log(`Proxying request to: ${backendUrl}`);
 
-      // Prepare headers for the backend request
+      // Split bucket and file path
+      const [bucketName, ...fileParts] = targetPath.split('/');
+      if (!bucketName || fileParts.length === 0) {
+        return new Response('Bad Request - missing bucket or file path', { status: 400 });
+      }
+
+      const filePath = fileParts.join('/');
+
+      // Construct backend URL dynamically based on bucket and path
+      const backendUrl = `${SUPABASE_BASE_URL}/${bucketName}/${filePath}${url.search}`;
+
       const backendHeaders = new Headers(request.headers);
-      
-      // Add custom security header
       backendHeaders.set('X-Proxy-Secure', 'true');
-      
-      // Add real IP header
       backendHeaders.set('X-Real-IP', clientIP);
-      
-      // Remove host header to avoid conflicts
       backendHeaders.delete('Host');
-      
-      // Forward the request to the backend
+
       const backendRequest = new Request(backendUrl, {
         method: request.method,
         headers: backendHeaders,
         body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : null,
       });
 
-      // Make the request to the backend
       const response = await fetch(backendRequest);
-      
-      // Create a new response with CORS headers
-      const newResponse = new Response(response.body, {
+
+      return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers: {
           ...corsHeaders,
-          // Forward important headers from the backend
-          'Content-Type': response.headers.get('Content-Type') || 'application/json',
-          'Content-Length': response.headers.get('Content-Length') || '',
+          'Content-Type': response.headers.get('Content-Type') || 'application/octet-stream',
           'Cache-Control': response.headers.get('Cache-Control') || 'no-cache',
         },
       });
-
-      // Log successful request
-      console.log(`✅ Successfully proxied ${request.method} ${url.pathname} -> ${response.status}`);
-      
-      return newResponse;
-
     } catch (error) {
-      console.error('Proxy error:', error);
-      
-      return new Response(JSON.stringify({ 
-        error: 'Proxy Error', 
-        message: 'Failed to connect to backend service',
-        timestamp: new Date().toISOString()
-      }), {
-        status: 502,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      });
+      return new Response(
+        JSON.stringify({
+          error: 'Proxy Error',
+          message: 'Failed to connect to backend service',
+          timestamp: new Date().toISOString(),
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
   },
 };
+
+
 
 /**
  * DEPLOYMENT INSTRUCTIONS:

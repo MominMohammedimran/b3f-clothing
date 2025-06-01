@@ -110,10 +110,10 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
       <button onClick={handleGoogleSignIn}>
   <img
-    src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/google-logo-image/signin.webp"
+    src="https://b3f-prints.pages.dev/proxy/product-images/google-logo-image/signin.webp"
     alt="Sign in with Google"
     className="w-48 sm:w-50 md:w-48 lg:w-58 h-auto" // adjust size as needed
-  />
+  />s
 </button>
 
       <div className="text-center">

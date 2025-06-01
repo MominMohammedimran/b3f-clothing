@@ -5,8 +5,8 @@ export default function Preloader() {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setStep(1), 1500); // Show image + text
-    const t2 = setTimeout(() => setStep(2), 2300); // Replace with final text
+    const t1 = setTimeout(() => setStep(1), 1000); // Show image + text
+    const t2 = setTimeout(() => setStep(2), 1500); // Replace with final text
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);

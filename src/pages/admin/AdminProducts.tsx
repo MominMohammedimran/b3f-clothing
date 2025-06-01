@@ -1,326 +1,380 @@
 
 import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2, Loader2, RefreshCw } from 'lucide-react';
-import ProductEditForm from '@/components/admin/ProductEditForm';
+import { Edit, Trash2, Plus, Package } from 'lucide-react';
+import ProductEditForm from '../../components//admin/ProductEditForm';
+import ProductSizeManager from '../../components/admin/ProductSizeManager';
 import { Product } from '@/lib/types';
-import AdminLayout from '../../components/admin/AdminLayout';
 
-const AdminProducts = () => {
+const AdminProducts: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sizeInventories, setSizeInventories] = useState<Record<string, Record<string, number>>>({});
+  const [managingSizeProduct, setManagingSizeProduct] = useState<Product | null>(null);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchSizeInventories();
+  }, []);
 
   const fetchProducts = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      console.log('Fetching products...');
-      
-      const { data, error } = await supabase
+      // First try to get products from a products table
+      const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching products:', error);
-        throw error;
+      if (productsError && !productsError.message.includes('does not exist')) {
+        throw productsError;
       }
 
-      console.log('Products fetched:', data);
-      
-      const transformedProducts: Product[] = data?.map((product: any) => ({
-        id: product.id,
-        code: product.code || `PROD-${product.id.slice(0, 8)}`,
-        name: product.name,
-        description: product.description || '',
-        price: product.price,
-        originalPrice: product.original_price || product.price,
-        discountPercentage: product.discount_percentage || 0,
-        category: product.category || 'general',
-        stock: product.stock || 0,
-        image: product.image || '',
-        images: Array.isArray(product.images) 
-          ? product.images.filter(img => typeof img === 'string')
-          : [],
-        sizes: Array.isArray(product.sizes) 
-          ? product.sizes.filter(size => typeof size === 'string')
-          : [],
-        tags: Array.isArray(product.tags) 
-          ? product.tags.filter(tag => typeof tag === 'string')
-          : []
-      })) || [];
-      
-      setProducts(transformedProducts);
-    } catch (error: any) {
-      console.error('Failed to fetch products:', error);
-      toast.error('Failed to load products: ' + error.message);
+      if (productsData && productsData.length > 0) {
+        // Transform the data to match Product interface
+        const transformedProducts: Product[] = productsData.map((product: any) => ({
+          id: product.id,
+          code: product.code || `PROD-${product.id.slice(0, 8)}`,
+          name: product.name,
+          description: product.description || '',
+          price: product.price,
+          originalPrice: product.original_price || product.price,
+          discountPercentage: product.discount_percentage || 0,
+          category: product.category || 'general',
+          stock: product.stock || 0,
+          image: product.image || '',
+          images: Array.isArray(product.images) ? product.images : [],
+          sizes: Array.isArray(product.sizes) ? product.sizes : [],
+          tags: Array.isArray(product.tags) ? product.tags : []
+        }));
+        setProducts(transformedProducts);
+      } else {
+        // Fallback to settings table
+        const { data: settingsData, error: settingsError } = await supabase
+          .from('settings')
+          .select('*')
+          .eq('type', 'products');
+
+        if (settingsError) throw settingsError;
+
+        if (settingsData && settingsData.length > 0) {
+          const settingsValue = settingsData[0].settings;
+          if (typeof settingsValue === 'object' && settingsValue !== null && 'products' in settingsValue) {
+            const productsFromSettings = (settingsValue as { products: any[] }).products || [];
+            setProducts(productsFromSettings);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to fetch products');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  const fetchSizeInventories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('type', 'product_inventory');
+
+      if (error && !error.message.includes('does not exist')) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        const inventoryData = data[0].settings;
+        const parsedInventories: Record<string, Record<string, number>> = {};
+        
+        if (typeof inventoryData === 'object' && inventoryData !== null) {
+          Object.entries(inventoryData).forEach(([productId, inventoryString]) => {
+            if (typeof inventoryString === 'string') {
+              const sizes: Record<string, number> = {};
+              inventoryString.split(' ').forEach(sizeEntry => {
+                if (sizeEntry.includes(':')) {
+                  const [size, qty] = sizeEntry.split(':');
+                  sizes[size.toLowerCase()] = parseInt(qty) || 0;
+                }
+              });
+              parsedInventories[productId] = sizes;
+            }
+          });
+        }
+        
+        setSizeInventories(parsedInventories);
+      }
+    } catch (error) {
+      console.error('Error fetching size inventories:', error);
+    }
+  };
 
   const handleSaveProduct = async (productData: Product) => {
     try {
-      setLoading(true);
-      console.log('Saving product data:', productData);
-
-      const productPayload = {
-        code: productData.code || `PROD-${Date.now()}`,
-        name: productData.name,
-        description: productData.description || '',
-        price: Number(productData.price),
-        original_price: Number(productData.originalPrice) || Number(productData.price),
-        discount_percentage: Number(productData.discountPercentage) || 0,
-        category: productData.category || 'general',
-        stock: Number(productData.stock) || 0,
-        image: productData.image || '',
-        images: productData.images || [],
-        sizes: productData.sizes || [],
-        tags: productData.tags || [],
-        productId: productData.productId || productData.id || `prod-${Date.now()}`, // Add required productId
-        updated_at: new Date().toISOString()
-      };
-
-      let result;
+      let updatedProducts;
+      
       if (editingProduct) {
         // Update existing product
-        result = await supabase
-          .from('products')
-          .update(productPayload)
-          .eq('id', editingProduct.id)
-          .select();
+        updatedProducts = products.map(p => 
+          p.id === editingProduct.id ? { ...productData, id: editingProduct.id } : p
+        );
       } else {
-        // Create new product
-        result = await supabase
-          .from('products')
-          .insert([{
-            ...productPayload,
-            created_at: new Date().toISOString()
-          }])
-          .select();
+        // Add new product
+        const newProduct = {
+          ...productData,
+          id: `product_${Date.now()}`,
+        };
+        updatedProducts = [newProduct, ...products];
       }
 
-      if (result.error) {
-        console.error('Error saving product:', result.error);
-        throw result.error;
-      }
+      // Save to settings table as fallback
+      const { error } = await supabase
+        .from('settings')
+        .upsert({
+          type: 'products',
+          settings: { products: updatedProducts } as any
+        });
 
-      console.log('Product saved successfully:', result.data);
-      toast.success(editingProduct ? 'Product updated successfully' : 'Product created successfully');
-      
-      setShowAddForm(false);
+      if (error) throw error;
+
+      setProducts(updatedProducts);
       setEditingProduct(null);
-      await fetchProducts();
-    } catch (error: any) {
+      setShowAddForm(false);
+      toast.success(editingProduct ? 'Product updated successfully' : 'Product created successfully');
+    } catch (error) {
       console.error('Error saving product:', error);
-      toast.error('Failed to save product: ' + error.message);
-    } finally {
-      setLoading(false);
+      toast.error('Failed to save product');
     }
   };
 
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-    setShowAddForm(true);
-  };
-
-  const handleDelete = async (productId: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) {
-      return;
-    }
+  const handleDeleteProduct = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      console.log('Deleting product:', productId);
+      const updatedProducts = products.filter(p => p.id !== productId);
       
       const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productId);
+        .from('settings')
+        .upsert({
+          type: 'products',
+          settings: { products: updatedProducts } as any
+        });
 
-      if (error) {
-        console.error('Error deleting product:', error);
-        throw error;
-      }
+      if (error) throw error;
 
+      setProducts(updatedProducts);
       toast.success('Product deleted successfully');
-      await fetchProducts();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting product:', error);
-      toast.error('Failed to delete product: ' + error.message);
+      toast.error('Failed to delete product');
     }
   };
 
-  const handleAddNew = () => {
-    setEditingProduct(null);
-    setShowAddForm(true);
+  const handleInventoryUpdate = (productId: string, inventory: Record<string, number>) => {
+    setSizeInventories(prev => ({
+      ...prev,
+      [productId]: inventory
+    }));
+    
+    // Update the display immediately
+    toast.success('Inventory updated successfully');
   };
 
-  const handleCancel = () => {
-    setShowAddForm(false);
-    setEditingProduct(null);
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const formatInventoryDisplay = (productId: string) => {
+    const inventory = sizeInventories[productId];
+    if (!inventory || Object.keys(inventory).length === 0) {
+      return 'No sizes configured';
+    }
+    
+    return Object.entries(inventory)
+      .map(([size, qty]) => `${size.toUpperCase()}:${qty}`)
+      .join(' ');
   };
 
-  const emptyProduct: Product = {
-    id: '',
-    name: '',
-    description: '',
-    price: 0,
-    originalPrice: 0,
-    discountPercentage: 0,
-    image: '',
-    images: [],
-    code: '',
-    category: '',
-    tags: [],
-    sizes: [],
-    stock: 0
+  const getTotalStock = (productId: string) => {
+    const inventory = sizeInventories[productId];
+    if (!inventory) return 0;
+    return Object.values(inventory).reduce((sum, qty) => sum + qty, 0);
   };
 
-  if (loading && products.length === 0) {
+  if (editingProduct || showAddForm) {
+    const productToEdit = editingProduct || {
+      id: '',
+      name: '',
+      code: '',
+      price: 0,
+      originalPrice: 0,
+      discountPercentage: 0,
+      image: '',
+      images: [],
+      category: '',
+      sizes: [],
+      stock: 0,
+      description: '',
+      tags: [],
+      variants: []
+    };
+
     return (
-    <AdminLayout title="Admin Products">
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading products...</span>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEditingProduct(null);
+              setShowAddForm(false);
+            }}
+          >
+            Cancel
+          </Button>
         </div>
+        
+        <ProductEditForm
+          product={productToEdit}
+          onSave={handleSaveProduct}
+          onCancel={() => {
+            setEditingProduct(null);
+            setShowAddForm(false);
+          }}
+        />
       </div>
-      </AdminLayout>
     );
   }
 
-  return (<AdminLayout title="Admin Products">
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Products Management</h1>
-        <div className="flex gap-2">
-          <Button onClick={fetchProducts} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+  if (managingSizeProduct) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Manage Size Inventory</h2>
+          <Button
+            variant="outline"
+            onClick={() => setManagingSizeProduct(null)}
+          >
+            Back to Products
           </Button>
-          <Button onClick={handleAddNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
-          </Button>
-        </div>
-      </div>
-
-      {showAddForm && (
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <h2 className="text-xl font-semibold mb-4">
-            {editingProduct ? 'Edit Product' : 'Add New Product'}
-          </h2>
-          <ProductEditForm
-            product={editingProduct || emptyProduct}
-            onSave={handleSaveProduct}
-            onCancel={handleCancel}
-          />
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-semibold">Products ({products.length})</h2>
         </div>
         
-        {products.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <p>No products found. Add your first product to get started.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left">Image</th>
-                  <th className="px-4 py-2 text-left">Name</th>
-                  <th className="px-4 py-2 text-left">Code</th>
-                  <th className="px-4 py-2 text-left">Category</th>
-                  <th className="px-4 py-2 text-left">Price</th>
-                  <th className="px-4 py-2 text-left">Stock</th>
-                  <th className="px-4 py-2 text-left">Created</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-2">
-                      {product.image ? (
-                        <img 
-                          src={product.image} 
-                          alt={product.name}
-                          className="w-12 h-12 object-cover rounded"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                          <span className="text-xs text-gray-500">No img</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="font-medium">{product.name}</div>
-                      {product.description && (
-                        <div className="text-sm text-gray-500 truncate max-w-32">
-                          {product.description}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 font-mono text-sm">{product.code}</td>
-                    <td className="px-4 py-2">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                        {product.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">₹{product.price}</td>
-                    <td className="px-4 py-2">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        (product.stock || 0) > 10 
-                          ? 'bg-green-100 text-green-800' 
-                          : (product.stock || 0) > 0 
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}>
-                        {product.stock || 0}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">
-                      {new Date().toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(product)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(product.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ProductSizeManager
+          productId={managingSizeProduct.id}
+          productName={managingSizeProduct.name}
+          currentInventory={sizeInventories[managingSizeProduct.id] || {}}
+          onInventoryUpdate={handleInventoryUpdate}
+        />
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Products Management</h2>
+        <Button onClick={() => setShowAddForm(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Product
+        </Button>
+      </div>
+
+      <div className="flex items-center space-x-4">
+        <Input
+          placeholder="Search products..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredProducts.map((product) => (
+            <Card key={product.id}>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-4">
+                    <img
+                      src={product.image || '/placeholder.svg'}
+                      alt={product.name}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                    <div>
+                      <h3 className="text-lg font-semibold">{product.name}</h3>
+                      <p className="text-sm text-gray-600">Code: {product.code}</p>
+                      <p className="text-sm text-gray-600">Category: {product.category}</p>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <span className="text-lg font-bold">₹{product.price}</span>
+                        {product.originalPrice && product.originalPrice > product.price && (
+                          <span className="text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
+                        )}
+                        {product.discountPercentage && (
+                          <Badge variant="destructive">{product.discountPercentage}% OFF</Badge>
+                        )}
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-600">
+                          <strong>Size Inventory:</strong> {formatInventoryDisplay(product.id)}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <strong>Total Stock:</strong> {getTotalStock(product.id)} units
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setManagingSizeProduct(product)}
+                    >
+                      <Package className="h-4 w-4 mr-1" />
+                      Sizes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingProduct(product)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteProduct(product.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              {searchTerm ? 'No products found matching your search.' : 'No products found. Add your first product!'}
+            </div>
+          )}
+        </div>
+      )}
     </div>
-    </AdminLayout>
   );
 };
 

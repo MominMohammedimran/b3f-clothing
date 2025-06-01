@@ -1,13 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import Layout from '../components/layout/Layout';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
+import { toast } from '@/utils/toastWrapper';
 import { supabase } from '../integrations/supabase/client';
-import { toast } from 'sonner';
-import { formatPrice } from '@/lib/utils';
+import { useAuth } from '../context/AuthContext';
+import OrderSummaryComponent from '../components/checkout/OrderSummaryComponent';
+import ShippingDetailsForm from '../components/checkout/ShippingDetailsForm';
+import { useLocation as useLocationContext } from '../context/LocationContext';
+import { useCart } from '../context/CartContext';
+import { useAddresses } from '../hooks/useAddresses';
+import SavedAddresses from '@/components/checkout/SavedAddresses';
+import { Button } from '@/components/ui/button';
 import RazorpayCheckout from '../components/payment/RazorpayCheckout';
 
 const Payment = () => {
@@ -18,10 +23,12 @@ const Payment = () => {
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('razorpay');
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [rewardPointsUsed, setRewardPointsUsed] = useState(0);
 
   const shippingAddress = location.state?.shippingAddress;
   const deliveryFee = 50;
-  const finalTotal = totalPrice + deliveryFee;
+  const rewardPointsDiscount = rewardPointsUsed * 1; // 1 point = 1 rupee
+  const finalTotal = Math.max(0, totalPrice + deliveryFee - rewardPointsDiscount);
 
   useEffect(() => {
     if (!currentUser || !cartItems.length || !shippingAddress) {
@@ -96,7 +103,8 @@ const Payment = () => {
           shipping_address: normalizedAddress,
           payment_details: {
             method: 'cod',
-            status: 'pending'
+            status: 'pending',
+            reward_points_used: rewardPointsUsed
           },
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -107,6 +115,16 @@ const Payment = () => {
       if (orderError) {
         console.error('Order creation error:', orderError);
         throw new Error(`Failed to create order: ${orderError.message}`);
+      }
+
+      // Update user reward points if used
+      if (rewardPointsUsed > 0) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            reward_points: (userProfile?.reward_points || 0) - rewardPointsUsed 
+          })
+          .eq('id', currentUser.id);
       }
 
       console.log('Order created successfully:', orderData);
@@ -163,12 +181,13 @@ const Payment = () => {
           shipping_address: normalizedAddress,
           payment_details: {
             method: 'razorpay',
-            payment_id: transactionDetails.paymentId,
-            order_id: transactionDetails.orderId,
-            signature: transactionDetails.signature,
-            amount: transactionDetails.amount,
-            currency: transactionDetails.currency,
-            status: 'success'
+            payment_id: transactionDetails.razorpay_payment_id,
+            order_id: transactionDetails.razorpay_order_id,
+            signature: transactionDetails.razorpay_signature,
+            amount: finalTotal,
+            currency: 'INR',
+            status: 'success',
+            reward_points_used: rewardPointsUsed
           },
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -179,6 +198,16 @@ const Payment = () => {
       if (orderError) {
         console.error('Order creation error:', orderError);
         throw new Error(`Failed to create order: ${orderError.message}`);
+      }
+
+      // Update user reward points if used
+      if (rewardPointsUsed > 0) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            reward_points: (userProfile?.reward_points || 0) - rewardPointsUsed 
+          })
+          .eq('id', currentUser.id);
       }
 
       console.log('Razorpay order created successfully:', orderData);
@@ -211,10 +240,8 @@ const Payment = () => {
     if (paymentMethod === 'cod') {
       handleCODPayment();
     }
-    // For Razorpay, the RazorpayCheckout component handles the payment flow
   };
   
-
   if (!shippingAddress) {
     return (
       <Layout>
@@ -275,7 +302,7 @@ const Payment = () => {
                         </p>
                       </div>
                     </div>
-                    <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
+                    <span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -295,6 +322,33 @@ const Payment = () => {
           </div>
 
           <div className="space-y-6">
+            {/* Reward Points */}
+            {userProfile?.reward_points && userProfile.reward_points > 0 && (
+              <div className="bg-white p-6 rounded-lg shadow border">
+                <h2 className="text-lg font-semibold mb-4">Use Reward Points</h2>
+                <p className="text-sm text-gray-600 mb-3">
+                  Available: {userProfile.reward_points} points (₹{userProfile.reward_points})
+                </p>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max={Math.min(userProfile.reward_points, totalPrice + deliveryFee)}
+                    value={rewardPointsUsed}
+                    onChange={(e) => setRewardPointsUsed(Number(e.target.value))}
+                    className="flex-1 px-3 py-2 border rounded-md"
+                    placeholder="Points to use"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => setRewardPointsUsed(Math.min(userProfile.reward_points, totalPrice + deliveryFee))}
+                  >
+                    Use All
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Payment Methods */}
             <div className="bg-white p-6 rounded-lg shadow border">
               <h2 className="text-lg font-semibold mb-4">Payment Method</h2>
@@ -330,16 +384,22 @@ const Payment = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>{formatPrice(totalPrice)}</span>
+                  <span>₹{totalPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
-                  <span>{formatPrice(deliveryFee)}</span>
+                  <span>₹{deliveryFee.toFixed(2)}</span>
                 </div>
+                {rewardPointsUsed > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Reward Points Discount</span>
+                    <span>-₹{rewardPointsDiscount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="border-t pt-2">
                   <div className="flex justify-between font-semibold text-lg">
                     <span>Total</span>
-                    <span>{formatPrice(finalTotal)}</span>
+                    <span>₹{finalTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -349,9 +409,15 @@ const Payment = () => {
             {paymentMethod === 'razorpay' ? (
               <RazorpayCheckout
                 amount={finalTotal}
-               customOrderId={`${generateOrderNumber()}`}
+                customerInfo={{
+                  name: userProfile?.display_name || userProfile?.first_name || currentUser?.email || '',
+                  email: currentUser?.email || '',
+                  contact: userProfile?.phone_number || ''
+                }}
+                cartItems={cartItems}
+                shippingAddress={shippingAddress}
                 onSuccess={handleRazorpaySuccess}
-                onFailure={handleRazorpayFailure}
+                onError={handleRazorpayFailure}
               />
             ) : (
               <Button
@@ -360,7 +426,7 @@ const Payment = () => {
                 className="w-full"
                 size="lg"
               >
-                {loading ? 'Processing...' : `Place Order - ${formatPrice(finalTotal)}`}
+                {loading ? 'Processing...' : `Place Order - ₹${finalTotal.toFixed(2)}`}
               </Button>
             )}
 

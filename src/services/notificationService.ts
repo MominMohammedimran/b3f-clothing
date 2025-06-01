@@ -9,113 +9,62 @@ export enum NotificationType {
   ORDER_DELIVERED = 'order_delivered'
 }
 
-interface NotificationPayload {
-  userId: string;
+interface OrderNotificationData {
   orderId: string;
-  type: NotificationType;
-  email?: string;
-  phone?: string;
-  data?: Record<string, any>;
+  customerEmail: string;
+  customerName: string;
+  status: string;
+  orderItems: any[];
+  totalAmount: number;
+  shippingAddress?: any;
 }
 
-// Function to send a notification through multiple channels
-export const sendNotification = async (payload: NotificationPayload): Promise<boolean> => {
+// Function to send order notification email
+export const sendOrderNotificationEmail = async (orderData: OrderNotificationData): Promise<boolean> => {
   try {
-    // Get user details if not provided
-    if (!payload.email || !payload.phone) {
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('email, phone_number')
-        .eq('id', payload.userId)
-        .single();
+    console.log('Sending order notification email:', orderData);
 
-      if (userError) {
-        console.error('Error fetching user data for notification:', userError);
-        return false;
-      }
+    const { data, error } = await supabase.functions.invoke('send-order-notification', {
+      body: orderData
+    });
 
-      if (userData) {
-        payload.email = payload.email || userData.email;
-        payload.phone = payload.phone || userData.phone_number;
-      }
+    if (error) {
+      console.error('Error sending order notification email:', error);
+      return false;
     }
 
-    // Send notification through available channels
-    const results = await Promise.allSettled([
-      sendEmailNotification(payload),
-      sendWhatsAppNotification(payload)
-    ]);
+    console.log('Order notification email sent successfully:', data);
+    return true;
+  } catch (error) {
+    console.error('Error in sendOrderNotificationEmail:', error);
+    return false;
+  }
+};
 
-    // Check if at least one notification was sent successfully
-    const atLeastOneSuccess = results.some(result => result.status === 'fulfilled' && result.value === true);
-    
-    return atLeastOneSuccess;
+// Function to send a notification through multiple channels
+export const sendNotification = async (payload: any): Promise<boolean> => {
+  try {
+    // Send email notification for order updates
+    if (payload.type === NotificationType.ORDER_CONFIRMED || 
+        payload.type === NotificationType.ORDER_SHIPPED || 
+        payload.type === NotificationType.ORDER_DELIVERED) {
+      
+      const orderNotificationData: OrderNotificationData = {
+        orderId: payload.orderId,
+        customerEmail: payload.email || '',
+        customerName: payload.customerName || 'Customer',
+        status: payload.type.replace('order_', ''),
+        orderItems: payload.data?.orderItems || [],
+        totalAmount: payload.data?.totalAmount || 0,
+        shippingAddress: payload.data?.shippingAddress
+      };
+
+      return await sendOrderNotificationEmail(orderNotificationData);
+    }
+
+    return true;
   } catch (error) {
     console.error('Error in sendNotification:', error);
-    return false;
-  }
-};
-
-// Function to send email notification
-const sendEmailNotification = async (payload: NotificationPayload): Promise<boolean> => {
-  try {
-    if (!payload.email) {
-      console.warn('No email provided for notification');
-      return false;
-    }
-
-    // Call edge function to send email
-    const { data, error } = await supabase.functions.invoke('send-notification', {
-      body: {
-        channel: 'email',
-        to: payload.email,
-        type: payload.type,
-        orderId: payload.orderId,
-        data: payload.data
-      }
-    });
-
-    if (error) {
-      console.error('Error sending email notification:', error);
-      return false;
-    }
-
-    console.log('Email notification sent successfully:', data);
-    return true;
-  } catch (error) {
-    console.error('Error in sendEmailNotification:', error);
-    return false;
-  }
-};
-
-// Function to send WhatsApp notification
-const sendWhatsAppNotification = async (payload: NotificationPayload): Promise<boolean> => {
-  try {
-    if (!payload.phone) {
-      console.warn('No phone number provided for WhatsApp notification');
-      return false;
-    }
-
-    // Call edge function to send WhatsApp message
-    const { data, error } = await supabase.functions.invoke('send-notification', {
-      body: {
-        channel: 'whatsapp',
-        to: payload.phone,
-        type: payload.type,
-        orderId: payload.orderId,
-        data: payload.data
-      }
-    });
-
-    if (error) {
-      console.error('Error sending WhatsApp notification:', error);
-      return false;
-    }
-
-    console.log('WhatsApp notification sent successfully:', data);
-    return true;
-  } catch (error) {
-    console.error('Error in sendWhatsAppNotification:', error);
     return false;
   }
 };

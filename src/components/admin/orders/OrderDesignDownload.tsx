@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { CartItem } from '@/lib/types';
 
@@ -11,25 +10,103 @@ interface OrderDesignDownloadProps {
 }
 
 const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderNumber }) => {
+  
+  const isCustomProduct = (item: CartItem) => {
+    return item.productId?.includes('custom-') && 
+           (item.productId?.includes('tshirt') || item.productId?.includes('mug') || item.productId?.includes('cap'));
+  };
+
+  const captureDesignScreenshot = async (item: CartItem): Promise<string | null> => {
+    try {
+      // Create a canvas for high-resolution screenshot
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set high resolution
+      canvas.width = 1200;
+      canvas.height = 1400;
+      
+      if (!ctx) return null;
+
+      // Create product template
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw product outline (T-shirt shape)
+      if (item.productId?.includes('tshirt')) {
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Simple T-shirt outline
+        ctx.moveTo(300, 200);
+        ctx.lineTo(900, 200);
+        ctx.lineTo(900, 400);
+        ctx.lineTo(800, 400);
+        ctx.lineTo(800, 1200);
+        ctx.lineTo(400, 1200);
+        ctx.lineTo(400, 400);
+        ctx.lineTo(300, 400);
+        ctx.closePath();
+        ctx.stroke();
+      }
+
+      // Draw design if available
+      if (item.metadata?.previewImage) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            // Center the design on the product
+            const designWidth = 300;
+            const designHeight = 300;
+            const x = (canvas.width - designWidth) / 2;
+            const y = (canvas.height - designHeight) / 2;
+            
+            ctx.drawImage(img, x, y, designWidth, designHeight);
+            
+            // Convert to high-quality image
+            const dataUrl = canvas.toDataURL('image/png', 1.0);
+            resolve(dataUrl);
+          };
+          img.onerror = () => resolve(item.metadata?.previewImage || null);
+          img.src = item.metadata.previewImage;
+        });
+      }
+      
+      return canvas.toDataURL('image/png', 1.0);
+    } catch (error) {
+      console.error('Error creating screenshot:', error);
+      return null;
+    }
+  };
+
   const downloadDesignFiles = async () => {
     try {
-      const designItems = items.filter(item => 
-        item.metadata?.previewImage || item.metadata?.designData || item.metadata?.backImage || item.image
-      );
+      const customItems = items.filter(isCustomProduct);
 
-      if (designItems.length === 0) {
-        toast.error('No design files found for this order');
+      if (customItems.length === 0) {
+        toast.error('No custom design files found for this order');
         return;
       }
 
-      for (let i = 0; i < designItems.length; i++) {
-        const item = designItems[i];
+      for (let i = 0; i < customItems.length; i++) {
+        const item = customItems[i];
         
-        // Download main preview image
-        if (item.metadata?.previewImage) {
+        // Create high-resolution screenshot
+        const screenshot = await captureDesignScreenshot(item);
+        
+        if (screenshot) {
+          await downloadImage(
+            screenshot,
+            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_${item.metadata?.view || 'design'}_print_ready.png`
+          );
+        }
+
+        // Download original preview if different
+        if (item.metadata?.previewImage && item.metadata.previewImage !== screenshot) {
           await downloadImage(
             item.metadata.previewImage,
-            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_${item.metadata.view || 'front'}_design.png`
+            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_original_preview.png`
           );
         }
 
@@ -41,21 +118,13 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
           );
         }
 
-        // If no preview image but has design data, try to download the main image
-        if (!item.metadata?.previewImage && item.image) {
-          await downloadImage(
-            item.image,
-            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_product_image.png`
-          );
-        }
-
-        // Small delay between downloads to prevent browser blocking
-        if (i < designItems.length - 1) {
+        // Small delay between downloads
+        if (i < customItems.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
-      toast.success(`Downloaded ${designItems.length} design files for order ${orderNumber}`);
+      toast.success(`Downloaded ${customItems.length} print-ready design files for order ${orderNumber}`);
     } catch (error) {
       console.error('Error downloading design files:', error);
       toast.error('Failed to download design files');
@@ -65,74 +134,47 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
   const downloadImage = async (imageUrl: string, filename: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
-        // Create a temporary canvas to convert data URL to blob if needed
-        if (imageUrl.startsWith('data:')) {
-          // For data URLs, create a download link directly
-          const link = document.createElement('a');
-          link.href = imageUrl;
-          link.download = filename;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          resolve();
-        } else {
-          // For regular URLs, fetch and create blob
-          fetch(imageUrl)
-            .then(response => response.blob())
-            .then(blob => {
-              const url = window.URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = filename;
-              link.style.display = 'none';
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              window.URL.revokeObjectURL(url);
-              resolve();
-            })
-            .catch(error => {
-              console.error('Error fetching image:', error);
-              // Fallback to direct link download
-              const link = document.createElement('a');
-              link.href = imageUrl;
-              link.download = filename;
-              link.target = '_blank';
-              link.style.display = 'none';
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              resolve();
-            });
-        }
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        resolve();
       } catch (error) {
         reject(error);
       }
     });
   };
 
-  const hasDesignFiles = items.some(item => 
-    item.metadata?.previewImage || item.metadata?.designData || item.metadata?.backImage || item.image
-  );
+  const customProducts = items.filter(isCustomProduct);
 
-  if (!hasDesignFiles) {
+  if (customProducts.length === 0) {
     return null;
   }
 
   return (
     <div className="mt-4 pt-4 border-t">
-      <h4 className="text-sm font-medium text-gray-900 mb-2">Design Files</h4>
+      <h4 className="text-sm font-medium text-gray-900 mb-2">Custom Print Files</h4>
+      <div className="space-y-2">
+        {customProducts.map((item, index) => (
+          <div key={index} className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
+            <span className="font-medium">{item.name}</span>
+            {item.metadata?.view && ` • ${item.metadata.view}`}
+            {item.size && ` • Size: ${item.size}`}
+          </div>
+        ))}
+      </div>
       <Button
         onClick={downloadDesignFiles}
         variant="outline"
         size="sm"
-        className="w-full"
+        className="w-full mt-2"
       >
         <Download className="h-4 w-4 mr-2" />
-        Download All Design Files ({items.filter(item => 
-          item.metadata?.previewImage || item.metadata?.designData || item.metadata?.backImage || item.image
-        ).length} files)
+        <Camera className="h-4 w-4 mr-1" />
+        Download Print-Ready Files ({customProducts.length} items)
       </Button>
     </div>
   );

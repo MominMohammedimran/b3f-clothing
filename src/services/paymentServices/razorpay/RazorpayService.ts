@@ -2,6 +2,13 @@
 import { loadRazorpayScript } from './RazorpayLoader';
 import { getRazorpayConfig, RazorpayOptions, RazorpayResponse } from './RazorpayConfig';
 
+// Extend the Window interface to include Razorpay
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 /**
  * Initialize and open Razorpay payment
  */

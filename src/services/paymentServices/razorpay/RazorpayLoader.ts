@@ -3,13 +3,6 @@
  * Utility for loading the Razorpay script
  */
 
-// Define window type for Razorpay
-declare global {
-  interface Window {
-    Razorpay?: any;
-  }
-}
-
 // Cache for script loading status
 let isScriptLoading = false;
 let isScriptLoaded = false;
@@ -19,7 +12,7 @@ let isScriptLoaded = false;
  */
 export const loadRazorpayScript = (): Promise<boolean> => {
   return new Promise((resolve) => {
-    if (window.Razorpay) {
+    if ((window as any).Razorpay) {
       isScriptLoaded = true;
       console.log('Razorpay script already loaded');
       return resolve(true);
@@ -28,7 +21,7 @@ export const loadRazorpayScript = (): Promise<boolean> => {
     if (isScriptLoading) {
       // Check every 100ms if script has loaded
       const checkScriptLoaded = setInterval(() => {
-        if (window.Razorpay) {
+        if ((window as any).Razorpay) {
           clearInterval(checkScriptLoaded);
           isScriptLoaded = true;
           console.log('Razorpay script loaded during polling');
@@ -71,5 +64,5 @@ export const loadRazorpayScript = (): Promise<boolean> => {
 };
 
 export const isRazorpayScriptLoaded = (): boolean => {
-  return isScriptLoaded || !!window.Razorpay;
+  return isScriptLoaded || !!(window as any).Razorpay;
 };

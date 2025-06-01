@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -8,7 +7,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import OrderSummaryComponent from '../components/checkout/OrderSummaryComponent';
 import ShippingDetailsForm from '../components/checkout/ShippingDetailsForm';
-import { useLocation } from '../context/LocationContext';
+import { useLocation as useLocationContext } from '../context/LocationContext';
 import { useCart } from '../context/CartContext';
 import { useAddresses } from '../hooks/useAddresses';
 import SavedAddresses from '@/components/checkout/SavedAddresses';
@@ -46,7 +45,7 @@ const Checkout = () => {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
 
   const { currentUser } = useAuth();
-  const { currentLocation } = useLocation();
+  const { currentLocation } = useLocationContext();
   const { cartItems, totalPrice } = useCart();
   const { addresses, defaultAddress, loading: addressesLoading } = useAddresses(currentUser?.id);
 
@@ -210,7 +209,13 @@ const Checkout = () => {
       console.log('Shipping address prepared:', shippingAddress);
       
       // Navigate to payment with shipping address
-      navigate('/payment', { state: { shippingAddress } });
+      navigate('/payment', { 
+        state: { 
+          shippingAddress,
+          cartItems,
+          totalPrice
+        } 
+      });
       
       toast.success('Shipping details saved');
       
@@ -223,7 +228,7 @@ const Checkout = () => {
   };
 
   // Calculate order summary
-  const DELIVERY_FEE = 40;
+  const DELIVERY_FEE = 80;
   const subtotal = totalPrice;
   const total = subtotal + DELIVERY_FEE;
   
@@ -277,7 +282,7 @@ const Checkout = () => {
           </div>
 
           <div className="md:col-span-1">
-            <OrderSummaryComponent currentOrder={orderSummary} />
+            <OrderSummaryComponent currentOrder={currentOrder} />
           </div>
         </div>
       </div>

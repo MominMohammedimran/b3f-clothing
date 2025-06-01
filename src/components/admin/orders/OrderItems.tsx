@@ -1,100 +1,183 @@
-
 import React from 'react';
-import { formatCurrency } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Download, Camera } from 'lucide-react';
+import { toast } from 'sonner';
 import { CartItem } from '@/lib/types';
 
-interface OrderItemsProps {
+interface OrderDesignDownloadProps {
   items: CartItem[];
-  total: number;
+  orderNumber: string;
 }
 
-const OrderItems: React.FC<OrderItemsProps> = ({ items, total }) => {
-  // Helper function to get the best available image for display
-  const getItemDisplayImage = (item: CartItem) => {
-    if (item.metadata?.previewImage) {
-      return item.metadata.previewImage;
-    }
-    if (item.image) {
-      return item.image;
-    }
-    return '/placeholder.svg';
+const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderNumber }) => {
+  
+  const isCustomProduct = (item: CartItem) => {
+    return item.productId?.includes('custom-') && 
+           (item.productId?.includes('tshirt') || item.productId?.includes('mug') || item.productId?.includes('cap'));
   };
 
-  // Helper function to check if item has custom design
-  const hasCustomDesign = (item: CartItem) => {
-    return item.metadata?.previewImage || item.metadata?.designData;
+  const captureDesignScreenshot = async (item: CartItem): Promise<string | null> => {
+    try {
+      // Create a canvas for high-resolution screenshot
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set high resolution
+      canvas.width = 1200;
+      canvas.height = 1400;
+      
+      if (!ctx) return null;
+
+      // Create product template
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw product outline (T-shirt shape)
+      if (item.productId?.includes('tshirt')) {
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Simple T-shirt outline
+        ctx.moveTo(300, 200);
+        ctx.lineTo(900, 200);
+        ctx.lineTo(900, 400);
+        ctx.lineTo(800, 400);
+        ctx.lineTo(800, 1200);
+        ctx.lineTo(400, 1200);
+        ctx.lineTo(400, 400);
+        ctx.lineTo(300, 400);
+        ctx.closePath();
+        ctx.stroke();
+      }
+
+      // Draw design if available
+      if (item.metadata?.previewImage) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            // Center the design on the product
+            const designWidth = 300;
+            const designHeight = 300;
+            const x = (canvas.width - designWidth) / 2;
+            const y = (canvas.height - designHeight) / 2;
+            
+            ctx.drawImage(img, x, y, designWidth, designHeight);
+            
+            // Convert to high-quality image
+            const dataUrl = canvas.toDataURL('image/png', 1.0);
+            resolve(dataUrl);
+          };
+          img.onerror = () => resolve(item.metadata?.previewImage || null);
+          img.src = item.metadata.previewImage;
+        });
+      }
+      
+      return canvas.toDataURL('image/png', 1.0);
+    } catch (error) {
+      console.error('Error creating screenshot:', error);
+      return null;
+    }
   };
+
+  const downloadDesignFiles = async () => {
+    try {
+      const customItems = items.filter(isCustomProduct);
+
+      if (customItems.length === 0) {
+        toast.error('No custom design files found for this order');
+        return;
+      }
+
+      for (let i = 0; i < customItems.length; i++) {
+        const item = customItems[i];
+        
+        // Create high-resolution screenshot
+        const screenshot = await captureDesignScreenshot(item);
+        
+        if (screenshot) {
+          await downloadImage(
+            screenshot,
+            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_${item.metadata?.view || 'design'}_print_ready.png`
+          );
+        }
+
+        // Download original preview if different
+        if (item.metadata?.previewImage && item.metadata.previewImage !== screenshot) {
+          await downloadImage(
+            item.metadata.previewImage,
+            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_original_preview.png`
+          );
+        }
+
+        // Download back image if exists (for dual-sided designs)
+        if (item.metadata?.backImage) {
+          await downloadImage(
+            item.metadata.backImage,
+            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_back_design.png`
+          );
+        }
+
+        // Small delay between downloads
+        if (i < customItems.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      toast.success(`Downloaded ${customItems.length} print-ready design files for order ${orderNumber}`);
+    } catch (error) {
+      console.error('Error downloading design files:', error);
+      toast.error('Failed to download design files');
+    }
+  };
+
+  const downloadImage = async (imageUrl: string, filename: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
+  const customProducts = items.filter(isCustomProduct);
+
+  if (customProducts.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <h3 className="text-lg font-semibold mb-4">Order Items</h3>
-      
-      <div className="space-y-4">
-        {items.map((item, index) => (
-          <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
-            <div className="flex-shrink-0">
-              {hasCustomDesign(item) ? (
-                <div className="relative">
-                  <div className="h-16 w-16 border-2 border-dashed border-blue-400 rounded bg-blue-50 flex items-center justify-center">
-                    <img
-                      src={getItemDisplayImage(item)}
-                      alt={item.name}
-                      className="h-12 w-12 object-contain rounded"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder.svg';
-                      }}
-                    />
-                  </div>
-                  <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-1 rounded-full">
-                    ✨
-                  </div>
-                </div>
-              ) : (
-                <img
-                  src={getItemDisplayImage(item)}
-                  alt={item.name}
-                  className="h-16 w-16 object-cover rounded border"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/placeholder.svg';
-                  }}
-                />
-              )}
-            </div>
-            
-            <div className="flex-1">
-              <h4 className="font-medium text-gray-900">{item.name}</h4>
-              <div className="text-sm text-gray-500 space-y-1">
-                <p>Quantity: {item.quantity}</p>
-                {item.size && <p>Size: {item.size}</p>}
-                {item.color && <p>Color: {item.color}</p>}
-                {item.metadata?.view && <p>Design View: {item.metadata.view}</p>}
-                {hasCustomDesign(item) && (
-                  <p className="text-blue-600 font-medium">✨ Custom Design</p>
-                )}
-                {item.metadata?.backImage && (
-                  <p className="text-purple-600 font-medium">🔄 Dual-Sided Design</p>
-                )}
-              </div>
-            </div>
-            
-            <div className="text-right">
-              <p className="font-medium">{formatCurrency(item.price * item.quantity)}</p>
-              <p className="text-sm text-gray-500">
-                {formatCurrency(item.price)} each
-              </p>
-            </div>
+    <div className="mt-4 pt-4 border-t">
+      <h4 className="text-sm font-medium text-gray-900 mb-2">Custom Print Files</h4>
+      <div className="space-y-2">
+        {customProducts.map((item, index) => (
+          <div key={index} className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
+            <span className="font-medium">{item.name}</span>
+            {item.metadata?.view && ` • ${item.metadata.view}`}
+            {item.size && ` • Size: ${item.size}`}
           </div>
         ))}
-        
-        <div className="border-t pt-4">
-          <div className="flex justify-between items-center font-semibold text-lg">
-            <span>Total:</span>
-            <span>{formatCurrency(total)}</span>
-          </div>
-        </div>
       </div>
+      <Button
+        onClick={downloadDesignFiles}
+        variant="outline"
+        size="sm"
+        className="w-full mt-2"
+      >
+        <Download className="h-4 w-4 mr-2" />
+        <Camera className="h-4 w-4 mr-1" />
+        Download Print-Ready Files ({customProducts.length} items)
+      </Button>
     </div>
   );
 };
 
-export default OrderItems;
+export default OrderDesignDownload;

@@ -1,134 +1,100 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { X } from 'lucide-react';
+import React from 'react';
+import { formatCurrency } from '@/lib/utils';
+import { CartItem } from '@/lib/types';
 
-interface OrderStatusActionsProps {
-  orderId: string;
-  currentStatus: string;
-  onStatusUpdate: (orderId: string, status: string, reason?: string) => void;
+interface OrderItemsProps {
+  items: CartItem[];
+  total: number;
 }
 
-const OrderStatusActions: React.FC<OrderStatusActionsProps> = ({
-  orderId,
-  currentStatus,
-  onStatusUpdate
-}) => {
-  const [selectedStatus, setSelectedStatus] = useState(currentStatus);
-  const [cancellationReason, setCancellationReason] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const statusOptions = [
-    { value: 'processing', label: 'Processing' },
-    { value: 'prepared', label: 'Prepared' },
-    { value: 'shipped', label: 'Shipped' },
-    { value: 'out_for_delivery', label: 'Out for Delivery' },
-    { value: 'delivered', label: 'Delivered' },
-    { value: 'cancelled', label: 'Cancelled' }
-  ];
-
-  const handleStatusUpdate = () => {
-    if (selectedStatus === 'cancelled' && !cancellationReason.trim()) {
-      alert('Please provide a cancellation reason');
-      return;
+const OrderItems: React.FC<OrderItemsProps> = ({ items, total }) => {
+  // Helper function to get the best available image for display
+  const getItemDisplayImage = (item: CartItem) => {
+    if (item.metadata?.previewImage) {
+      return item.metadata.previewImage;
     }
-    
-    onStatusUpdate(orderId, selectedStatus, selectedStatus === 'cancelled' ? cancellationReason : undefined);
-    setIsDialogOpen(false);
-    setCancellationReason('');
+    if (item.image) {
+      return item.image;
+    }
+    return '/placeholder.svg';
   };
 
-  const handleCancel = () => {
-    setIsDialogOpen(true);
-    setSelectedStatus('cancelled');
+  // Helper function to check if item has custom design
+  const hasCustomDesign = (item: CartItem) => {
+    return item.metadata?.previewImage || item.metadata?.designData;
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="status">Order Status</Label>
-        <div className="flex gap-2 mt-1">
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map(option => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button 
-            onClick={selectedStatus === 'cancelled' ? () => setIsDialogOpen(true) : handleStatusUpdate}
-            disabled={selectedStatus === currentStatus}
-            variant={selectedStatus === 'cancelled' ? 'destructive' : 'default'}
-          >
-            Update
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex gap-2">
-        <Button 
-          variant="destructive" 
-          size="sm" 
-          onClick={handleCancel}
-          className="flex items-center gap-1"
-        >
-          <X size={14} />
-          Cancel Order
-        </Button>
-      </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Order</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="reason">Cancellation Reason</Label>
-              <Textarea
-                id="reason"
-                value={cancellationReason}
-                onChange={(e) => setCancellationReason(e.target.value)}
-                placeholder="Please provide a reason for cancellation..."
-                rows={3}
-                className="mt-1"
-              />
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <h3 className="text-lg font-semibold mb-4">Order Items</h3>
+      
+      <div className="space-y-4">
+        {items.map((item, index) => (
+          <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
+            <div className="flex-shrink-0">
+              {hasCustomDesign(item) ? (
+                <div className="relative">
+                  <div className="h-16 w-16 border-2 border-dashed border-blue-400 rounded bg-blue-50 flex items-center justify-center">
+                    <img
+                      src={getItemDisplayImage(item)}
+                      alt={item.name}
+                      className="h-12 w-12 object-contain rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                      }}
+                    />
+                  </div>
+                  <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-1 rounded-full">
+                    ✨
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src={getItemDisplayImage(item)}
+                  alt={item.name}
+                  className="h-16 w-16 object-cover rounded border"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/placeholder.svg';
+                  }}
+                />
+              )}
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleStatusUpdate}>
-                Confirm Cancellation
-              </Button>
+            
+            <div className="flex-1">
+              <h4 className="font-medium text-gray-900">{item.name}</h4>
+              <div className="text-sm text-gray-500 space-y-1">
+                <p>Quantity: {item.quantity}</p>
+                {item.size && <p>Size: {item.size}</p>}
+                {item.color && <p>Color: {item.color}</p>}
+                {item.metadata?.view && <p>Design View: {item.metadata.view}</p>}
+                {hasCustomDesign(item) && (
+                  <p className="text-blue-600 font-medium">✨ Custom Design</p>
+                )}
+                {item.metadata?.backImage && (
+                  <p className="text-purple-600 font-medium">🔄 Dual-Sided Design</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <p className="font-medium">{formatCurrency(item.price * item.quantity)}</p>
+              <p className="text-sm text-gray-500">
+                {formatCurrency(item.price)} each
+              </p>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        ))}
+        
+        <div className="border-t pt-4">
+          <div className="flex justify-between items-center font-semibold text-lg">
+            <span>Total:</span>
+            <span>{formatCurrency(total)}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default OrderStatusActions;
+export default OrderItems;

@@ -56,10 +56,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     }
   };
 
-  // Calculate total price based on selected sizes
+  // Calculate total price based on selected sizes and quantity
   const effectiveSelectedSizes = allowMultipleSizes ? currentSelectedSizes : (selectedSize ? [selectedSize] : []);
-  const priceMultiplier = effectiveSelectedSizes.length > 1 ? 2 : 1;
-  const totalPrice = product.price * priceMultiplier;
+  const sizeMultiplier = effectiveSelectedSizes.length > 1 ? effectiveSelectedSizes.length : 1;
+  const basePrice = product.price * sizeMultiplier;
+  const totalPrice = basePrice * quantity;
 
   // Create size quantities from product data
   const sizeQuantities: Record<string, number> = {};
@@ -71,21 +72,21 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
 
 return (
   <div className="space-y-8 bg-white p-6 rounded-xl shadow-md relative">
-    {/* Product Title + Price (using z-index) */}
+    {/* Product Title + Price */}
     <div className="relative">
       <p className="text-xl font-semibold text-gray-900 tracking-tight">
         Name : <span className="text-gray-600">{product.name}</span>
       </p>
-      {/* Price positioned absolutely, right side of name */}
-   <span
+      <span
         className="absolute top-1/2 right-0 -translate-y-1/2 text-2xl font-semibold text-white drop-shadow-md select-none 
          bg-black px-2 py-1 rounded-lg shadow-md z-20"
         style={{ whiteSpace: "nowrap" }}
-           >
+      >
          ₹{totalPrice}
-    </span>
-
-
+         {sizeMultiplier > 1 && (
+           <span className="text-sm block">({sizeMultiplier} sizes × {quantity})</span>
+         )}
+      </span>
     </div>
 
     {/* Description */}
@@ -98,9 +99,7 @@ return (
       <ProductSizeSelector
         sizes={product.sizes}
         sizeQuantities={sizeQuantities}
-        selectedSizes={
-          allowMultipleSizes ? currentSelectedSizes : selectedSize ? [selectedSize] : []
-        }
+        selectedSizes={effectiveSelectedSizes}
         onSizeToggle={handleSizeToggle}
         allowMultiple={allowMultipleSizes}
         showStock={true}
@@ -120,34 +119,37 @@ return (
     {/* Action Buttons */}
     <ProductActionButtons
       product={product}
-      selectedSize={selectedSize || currentSelectedSizes[0] || ''}
+      selectedSize={selectedSize || effectiveSelectedSizes[0] || ''}
       selectedSizes={effectiveSelectedSizes}
       quantity={quantity}
       totalPrice={totalPrice}
     />
 
-    {/* Discount badges */}
+    {/* Price breakdown and badges */}
     <div className="flex flex-wrap items-center gap-3 mt-2">
       {product.originalPrice && product.originalPrice > product.price && (
         <>
           <span className="text-lg text-gray-400 line-through">
-            ₹{product.originalPrice * priceMultiplier}
+            ₹{product.originalPrice * sizeMultiplier * quantity}
           </span>
           <span className="bg-red-100 text-red-800 text-sm font-semibold px-3 py-1 rounded-full shadow">
             {product.discountPercentage}% OFF
           </span>
         </>
       )}
-      {priceMultiplier > 1 && (
+      {sizeMultiplier > 1 && (
         <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full shadow">
-          Multiple Sizes Selected
+          {sizeMultiplier} Sizes Selected (₹{basePrice} base price)
+        </span>
+      )}
+      {quantity > 1 && (
+        <span className="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full shadow">
+          Quantity: {quantity}
         </span>
       )}
     </div>
   </div>
 );
-
-
 };
 
 export default ProductDetails;

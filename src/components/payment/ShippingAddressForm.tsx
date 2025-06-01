@@ -1,129 +1,141 @@
 
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { countries } from 'countries-list';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-interface ShippingAddress {
-  name: string;
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
+interface RazorpayCheckoutProps {
+  amount: number;
+  customerInfo: {
+    name: string;
+    email: string;
+    contact: string;
+  };
+  cartItems: any[];
+  shippingAddress: any;
+  onSuccess: (data: any) => void;
+  onError: () => void;
 }
 
-interface ShippingAddressFormProps {
-  onSubmit: (e: React.FormEvent) => void;
-  shippingAddress: ShippingAddress;
-  onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onCountryChange: (value: string) => void;
-  loading: boolean;
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
 }
 
-const ShippingAddressForm: React.FC<ShippingAddressFormProps> = ({
-  onSubmit,
+const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
+  amount,
+  customerInfo,
+  cartItems,
   shippingAddress,
-  onInputChange,
-  onCountryChange,
-  loading
+  onSuccess,
+  onError
 }) => {
-  // Convert countries object to array for rendering
-  const countryList = Object.entries(countries).map(([code, countryData]) => ({
-    code,
-    name: countryData.name
-  }));
+  const [loading, setLoading] = useState(false);
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePayment = async () => {
+    setLoading(true);
+    
+    try {
+      // Load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error('Failed to load Razorpay SDK');
+      }
+
+      // Create order on backend
+      const { data: orderData, error } = await supabase.functions.invoke('create-razorpay-order', {
+        body: {
+          amount: Math.round(amount * 100), // Convert to paise
+          currency: 'INR',
+          receipt: `receipt_${Date.now()}`,
+          cartItems,
+          shippingAddress,
+          customerInfo
+        }
+      });
+
+      if (error) {
+        console.error('Error creating Razorpay order:', error);
+        throw new Error('Failed to create payment order');
+      }
+
+      if (!orderData.success) {
+        throw new Error(orderData.message || 'Failed to create payment order');
+      }
+
+      console.log('Razorpay order created:', orderData);
+
+      // Configure Razorpay options
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'B3F Prints',
+        description: 'Custom Product Order',
+        order_id: orderData.order_id,
+        prefill: {
+          name: customerInfo.name,
+          email: customerInfo.email,
+          contact: customerInfo.contact
+        },
+        theme: {
+          color: '#4F46E5'
+        },
+        handler: function (response: any) {
+          console.log('Razorpay payment success:', response);
+          onSuccess({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature
+          });
+        },
+        modal: {
+          ondismiss: function() {
+            console.log('Razorpay payment cancelled');
+            onError();
+          }
+        }
+      };
+
+      // Open Razorpay checkout
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error('Payment failed to initialize');
+      onError();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="col-span-1">
-          <Label htmlFor="name">Full Name</Label>
-          <Input
-            type="text"
-            id="name"
-            name="name"
-            value={shippingAddress.name}
-            onChange={onInputChange}
-            placeholder="John Doe"
-            required
-          />
-        </div>
-        <div className="col-span-1">
-          <Label htmlFor="street">Street Address</Label>
-          <Input
-            type="text"
-            id="street"
-            name="street"
-            value={shippingAddress.street}
-            onChange={onInputChange}
-            placeholder="123 Main St"
-            required
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="col-span-1">
-          <Label htmlFor="city">City</Label>
-          <Input
-            type="text"
-            id="city"
-            name="city"
-            value={shippingAddress.city}
-            onChange={onInputChange}
-            placeholder="New York"
-            required
-          />
-        </div>
-        <div className="col-span-1">
-          <Label htmlFor="state">State</Label>
-          <Input
-            type="text"
-            id="state"
-            name="state"
-            value={shippingAddress.state}
-            onChange={onInputChange}
-            placeholder="NY"
-            required
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="col-span-1">
-          <Label htmlFor="zipCode">Zip Code</Label>
-          <Input
-            type="text"
-            id="zipCode"
-            name="zipCode"
-            value={shippingAddress.zipCode}
-            onChange={onInputChange}
-            placeholder="10001"
-            required
-          />
-        </div>
-        <div className="col-span-1">
-          <Label htmlFor="country">Country</Label>
-          <Select onValueChange={onCountryChange} value={shippingAddress.country}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a country" />
-            </SelectTrigger>
-            <SelectContent>
-              {countryList.map((country) => (
-                <SelectItem key={country.code} value={country.name}>
-                  {country.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? 'Processing...' : 'Confirm and Pay'}
-      </Button>
-    </form>
+    <Button
+      onClick={handlePayment}
+      disabled={loading}
+      className="w-full"
+      size="lg"
+    >
+      {loading ? 'Loading...' : `Pay with Razorpay - ₹${amount.toFixed(2)}`}
+    </Button>
   );
 };
 
-export default ShippingAddressForm;
+export default RazorpayCheckout;

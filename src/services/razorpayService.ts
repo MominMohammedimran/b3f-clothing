@@ -1,99 +1,97 @@
 
-/**
- * Razorpay Payment Service
- * Handles loading the Razorpay script and initializing payments
- */
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-import { RazorpayOptions, RazorpayResponse, getRazorpayConfig } from './paymentServices/razorpay/RazorpayConfig';
-import { loadRazorpayScript, isRazorpayScriptLoaded } from './paymentServices/razorpay/RazorpayLoader';
-
-// Define window type for Razorpay
-declare global {
-  interface Window {
-    Razorpay?: any;
-  }
+export enum NotificationType {
+  PAYMENT_CONFIRMED = 'payment_confirmed',
+  ORDER_CONFIRMED = 'order_confirmed',
+  ORDER_SHIPPED = 'order_shipped',
+  ORDER_DELIVERED = 'order_delivered'
 }
 
-/**
- * Initialize and open Razorpay payment
- */
-export const makePayment = async (
-  amount: number,
-  orderId: string,
-  customerName: string = '',
-  customerEmail: string = '',
-  customerPhone: string = '',
-  onSuccess: (paymentId: string, orderId: string, signature: string) => void,
-  onCancel: () => void
-): Promise<void> => {
-  // Make sure script is loaded
-  if (!isRazorpayScriptLoaded()) {
-    const loaded = await loadRazorpayScript();
-    if (!loaded) {
-      throw new Error('Failed to load payment gateway');
-    }
-  }
+interface OrderNotificationData {
+  orderId: string;
+  customerEmail: string;
+  customerName: string;
+  status: string;
+  orderItems: any[];
+  totalAmount: number;
+  shippingAddress?: any;
+}
 
-  if (!window.Razorpay) {
-    throw new Error('Razorpay not available');
-  }
-
-  // Get configuration
-  const config = getRazorpayConfig();
-  
-  // Log the mode for debugging
-  console.log(`Razorpay running in ${config.isTestMode ? 'TEST' : 'PRODUCTION'} mode`);
-
-  // Initialize Razorpay options
-  const options: RazorpayOptions = {
-    key: config.apiKey,
-    amount: amount * 100, // Razorpay expects amount in paise
-    currency: 'INR',
-    name: 'B3F Prints & Men\'s Wear',
-    description: `Payment for order ${orderId}`,
-    order_id: orderId,
-    prefill: {
-      name: customerName,
-      email: customerEmail,
-      contact: customerPhone
-    },
-    theme: {
-      color: '#3399cc'
-    },
-    modal: {
-      ondismiss: onCancel,
-      escape: true,
-      animation: true
-    },
-    handler: function (response: RazorpayResponse) {
-      console.log('Payment successful:', response);
-      onSuccess(
-        response.razorpay_payment_id,
-        response.razorpay_order_id,
-        response.razorpay_signature
-      );
-    }
-  };
-
+// Function to send order notification email
+export const sendOrderNotificationEmail = async (orderData: OrderNotificationData): Promise<boolean> => {
   try {
-    // Create Razorpay instance
-    const rzpInstance = new window.Razorpay(options);
-    rzpInstance.open();
+    console.log('Sending order notification email:', orderData);
+
+    const { data, error } = await supabase.functions.invoke('send-order-notification', {
+      body: orderData
+    });
+
+    if (error) {
+      console.error('Error sending order notification email:', error);
+      return false;
+    }
+
+    console.log('Order notification email sent successfully:', data);
+    return true;
   } catch (error) {
-    console.error('Error initializing Razorpay:', error);
-    throw error;
+    console.error('Error in sendOrderNotificationEmail:', error);
+    return false;
   }
 };
 
-/**
- * Verify Razorpay payment signature
- */
-export const verifyPaymentSignature = (
-  orderId: string,
-  paymentId: string,
-  signature: string
-): boolean => {
-  // In production, verification should be done server-side
-  console.log('Verifying payment signature:', { orderId, paymentId, signature });
-  return true;
+// Function to send a notification through multiple channels
+export const sendNotification = async (payload: any): Promise<boolean> => {
+  try {
+    // Send email notification for order updates
+    if (payload.type === NotificationType.ORDER_CONFIRMED || 
+        payload.type === NotificationType.ORDER_SHIPPED || 
+        payload.type === NotificationType.ORDER_DELIVERED) {
+      
+      const orderNotificationData: OrderNotificationData = {
+        orderId: payload.orderId,
+        customerEmail: payload.email || '',
+        customerName: payload.customerName || 'Customer',
+        status: payload.type.replace('order_', ''),
+        orderItems: payload.data?.orderItems || [],
+        totalAmount: payload.data?.totalAmount || 0,
+        shippingAddress: payload.data?.shippingAddress
+      };
+
+      return await sendOrderNotificationEmail(orderNotificationData);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in sendNotification:', error);
+    return false;
+  }
+};
+
+// Helper function to show notification to the user in the UI
+export const notifyUser = (type: NotificationType, orderId: string): void => {
+  let title = '';
+  let message = '';
+
+  switch (type) {
+    case NotificationType.PAYMENT_CONFIRMED:
+      title = 'Payment Confirmed';
+      message = `Payment for order #${orderId} has been confirmed. Thank you!`;
+      break;
+    case NotificationType.ORDER_CONFIRMED:
+      title = 'Order Confirmed';
+      message = `Your order #${orderId} has been confirmed and is being processed.`;
+      break;
+    case NotificationType.ORDER_SHIPPED:
+      title = 'Order Shipped';
+      message = `Your order #${orderId} has been shipped and is on its way.`;
+      break;
+    case NotificationType.ORDER_DELIVERED:
+      title = 'Order Delivered';
+      message = `Your order #${orderId} has been delivered. Enjoy!`;
+      break;
+  }
+
+  toast.success(message);
 };

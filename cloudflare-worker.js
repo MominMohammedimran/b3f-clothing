@@ -3,50 +3,52 @@
 // Deploy this at: https://workers.cloudflare.com/
 
 // Configuration
-const ALLOWED_ORIGINS = [
+ const ALLOWED_ORIGINS = [
   'https://b3f-prints.pages.dev',
   'http://localhost:8080',
-  'http://localhost:3000',  // add other local dev ports if needed
 ];
 
+const SUPABASE_STORAGE =
+  'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/';
+
 function isAllowedOrigin(origin) {
-  if (!origin) return false;
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  if (origin.startsWith('http://localhost')) return true;
-  return false;
+  return (
+    ALLOWED_ORIGINS.includes(origin) ||
+    origin?.startsWith('http://localhost')
+  );
 }
-
-
-const SUPABASE_STORAGE = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/';
 
 export default {
   async fetch(request) {
     const url = new URL(request.url);
+    const origin = request.headers.get('Origin') || '';
     const imagePath = url.pathname.replace('/proxy/', '');
 
-    const origin = request.headers.get('Origin');
-    console.log('Origin header:', origin);  // This logs origin to the worker console for debugging
-    
-    if (!isAllowedOrigin(origin)) {
-      return new Response('Forbidden - Invalid Origin', {
-        status: 403,
-        headers: { 'Content-Type': 'text/plain' }
-      });
-    }
-
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400',
-    };
-
-    // Handle CORS preflight requests
+    // Handle preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
-        headers: corsHeaders,
+        headers: {
+          'Access-Control-Allow-Origin': isAllowedOrigin(origin)
+            ? origin
+            : 'null',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers':
+            'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
+
+    // Block if origin is not allowed
+    if (!isAllowedOrigin(origin)) {
+      return new Response('Forbidden - Invalid Origin', {
+        status: 403,
+        headers: {
+          'Access-Control-Allow-Origin': 'null',
+          'Content-Type': 'text/plain',
+        },
       });
     }
 
@@ -57,13 +59,18 @@ export default {
       if (!imageRes.ok) {
         return new Response('Image not found', {
           status: 404,
-          headers: corsHeaders,
+          headers: {
+            'Access-Control-Allow-Origin': origin,
+            'Content-Type': 'text/plain',
+          },
         });
       }
 
       const headers = {
-        ...corsHeaders,
-        'Content-Type': imageRes.headers.get('Content-Type') || 'application/octet-stream',
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Credentials': 'true',
+        'Content-Type':
+          imageRes.headers.get('Content-Type') || 'application/octet-stream',
         'Cache-Control': 'public, max-age=86400',
       };
 
@@ -74,11 +81,16 @@ export default {
     } catch (e) {
       return new Response('Internal Proxy Error', {
         status: 502,
-        headers: corsHeaders,
+        headers: {
+          'Access-Control-Allow-Origin': origin,
+          'Content-Type': 'text/plain',
+        },
       });
     }
-  }
+  },
 };
+
+
 
 /**
  * DEPLOYMENT INSTRUCTIONS:

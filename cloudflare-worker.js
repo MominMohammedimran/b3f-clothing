@@ -6,72 +6,66 @@
 const ALLOWED_ORIGINS = [
   'https://b3f-prints.pages.dev',
   'http://localhost:8080',
+  // add any other allowed origins here
 ];
-const BACKEND_API = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public';
+
+function isAllowedOrigin(origin) {
+  // Allow no origin (e.g., direct browser image fetches)
+  if (!origin) return true;
+
+  return (
+    ALLOWED_ORIGINS.includes(origin) ||
+    origin.startsWith('http://localhost')
+  );
+}
+const SUPABASE_STORAGE = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/';
 
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    const origin = request.headers.get('Origin');
-    const referer = request.headers.get('Referer');
+    const imagePath = url.pathname.replace('/proxy/', '');
+    const origin = request.headers.get('Origin') || '*';
 
-    // Allow only requests from allowed origin
-    const isAllowedOrigin =
-      origin === ALLOWED_ORIGIN ||
-      (referer && referer.startsWith(ALLOWED_ORIGIN));
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Proxy-Secure',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400'
+    };
 
-    if (!isAllowedOrigin) {
-      return new Response('Forbidden - Invalid Origin', {
-        status: 403,
-        headers: { 'Content-Type': 'text/plain' },
-      });
-    }
-
-    // Handle CORS preflight
+    // Handle preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        },
-      });
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
-
-    // Remove /proxy from the path
-    let targetPath = url.pathname.replace(/^\/proxy/, '');
-    const backendUrl = `${BACKEND_API}${targetPath}${url.search}`;
 
     try {
-      const backendResponse = await fetch(backendUrl, {
-        method: 'GET',
+      const backendUrl = SUPABASE_STORAGE + imagePath + url.search;
+      const imageRes = await fetch(backendUrl);
+
+      if (!imageRes.ok) {
+        return new Response(`Image not found at: ${backendUrl}`, {
+          status: 404,
+          headers: corsHeaders
+        });
+      }
+
+      return new Response(imageRes.body, {
+        status: 200,
         headers: {
-          'X-Proxy-Secure': 'true',
-        },
+          ...corsHeaders,
+          'Content-Type': imageRes.headers.get('Content-Type') || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=86400',
+        }
       });
-
-      // Clone the response and preserve the image headers
-      const responseHeaders = new Headers(backendResponse.headers);
-      responseHeaders.set('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
-      responseHeaders.set('Access-Control-Allow-Credentials', 'true');
-
-      return new Response(backendResponse.body, {
-        status: backendResponse.status,
-        headers: responseHeaders,
-      });
-    } catch (error) {
-      return new Response('Proxy Error: ' + error.message, {
+    } catch (e) {
+      return new Response('Internal Proxy Error', {
         status: 502,
-        headers: {
-          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-          'Content-Type': 'text/plain',
-        },
+        headers: corsHeaders
       });
     }
-  },
+  }
 };
-
 
 /**
  * DEPLOYMENT INSTRUCTIONS:

@@ -3,144 +3,66 @@
 // Deploy this at: https://workers.cloudflare.com/
 
 // Configuration
-const ALLOWED_ORIGIN = 'https://b3f-prints.pages.dev';
+const ALLOWED_ORIGIN = 'https://b3f-prints.pages.dev/';
 const BACKEND_API = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public';
-const RATE_LIMIT_PER_MINUTE = 100;
-
-// In-memory rate limiting (per worker instance)
-const rateLimitMap = new Map();
-
-function cleanupRateLimit() {
-  const now = Date.now();
-  const oneMinuteAgo = now - 60000;
-  for (const [ip, data] of rateLimitMap.entries()) {
-    if (data.lastReset < oneMinuteAgo) {
-      rateLimitMap.delete(ip);
-    }
-  }
-}
-
-function isRateLimited(ip) {
-  cleanupRateLimit();
-  const now = Date.now();
-  const data = rateLimitMap.get(ip) || { count: 0, lastReset: now };
-  if (now - data.lastReset > 60000) {
-    data.count = 0;
-    data.lastReset = now;
-  }
-  data.count++;
-  rateLimitMap.set(ip, data);
-  return data.count > RATE_LIMIT_PER_MINUTE;
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Proxy-Secure',
-  'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Max-Age': '86400',
-};
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin');
     const referer = request.headers.get('Referer');
 
-    // Get client IP
-    const clientIP = request.headers.get('CF-Connecting-IP') ||
-                     request.headers.get('X-Forwarded-For') ||
-                     request.headers.get('X-Real-IP') ||
-                     'unknown';
+    // Allow only requests from allowed origin
+    const isAllowedOrigin =
+      origin === ALLOWED_ORIGIN ||
+      (referer && referer.startsWith(ALLOWED_ORIGIN));
 
-    // Block unauthorized origins
-    if (origin && origin !== ALLOWED_ORIGIN) {
-      console.log(`Blocked request from unauthorized origin: ${origin}`);
-      return new Response('Forbidden - Unauthorized Origin', {
-        status: 403,
-        headers: { 'Content-Type': 'text/plain' },
-      });
-    }
-
-    const isAllowedOrigin = origin === ALLOWED_ORIGIN || (referer && referer.startsWith(ALLOWED_ORIGIN));
     if (!isAllowedOrigin) {
-      console.log(`Blocked request. Origin: ${origin}, Referer: ${referer}`);
       return new Response('Forbidden - Invalid Origin', {
         status: 403,
         headers: { 'Content-Type': 'text/plain' },
       });
     }
 
+    // Handle CORS preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 200, headers: corsHeaders });
-    }
-
-    // Rate limiting
-    if (isRateLimited(clientIP)) {
-      console.log(`Rate limited IP: ${clientIP}`);
-      return new Response('Too Many Requests', {
-        status: 429,
+      return new Response(null, {
+        status: 204,
         headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/plain',
-          'Retry-After': '60',
+          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
         },
       });
     }
 
+    // Remove /proxy from the path
+    let targetPath = url.pathname.replace(/^\/proxy/, '');
+    const backendUrl = `${BACKEND_API}${targetPath}${url.search}`;
+
     try {
-      let targetPath = url.pathname;
-      if (targetPath.startsWith('/proxy')) {
-        targetPath = targetPath.replace('/proxy', '');
-      }
-
-      // Construct backend URL
-      const backendUrl = `${BACKEND_API}${targetPath}${url.search}`;
-
-      console.log(`Proxying request to: ${backendUrl}`);
-
-      // Prepare headers for backend request
-      const backendHeaders = new Headers(request.headers);
-      backendHeaders.set('X-Proxy-Secure', 'true');
-      backendHeaders.set('X-Real-IP', clientIP);
-      backendHeaders.delete('Host');
-
-      const backendRequest = new Request(backendUrl, {
-        method: request.method,
-        headers: backendHeaders,
-        body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : null,
+      const backendResponse = await fetch(backendUrl, {
+        method: 'GET',
+        headers: {
+          'X-Proxy-Secure': 'true',
+        },
       });
 
-      const response = await fetch(backendRequest);
+      // Clone the response and preserve the image headers
+      const responseHeaders = new Headers(backendResponse.headers);
+      responseHeaders.set('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+      responseHeaders.set('Access-Control-Allow-Credentials', 'true');
 
-      // Copy all headers from backend response
-      const newHeaders = new Headers(response.headers);
-
-      // Add/overwrite CORS headers
-      for (const [key, value] of Object.entries(corsHeaders)) {
-        newHeaders.set(key, value);
-      }
-
-      const newResponse = new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: newHeaders,
+      return new Response(backendResponse.body, {
+        status: backendResponse.status,
+        headers: responseHeaders,
       });
-
-      console.log(`✅ Successfully proxied ${request.method} ${url.pathname} -> ${response.status}`);
-
-      return newResponse;
     } catch (error) {
-      console.error('Proxy error:', error);
-      return new Response(JSON.stringify({
-        error: 'Proxy Error',
-        message: 'Failed to connect to backend service',
-        timestamp: new Date().toISOString(),
-      }), {
+      return new Response('Proxy Error: ' + error.message, {
         status: 502,
         headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Content-Type': 'text/plain',
         },
       });
     }

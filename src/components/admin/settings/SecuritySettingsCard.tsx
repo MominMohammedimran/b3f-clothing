@@ -29,11 +29,11 @@ const SecuritySettingsCard: React.FC = () => {
         </div>
         
         <div className="space-y-4">
-          <Button onClick={() => window.open('https://supabase.com/dashboard/project/lbebqamzsrbeihzikmow/auth/providers', '_blank')}>
+          <Button onClick={() => window.open('https://supabase.com/dashboard/project/cmpggiyuiattqjmddcac/auth/providers', '_blank')}>
             Manage Authentication Settings
           </Button>
           
-          <Button onClick={() => window.open('https://supabase.com/dashboard/project/lbebqamzsrbeihzikmow/auth/users', '_blank')}>
+          <Button onClick={() => window.open('https://supabase.com/dashboard/project/cmpggiyuiattqjmddcac/auth/users', '_blank')}>
             Manage User Accounts
           </Button>
         </div>

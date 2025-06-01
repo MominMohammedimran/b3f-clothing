@@ -21,17 +21,17 @@ const CanvasBackground: React.FC<CanvasBackgroundProps> = ({
       
       switch (productType) {
         case 'tshirt':
-          imagePath = view === 'back' ? 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-sub-images/tshirt-back.webp' : 
-          'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-sub-images/tshirt-front.webp';
+          imagePath = view === 'back' ? 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/tshirt-sub-images/tshirt-back.webp' : 
+          'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/tshirt-sub-images/tshirt-front.webp';
           break;
         case 'mug':
-          imagePath = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/mug-sub-images/mug-plain.webp';
+          imagePath = 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/mug-sub-images/mug-plain.webp';
           break;
         case 'cap':
-          imagePath = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-sub-images/cap-plain.webp';
+          imagePath = 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/cap-sub-images/cap-plain.webp';
           break;
         default:
-          imagePath = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-sub-images/tshirt-front.webp';
+          imagePath = 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/tshirt-sub-images/tshirt-front.webp';
       }
 
       fabric.Image.fromURL(imagePath, (img) => {

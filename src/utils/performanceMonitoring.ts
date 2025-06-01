@@ -53,7 +53,7 @@ const applyResourceHints = () => {
     'https://fonts.googleapis.com',
     'https://fonts.gstatic.com',
     'https://images.unsplash.com',
-    'https://lbebqamzsrbeihzikmow.supabase.co'
+    'https://cmpggiyuiattqjmddcac.supabase.co'
   ];
 
   domains.forEach(domain => {

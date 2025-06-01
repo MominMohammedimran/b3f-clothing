@@ -53,7 +53,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
       const phone = userProfile?.phone_number || currentUser?.user_metadata?.phone || '9999999999';
 
       // Call your deployed Supabase Edge Function URL here:
-      const createRes = await fetch(`https://lbebqamzsrbeihzikmow.functions.supabase.co/create-razorpay-order`, {
+      const createRes = await fetch(`https://cmpggiyuiattqjmddcac.functions.supabase.co/create-razorpay-order`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

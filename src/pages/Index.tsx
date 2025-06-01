@@ -69,9 +69,9 @@ const Index = () => {
   };
 
   const bannerImages = [
-    'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/banner-images/tshirt-banner.webp',
-    'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/banner-images/mug-banner.webp',
-    'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/banner-images/cap-banner.webp'
+    'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/banner-images/tshirt-banner.webp',
+    'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/banner-images/mug-banner.webp',
+    'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/banner-images/cap-banner.webp'
   ];
 
   return (

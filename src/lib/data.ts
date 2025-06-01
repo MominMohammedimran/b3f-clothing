@@ -41,27 +41,27 @@ export const categories: Category[] = [
   {
     id: '1',
     name: 'Shirts',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/shirt.webp'
+    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/shirt.webp'
   },
   {
     id: '2',
     name: 'Pants',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/pant.webp'
+    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/pant.webp'
   },
   {
     id: '3',
     name: 'Tshirt-print',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/tshirt-print.webp'
+    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/tshirt-print.webp'
   },
   {
     id: '4',
     name: 'mug-print',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/mug-print.webp'
+    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/mug-print.webp'
   },
   {
     id: '5',
     name: 'cap-print',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/cap-print.webp'
+    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/cap-print.webp'
   },
  
 ];

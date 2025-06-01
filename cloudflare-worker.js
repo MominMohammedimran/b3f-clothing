@@ -16,6 +16,7 @@ function isAllowedOrigin(origin) {
   return false;
 }
 
+
 const SUPABASE_STORAGE = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/';
 
 export default {

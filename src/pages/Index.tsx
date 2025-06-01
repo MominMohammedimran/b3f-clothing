@@ -82,7 +82,7 @@ const Index = () => {
 
 
       
-      <div className="container-custom mt-10">
+      <div className="container-custom  mt-10">
         <div className="mt-8 mb-6 animate-fade-in" >
           <ScrollArea className="w-full">
             <Banner images={bannerImages} />

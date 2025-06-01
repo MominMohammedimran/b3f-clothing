@@ -5,7 +5,11 @@ const ALLOWED_ORIGINS = [
 ];
 
 function isAllowedOrigin(origin) {
-  return true 
+  if (!origin) return false;
+if (ALLOWED_ORIGINS.includes(origin)) return true;
+ if (origin.startsWith('http://localhost')) return true;
+  return false;
+
 }
 //whilw local developing above function should return true the npx wrangler deploy 
 //start local developing

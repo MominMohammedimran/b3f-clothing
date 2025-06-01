@@ -66,7 +66,7 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
 
         const newCanvas = new fabric.Canvas(canvasElement, {
           backgroundColor: 'black',
-          height: 400,
+          height:400,
           width: 400,
           preserveObjectStacking: true,
           selection: true,
@@ -278,7 +278,7 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         canUndo={undoStack.length > 1}
         canRedo={redoStack.length > 0}
       />
-      <div className="relative">
+      <div className="relative justify-items-center">
         <canvas
           ref={canvasRef}
           className="border border-gray-300 rounded-lg shadow-lg"

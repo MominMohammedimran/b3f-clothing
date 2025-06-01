@@ -19,8 +19,11 @@ const CanvasControls: React.FC<CanvasControlsProps> = ({
   canRedo
 }) => {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <h3 className="text-lg font-semibold text-gray-800 mr-4">Design Canvas</h3>
+    <div className="flex justify-self-center gap-2 mb-4">
+          <h3 className="text-s font-semibold text-gray-800 mb-4"> Canvas</h3>
+      
+
+    
       <Button
         variant="outline"
         size="sm"
@@ -28,7 +31,7 @@ const CanvasControls: React.FC<CanvasControlsProps> = ({
         disabled={!canUndo}
         className="flex items-center gap-1"
       >
-        <Undo size={16} />
+        <Undo size={14} />
         Undo
       </Button>
       <Button
@@ -38,7 +41,7 @@ const CanvasControls: React.FC<CanvasControlsProps> = ({
         disabled={!canRedo}
         className="flex items-center gap-1"
       >
-        <Redo size={16} />
+        <Redo size={14} />
         Redo
       </Button>
       <Button
@@ -47,7 +50,7 @@ const CanvasControls: React.FC<CanvasControlsProps> = ({
         onClick={onClear}
         className="flex items-center gap-1 text-red-600 hover:text-red-700"
       >
-        <Trash2 size={16} />
+        <Trash2 size={14} />
         Clear
       </Button>
     </div>

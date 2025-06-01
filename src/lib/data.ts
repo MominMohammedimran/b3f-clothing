@@ -11,16 +11,16 @@ import { supabase } from '@/integrations/supabase/client';
 export let orders: Order[] = [];
 
 
+const SUPABASE_STORAGE_BASE = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/';
 const WORKER_BASE_URL = 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/';
 
 function proxyUrl(url: string) {
   if (!url) return '';
-  try {
-    const path = new URL(url).pathname.replace(/^\/+/, '');
-    return WORKER_BASE_URL + path;
-  } catch {
-    return url;
+  if (url.startsWith(SUPABASE_STORAGE_BASE)) {
+    const relativePath = url.replace(SUPABASE_STORAGE_BASE, '');
+    return WORKER_BASE_URL + relativePath;
   }
+  return url;
 }
 
 function transformProductImages(products: any[]): Product[] {

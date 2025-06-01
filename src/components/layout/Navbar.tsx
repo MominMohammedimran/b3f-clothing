@@ -129,7 +129,8 @@ const Navbar = () => {
             
             
             
-            <Link to="/cart" className="flex items-center space-x-1 text-blue-600 font-medium">
+            <Link to="/cart" 
+             aria-label={`cart`}className="flex items-center space-x-1 text-blue-600 font-medium">
               <div className="relative">
                 <ShoppingCart size={20} />
                 {cartCount > 0 && (

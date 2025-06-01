@@ -107,7 +107,7 @@
 /* Responsive padding for mobile devices */
 @media (max-width: 640px) {
   .container-custom {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    padding-left: 0.1rem;
+    padding-right: 0.1rem;
   }
 }

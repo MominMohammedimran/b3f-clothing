@@ -10,8 +10,10 @@ const ALLOWED_ORIGINS = [
 ];
 
 function isAllowedOrigin(origin) {
-  
-  return true;
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (origin.startsWith('http://localhost')) return true;
+  return false;
 }
 
 const SUPABASE_STORAGE = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/';

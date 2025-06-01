@@ -108,7 +108,9 @@ const Footer = () => {
         {/* Social Links */}
         <div className="flex justify-center space-x-6 mb-10">
           <p className="font-medium">Follow us on</p>
-          <Link to="https://www.instagram.com/b3f_prints?igsh=aG9nNzVleDdqZXA" className="text-pink-500 hover:text-pink-600 transition-colors">
+          <Link to="https://www.instagram.com/b3f_prints?igsh=aG9nNzVleDdqZXA" 
+          className="text-pink-500 hover:text-pink-600 transition-colors"
+           aria-label={`Instagram-logo`}>
             <Instagram />
           </Link>
         {/*  <Link to="#" className="text-green-500 hover:text-green-600 transition-colors">

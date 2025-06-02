@@ -1,5 +1,0 @@
-name = "b3f-prints"
-account_id = "bd109aa80b56f640123f31a78d6d105c"
-compatibility_date = "2025-06-01"
-main = "index.js"
-workers_dev = true

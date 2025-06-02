@@ -273,7 +273,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
        </div>
                  <button onClick={handleGoogleSignIn}>
                    <img
-                    src="https://b3f-prints.mominmohammedimran11.workers.dev/proxy/storage/v1/object/public/product-images/google-logo-image/signup.webp"
+                    src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/google-logo-image/signup.webp"
                     alt="Sign in with Google"
                    className="w-48 sm:w-50 md:w-48 lg:w-58 h-auto" // adjust size as needed
                     />
@@ -430,7 +430,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 
       <button onClick={handleGoogleSignIn}>
   <img
-    src="https://b3f-prints.mominmohammedimran11.workers.dev/proxy/storage/v1/object/public/product-images/google-logo-image/signin.webp"
+    src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/google-logo-image/signin.webp"
     alt="Sign in with Google"
     className="w-40 h-auto" // adjust size as needed
   />

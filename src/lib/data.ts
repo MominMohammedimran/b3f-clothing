@@ -11,17 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 export let orders: Order[] = [];
 
 
-const SUPABASE_STORAGE_BASE = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/';
-const WORKER_BASE_URL = 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/';
 
-function proxyUrl(url: string) {
-  if (!url) return '';
-  if (url.startsWith(SUPABASE_STORAGE_BASE)) {
-    const relativePath = url.replace(SUPABASE_STORAGE_BASE, '');
-    return WORKER_BASE_URL + relativePath;
-  }
-  return url;
-}
+
 
 function transformProductImages(products: any[]): Product[] {
   return products.map((product: any) => ({
@@ -32,8 +23,8 @@ function transformProductImages(products: any[]): Product[] {
     price: product.price || 0,
     originalPrice: product.original_price || 0,
     discountPercentage: product.discount_percentage || 0,
-    image: proxyUrl(product.image || ''),
-    images: (product.images || []).map(proxyUrl),
+    image: product.image || '',
+    images: product.images || [],
     rating: product.rating || 0,
     category: product.category || '',
     tags: product.tags || [],
@@ -59,27 +50,27 @@ export const categories: Category[] = [
   {
     id: '1',
     name: 'Shirts',
-    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/shirt.webp'
+    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/shirt.webp'
   },
   {
     id: '2',
     name: 'Pants',
-    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/pant.webp'
+    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/pant.webp'
   },
   {
     id: '3',
     name: 'Tshirt-print',
-    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/tshirt-print.webp'
+    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/tshirt-print.webp'
   },
   {
     id: '4',
     name: 'mug-print',
-    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/mug-print.webp'
+    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/mug-print.webp'
   },
   {
     id: '5',
     name: 'cap-print',
-    icon: 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/hero-categorie/cap-print.webp'
+    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/cap-print.webp'
   },
  
 ];

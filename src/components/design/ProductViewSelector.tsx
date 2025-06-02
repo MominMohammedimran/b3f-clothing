@@ -56,7 +56,7 @@ const ProductViewSelector: React.FC<ProductViewSelectorProps> = ({
       ) : productType === 'mug' ? (
         <div className="flex justify-center mb-4">
           <img
-            src="https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/mug-sub-images/mug-plain.webp"
+            src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/mug-sub-images/mug-plain.webp"
             alt="Mug"
             className="h-20 object-contain cursor-pointer border border-blue-300 rounded p-1"
             onClick={() => onViewChange('front')}
@@ -65,7 +65,7 @@ const ProductViewSelector: React.FC<ProductViewSelectorProps> = ({
       ) : (
         <div className="flex justify-center mb-4">
           <img
-            src="https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/cap-sub-images/cap-plain.webp"
+            src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-sub-images/cap-plain.webp"
             alt="Cap"
             className="h-20 object-contain cursor-pointer border border-blue-300 rounded p-1"
             onClick={() => onViewChange('front')}

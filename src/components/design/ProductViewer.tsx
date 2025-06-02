@@ -13,9 +13,9 @@ const ProductViewer: React.FC<ProductViewerProps> = ({ productType, view, design
     if (productType === 'tshirt') {
       switch (view) {
         case 'front':
-          return 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/tshirt-sub-images/tshirt-front.webp';
+          return 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-sub-images/tshirt-front.webp';
         case 'back':
-          return 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/tshirt-sub-images/tshirt-back.webp';
+          return 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-sub-images/tshirt-back.webp';
         case 'left':
         case 'right':
           return 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=500&h=500';
@@ -23,9 +23,9 @@ const ProductViewer: React.FC<ProductViewerProps> = ({ productType, view, design
           return 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500';
       }
     } else if (productType === 'mug') {
-      return 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/mug-sub-images/mug-plain.webp';
+      return 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/mug-sub-images/mug-plain.webp';
     } else if (productType === 'cap') {
-      return 'https://b3f-prints.mominmohammedimran11.workers.dev/proxy/product-images/design-tool-page/cap-sub-images/cap-plain.webp';
+      return 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-sub-images/cap-plain.webp';
     } else if (productType === 'pant') {
       return 'https://images.unsplash.com/photo-1604176424472-9e9468137a3c?w=500&h=500';
     } else if (productType === 'nightPant') {

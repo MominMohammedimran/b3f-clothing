@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useParams,useNavigate ,Link} from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import ProductDetails from '../components/products/ProductDetails';
 import { supabase } from '../integrations/supabase/client';
@@ -7,12 +8,14 @@ import { Product } from '../lib/types';
 import { ArrowLeft } from 'lucide-react';
 import ProductDetailsContent from '../components/products/details/ProductDetailsContent';
 import RelatedProducts from '../components/products/RelatedProducts';
+
 const ProductDetailsPage = () => {
   const { productId } = useParams<{ productId: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState('');
-const navigate = useNavigate();
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchProduct = async () => {
       if (!productId) return;
@@ -22,15 +25,16 @@ const navigate = useNavigate();
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .eq('productId', productId)
+          .eq('id', productId)
           .single();
 
         if (error) throw error;
 
         if (data) {
           const transformedProduct: Product = {
+            id: data.id,
             productId: data.productId,
-            code: data.code || `PROD-${(data.productId || '').slice(0, 8)}`,
+            code: data.code || `PROD-${(data.id || '').slice(0, 8)}`,
             name: data.name,
             description: data.description || '',
             price: data.price,
@@ -40,12 +44,10 @@ const navigate = useNavigate();
             images: Array.isArray(data.images) ? data.images.filter(img => typeof img === 'string') : [],
             category: data.category || '',
             stock: data.stock || 0,
-            id:data.id,
             sizes: Array.isArray(data.sizes) ? data.sizes.filter(size => typeof size === 'string') : [],
             tags: Array.isArray(data.tags) ? data.tags.filter(tag => typeof tag === 'string') : [],
           };
 
-         
           setProduct(transformedProduct);
         }
       } catch (error) {
@@ -74,11 +76,10 @@ const navigate = useNavigate();
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 mt-10">
-          
           <div className="text-center">
             <Link to="/" className="mr-2">
-            <ArrowLeft size={24} className="back-arrow" />
-          </Link>
+              <ArrowLeft size={24} className="back-arrow" />
+            </Link>
             <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
             <p>The product you're looking for doesn't exist.</p>
           </div>
@@ -88,15 +89,13 @@ const navigate = useNavigate();
   }
 
   return (
-      <Layout>
+    <Layout>
       <div className="container-custom mt-10">
         <div className="flex items-center mb-4 mt-4">
           <Link to="/" className="mr-2">
             <ArrowLeft size={24} className="back-arrow" />
           </Link>
           <h1 className="text-2xl font-bold text-green-600">{product?.name || 'Product Details'}</h1>
-          
-          
         </div>
 
         {product ? (
@@ -104,8 +103,8 @@ const navigate = useNavigate();
         ) : (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
             <Link to="/" className="mr-2">
-            <ArrowLeft size={24} className="back-arrow" />
-          </Link>
+              <ArrowLeft size={24} className="back-arrow" />
+            </Link>
             <p className="text-gray-500">Product details are not available.</p>
           </div>
         )}

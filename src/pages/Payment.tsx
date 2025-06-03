@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -40,7 +39,6 @@ const Payment = () => {
     return `order_${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
   };
   
-  
   const serializeCartItems = (items: any[]) => {
     return items.map(item => ({
       id: item.id || `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -66,6 +64,30 @@ const Payment = () => {
       phone: address.phone || '',
       email: address.email || currentUser?.email || ''
     };
+  };
+
+  const sendOrderEmail = async (orderData: any, status: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-order-notification', {
+        body: {
+          orderId: orderData.order_number,
+          customerEmail: currentUser?.email,
+          customerName: userProfile?.display_name || userProfile?.first_name || 'Customer',
+          status: status,
+          orderItems: orderData.items,
+          totalAmount: orderData.total,
+          shippingAddress: orderData.shipping_address
+        }
+      });
+
+      if (error) {
+        console.error('Error sending order email:', error);
+      } else {
+        console.log('Order email sent successfully:', data);
+      }
+    } catch (error) {
+      console.error('Failed to send order email:', error);
+    }
   };
 
   const handleCODPayment = async () => {
@@ -116,6 +138,9 @@ const Payment = () => {
         console.error('Order creation error:', orderError);
         throw new Error(`Failed to create order: ${orderError.message}`);
       }
+
+      // Send order confirmation email
+      await sendOrderEmail(orderData, 'confirmed');
 
       // Update user reward points if used
       if (rewardPointsUsed > 0) {
@@ -199,6 +224,9 @@ const Payment = () => {
         console.error('Order creation error:', orderError);
         throw new Error(`Failed to create order: ${orderError.message}`);
       }
+
+      // Send order confirmation email
+      await sendOrderEmail(orderData, 'confirmed');
 
       // Update user reward points if used
       if (rewardPointsUsed > 0) {

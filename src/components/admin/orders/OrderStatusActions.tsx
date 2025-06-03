@@ -1,100 +1,83 @@
 
-import React from 'react';
-import { formatCurrency } from '@/lib/utils';
-import { CartItem } from '@/lib/types';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
-interface OrderItemsProps {
-  items: CartItem[];
-  total: number;
+interface OrderStatusActionsProps {
+  orderId: string;
+  currentStatus: string;
+  onStatusUpdate: (orderId: string, status: string, reason?: string) => void;
 }
 
-const OrderItems: React.FC<OrderItemsProps> = ({ items, total }) => {
-  // Helper function to get the best available image for display
-  const getItemDisplayImage = (item: CartItem) => {
-    if (item.metadata?.previewImage) {
-      return item.metadata.previewImage;
-    }
-    if (item.image) {
-      return item.image;
-    }
-    return '/placeholder.svg';
+const OrderStatusActions: React.FC<OrderStatusActionsProps> = ({
+  orderId,
+  currentStatus,
+  onStatusUpdate
+}) => {
+  const [selectedStatus, setSelectedStatus] = useState(currentStatus);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [showCancellationReason, setShowCancellationReason] = useState(false);
+
+  const handleStatusChange = (newStatus: string) => {
+    setSelectedStatus(newStatus);
+    setShowCancellationReason(newStatus === 'cancelled');
   };
 
-  // Helper function to check if item has custom design
-  const hasCustomDesign = (item: CartItem) => {
-    return item.metadata?.previewImage || item.metadata?.designData;
+  const handleUpdateStatus = () => {
+    if (selectedStatus === 'cancelled' && !cancellationReason.trim()) {
+      return;
+    }
+    onStatusUpdate(orderId, selectedStatus, cancellationReason);
+    setShowCancellationReason(false);
+    setCancellationReason('');
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <h3 className="text-lg font-semibold mb-4">Order Items</h3>
+    <div className="space-y-4">
+      <h3 className="font-medium">Update Order Status</h3>
       
-      <div className="space-y-4">
-        {items.map((item, index) => (
-          <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
-            <div className="flex-shrink-0">
-              {hasCustomDesign(item) ? (
-                <div className="relative">
-                  <div className="h-16 w-16 border-2 border-dashed border-blue-400 rounded bg-blue-50 flex items-center justify-center">
-                    <img
-                      src={getItemDisplayImage(item)}
-                      alt={item.name}
-                      className="h-12 w-12 object-contain rounded"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder.svg';
-                      }}
-                    />
-                  </div>
-                  <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-1 rounded-full">
-                    ✨
-                  </div>
-                </div>
-              ) : (
-                <img
-                  src={getItemDisplayImage(item)}
-                  alt={item.name}
-                  className="h-16 w-16 object-cover rounded border"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/placeholder.svg';
-                  }}
-                />
-              )}
-            </div>
-            
-            <div className="flex-1">
-              <h4 className="font-medium text-gray-900">{item.name}</h4>
-              <div className="text-sm text-gray-500 space-y-1">
-                <p>Quantity: {item.quantity}</p>
-                {item.size && <p>Size: {item.size}</p>}
-                {item.color && <p>Color: {item.color}</p>}
-                {item.metadata?.view && <p>Design View: {item.metadata.view}</p>}
-                {hasCustomDesign(item) && (
-                  <p className="text-blue-600 font-medium">✨ Custom Design</p>
-                )}
-                {item.metadata?.backImage && (
-                  <p className="text-purple-600 font-medium">🔄 Dual-Sided Design</p>
-                )}
-              </div>
-            </div>
-            
-            <div className="text-right">
-              <p className="font-medium">{formatCurrency(item.price * item.quantity)}</p>
-              <p className="text-sm text-gray-500">
-                {formatCurrency(item.price)} each
-              </p>
-            </div>
-          </div>
-        ))}
-        
-        <div className="border-t pt-4">
-          <div className="flex justify-between items-center font-semibold text-lg">
-            <span>Total:</span>
-            <span>{formatCurrency(total)}</span>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="status">Status</Label>
+          <Select value={selectedStatus} onValueChange={handleStatusChange}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="shipped">Shipped</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        {showCancellationReason && (
+          <div className="md:col-span-2">
+            <Label htmlFor="cancellationReason">Cancellation Reason</Label>
+            <Textarea
+              id="cancellationReason"
+              value={cancellationReason}
+              onChange={(e) => setCancellationReason(e.target.value)}
+              placeholder="Enter reason for cancellation..."
+              required
+            />
+          </div>
+        )}
       </div>
+
+      <Button 
+        onClick={handleUpdateStatus}
+        disabled={selectedStatus === currentStatus || (selectedStatus === 'cancelled' && !cancellationReason.trim())}
+      >
+        Update Status
+      </Button>
     </div>
   );
 };
 
-export default OrderItems;
+export default OrderStatusActions;

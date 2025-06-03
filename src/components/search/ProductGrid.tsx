@@ -24,7 +24,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick }) =
         <div key={product.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
           <ProductCard 
             product={product}
-            onClick={() => onProductClick(product)}
+            onClick={onProductClick}
           />
         </div>
       ))}

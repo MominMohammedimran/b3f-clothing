@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -76,6 +75,7 @@ const AdminOrders = () => {
             const transformedItems: CartItem[] = Array.isArray(order.items) 
               ? order.items.map((item: any) => ({
                   id: item.id || item.product_id || 'unknown',
+                  product_id: item.product_id || item.id || 'unknown',
                   name: item.name || 'Unknown Product',
                   price: Number(item.price) || 0,
                   quantity: Number(item.quantity) || 1,
@@ -110,6 +110,7 @@ const AdminOrders = () => {
             const transformedItems: CartItem[] = Array.isArray(order.items) 
               ? order.items.map((item: any) => ({
                   id: item.id || item.product_id || 'unknown',
+                  product_id: item.product_id || item.id || 'unknown',
                   name: item.name || 'Unknown Product',
                   price: Number(item.price) || 0,
                   quantity: Number(item.quantity) || 1,
@@ -163,6 +164,27 @@ const AdminOrders = () => {
 
       if (trackingError) {
         console.error('Error updating tracking:', trackingError);
+      }
+
+      // Send status update email
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        try {
+          const { handleOrderStatusChange } = await import('@/services/orderEmailService');
+          await handleOrderStatusChange(
+            order.order_number,
+            newStatus,
+            order.user_email || '',
+            order.user_name || 'Customer',
+            order.items,
+            order.total,
+            order.shipping_address
+          );
+          console.log('Order status email sent successfully');
+        } catch (emailError) {
+          console.error('Failed to send status update email:', emailError);
+          // Don't fail the status update if email fails
+        }
       }
 
       toast.success('Order status updated successfully');

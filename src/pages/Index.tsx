@@ -24,11 +24,12 @@ const Index = () => {
   const [visibleCategories, setVisibleCategories] = useState<number>(4);
   const [startIndex, setStartIndex] = useState(0);
   const categoriesRef = useRef<HTMLDivElement>(null);
-   const seoData = useSEO({
-      title: 'B3F Prints - Custom Printing Services',
-      description: 'Design and order custom printed products including t-shirts, mugs, caps and more. Professional quality printing with fast delivery.',
-      keywords: 'custom printing, t-shirts, mugs, caps, design, personalized products'
-    });
+  const seoData = useSEO({
+    title: 'B3F Prints - Custom Printing Services',
+    description: 'Design and order custom printed products including t-shirts, mugs, caps and more. Professional quality printing with fast delivery.',
+    keywords: 'custom printing, t-shirts, mugs, caps, design, personalized products'
+  });
+
   useEffect(() => {
     window.scrollTo(0, 0);
     
@@ -59,12 +60,10 @@ const Index = () => {
   };
   
   const handleProductClick = (product: Product) => {
-       
     if (product.code.includes('TSHIRT-PRINT') || product.code.includes('MUG-PRINT')) {
       navigate(`/design-tool`);
     } else {
-      navigate(`/product/details/${product.productId}`);
-  
+      navigate(`/product/details/${product.id}`);
     }
   };
 
@@ -75,15 +74,11 @@ const Index = () => {
   ];
 
   return (
-    <Layout >
-
-<SEOHelmet {...seoData} />
+    <Layout>
+      <SEOHelmet {...seoData} />
       
-
-
-      
-      <div className="container-custom  mt-10">
-        <div className="mt-8 mb-6 animate-fade-in" >
+      <div className="container-custom mt-10">
+        <div className="mt-8 mb-6 animate-fade-in">
           <ScrollArea className="w-full">
             <Banner images={bannerImages} />
           </ScrollArea>

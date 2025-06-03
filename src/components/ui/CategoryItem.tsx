@@ -29,7 +29,7 @@ const CategoryItem = ({ category }: CategoryItemProps) => {
       >
         <div className="category-circle pinkbg w-20 h-20 mb-2 bg-pink-100 relative rounded-full flex items-center justify-center">
           <img
-            src={category.icon || '/lovable-uploads/placeholder.svg'}
+            src={category.image || '/lovable-uploads/placeholder.svg'}
             alt={`hero-categorie${category.name}`}
             width={40}
             height={40}

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Card,
@@ -38,6 +39,7 @@ export const AuthFormContainer: React.FC<AuthFormContainerProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
 const handleGoogleSignIn = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -55,7 +57,7 @@ const handleGoogleSignIn = async () => {
     
     try {
       if (mode === 'signin') {
-        // Clear any existing auth state first
+        // Clean any existing auth state first
         cleanupAuthState();
         
         // Check if email and password are provided
@@ -113,6 +115,26 @@ const handleGoogleSignIn = async () => {
       if (mode === 'signin') {
         setLoading(false);
       }
+    }
+  };
+
+  const handleSignUpSubmit = async (email: string, password: string, firstName: string, lastName: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await signUp(email, password);
+      if (error) {
+        toast.error(error.message || 'Sign up failed');
+        return;
+      } else {
+        toast.success('Account created! Verification email sent.');
+        setEmail(email); // Store email for OTP verification
+        setMode('otp');
+      }
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      toast.error(error.message || 'Sign up failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -248,17 +270,8 @@ const handleGoogleSignIn = async () => {
           />
         ) : (
           <SignUpForm
-            email={email}
-            setEmail={setEmail}
-            password={password}
-            setPassword={setPassword}
-            confirmPassword={confirmPassword}
-            setConfirmPassword={setConfirmPassword}
-            showPassword={showPassword}
-            togglePasswordVisibility={togglePasswordVisibility}
-            handleSubmit={handleSubmit}
+            onSubmit={handleSignUpSubmit}
             loading={loading}
-            setMode={setMode}
           />
         )}
       </CardContent>

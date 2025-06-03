@@ -7,7 +7,7 @@ import { NotificationType, sendNotification } from '@/services/notificationServi
 interface MicroservicesContextType {
   orderService: OrderMicroservice;
   isReady: boolean;
-  sendNotification: (userId: string, orderId: string, type: NotificationType, data?: any) => Promise<boolean>;
+  sendNotification: (params: { userId: string; orderId: string; type: NotificationType; data?: any }) => Promise<boolean>;
 }
 
 const MicroservicesContext = createContext<MicroservicesContextType | undefined>(undefined);
@@ -31,18 +31,13 @@ export const MicroservicesProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // Wrapper for sending notifications
-  const handleSendNotification = async (
-    userId: string, 
-    orderId: string, 
-    type: NotificationType, 
+  const handleSendNotification = async (params: {
+    userId: string; 
+    orderId: string; 
+    type: NotificationType; 
     data?: any
-  ): Promise<boolean> => {
-    return await sendNotification({
-      userId,
-      orderId,
-      type,
-      data
-    });
+  }): Promise<boolean> => {
+    return await sendNotification(params);
   };
 
   const value = {

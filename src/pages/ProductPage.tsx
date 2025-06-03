@@ -49,11 +49,9 @@ const ProductPage = () => {
                   (typeof data.sizes === 'string' ? JSON.parse(data.sizes) : []),
             tags: Array.isArray(data.tags) ? data.tags : 
                  (typeof data.tags === 'string' ? JSON.parse(data.tags) : []),
-            // Fix the images/additionalImages type issue
+            // Fix the images type issue
             images: Array.isArray(data.images) ? data.images : 
                    (typeof data.images === 'string' ? JSON.parse(data.images) : []),
-            additionalImages: Array.isArray(data.images) ? data.images : 
-                             (typeof data.images === 'string' ? JSON.parse(data.images) : []),
             stock: data.stock || 0
           };
           
@@ -98,7 +96,7 @@ const ProductPage = () => {
 
   return (
     <Layout>
-      <div className="container-custom px-18 py-5 mt-10" >
+      <div className="container-custom px-18 py-5 mt-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <ProductImage 
             image={product.image} 

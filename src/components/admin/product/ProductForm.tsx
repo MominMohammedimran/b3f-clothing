@@ -37,7 +37,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
       tags: [],
       sizes: [],
       image: '',
-      additionalImages: []
+      images: []
     }
   );
   const [tagInput, setTagInput] = useState<string>('');
@@ -62,7 +62,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         tags: [],
         sizes: [],
         image: '',
-        additionalImages: []
+        images: []
       });
     }
   }, [product]);
@@ -96,7 +96,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
     if (files.length === 0) return;
     
     const newImages = [...additionalImages];
-    const newAdditionalImages = [...(formData.additionalImages || [])];
+    const newAdditionalImages = [...(formData.images || [])];
     
     files.forEach(file => {
       const reader = new FileReader();
@@ -109,7 +109,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         newAdditionalImages.push(previewUrl);
         setFormData({
           ...formData,
-          additionalImages: newAdditionalImages
+          images: newAdditionalImages
         });
       };
       reader.readAsDataURL(file);
@@ -122,12 +122,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
     setAdditionalImages(newImages);
     
     // Update formData
-    const updatedAdditionalImages = [...(formData.additionalImages || [])];
+    const updatedAdditionalImages = [...(formData.images || [])];
     updatedAdditionalImages.splice(index, 1);
     
     setFormData({
       ...formData,
-      additionalImages: updatedAdditionalImages
+      images: updatedAdditionalImages
     });
   };
 

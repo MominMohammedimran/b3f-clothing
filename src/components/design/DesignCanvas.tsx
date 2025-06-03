@@ -66,19 +66,115 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
 
         const newCanvas = new fabric.Canvas(canvasElement, {
           backgroundColor: 'black',
-          height:350,
+          height: 350,
           width: 300,
           preserveObjectStacking: true,
           selection: true,
           renderOnAddRemove: true,
           allowTouchScrolling: false,
-          imageSmoothingEnabled: false,
+          imageSmoothingEnabled: true,
         });
 
-        // Enable object selection and manipulation
-        newCanvas.selection = true;
-        newCanvas.skipTargetFind = false;
-        newCanvas.selectable = true;
+        // Configure smooth animations and enhanced object styling
+        fabric.Object.prototype.set({
+          cornerStyle: 'circle',
+          cornerSize: 12,
+          transparentCorners: false,
+          borderScaleFactor: 2,
+          borderColor: '#4169E1',
+          cornerColor: '#4169E1',
+          cornerStrokeColor: '#ffffff',
+          borderDashArray: [5, 5],
+        });
+
+        // Enhanced smooth object movement with easing
+        newCanvas.on('object:moving', function(e) {
+          const obj = e.target;
+          if (obj) {
+            obj.animate('left', obj.left, {
+              duration: 100,
+              easing: fabric.util.ease.easeOutCubic,
+              onChange: () => newCanvas.renderAll()
+            });
+            obj.animate('top', obj.top, {
+              duration: 100,
+              easing: fabric.util.ease.easeOutCubic,
+              onChange: () => newCanvas.renderAll()
+            });
+          }
+        });
+
+        // Enhanced smooth scaling with bounce effect
+        newCanvas.on('object:scaling', function(e) {
+          const obj = e.target;
+          if (obj) {
+            obj.animate('scaleX', obj.scaleX, {
+              duration: 150,
+              easing: fabric.util.ease.easeOutBounce,
+              onChange: () => newCanvas.renderAll()
+            });
+            obj.animate('scaleY', obj.scaleY, {
+              duration: 150,
+              easing: fabric.util.ease.easeOutBounce,
+              onChange: () => newCanvas.renderAll()
+            });
+          }
+        });
+
+        // Enhanced smooth rotation with elastic effect
+        newCanvas.on('object:rotating', function(e) {
+          const obj = e.target;
+          if (obj) {
+            obj.animate('angle', obj.angle, {
+              duration: 200,
+              easing: fabric.util.ease.easeOutElastic,
+              onChange: () => newCanvas.renderAll()
+            });
+          }
+        });
+
+        // Add selection effects
+        newCanvas.on('selection:created', function(e) {
+          const obj = e.target;
+          if (obj) {
+            obj.animate('opacity', 0.9, {
+              duration: 200,
+              easing: fabric.util.ease.easeInOut,
+              onChange: () => newCanvas.renderAll()
+            });
+          }
+        });
+
+        newCanvas.on('selection:cleared', function(e) {
+          newCanvas.getObjects().forEach(obj => {
+            obj.animate('opacity', 1, {
+              duration: 200,
+              easing: fabric.util.ease.easeInOut,
+              onChange: () => newCanvas.renderAll()
+            });
+          });
+        });
+
+        // Enhanced hover effects
+        newCanvas.on('mouse:over', function(e) {
+          if (e.target) {
+            e.target.animate('opacity', 0.8, {
+              duration: 150,
+              easing: fabric.util.ease.easeInOut,
+              onChange: () => newCanvas.renderAll()
+            });
+          }
+        });
+
+        newCanvas.on('mouse:out', function(e) {
+          if (e.target && !newCanvas.getActiveObject()) {
+            e.target.animate('opacity', 1, {
+              duration: 150,
+              easing: fabric.util.ease.easeInOut,
+              onChange: () => newCanvas.renderAll()
+            });
+          }
+        });
 
         setCanvas(newCanvas);
         setCanvasReady(true);
@@ -87,14 +183,13 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           props.setCanvasInitialized(true);
         }
 
-        console.log('Canvas initialized successfully');
+        console.log('Canvas initialized successfully with enhanced smooth animations');
       } catch (error) {
         console.error('Error initializing canvas:', error);
         setTimeout(initializeCanvas, 100);
       }
     };
 
-    // Small delay to ensure DOM is ready
     const timer = setTimeout(initializeCanvas, 100);
 
     return () => {
@@ -137,17 +232,31 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         },
       });
 
+      // Add entrance animation
+      textObject.set({ opacity: 0, scaleX: 0, scaleY: 0 });
       canvas.add(textObject);
+      
+      textObject.animate('opacity', 1, {
+        duration: 300,
+        easing: fabric.util.ease.easeOutBack
+      });
+      textObject.animate('scaleX', 1, {
+        duration: 400,
+        easing: fabric.util.ease.easeOutBack
+      });
+      textObject.animate('scaleY', 1, {
+        duration: 400,
+        easing: fabric.util.ease.easeOutBack,
+        onChange: () => canvas.renderAll()
+      });
+
       canvas.setActiveObject(textObject);
-      canvas.renderAll();
       setText('');
       
-      // Save canvas state if callback provided
       if (props.setUndoStack && props.undoStack) {
         props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
       }
       
-      // Update design status if callback provided
       if (props.checkDesignStatus) {
         props.checkDesignStatus(canvas);
       }
@@ -186,16 +295,26 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           },
         });
         
+        // Add entrance animation
+        img.set({ opacity: 0, angle: -180 });
         canvas.add(img);
-        canvas.setActiveObject(img);
-        canvas.renderAll();
         
-        // Save canvas state if callback provided
+        img.animate('opacity', 1, {
+          duration: 500,
+          easing: fabric.util.ease.easeOutQuart
+        });
+        img.animate('angle', 0, {
+          duration: 800,
+          easing: fabric.util.ease.easeOutBounce,
+          onChange: () => canvas.renderAll()
+        });
+        
+        canvas.setActiveObject(img);
+        
         if (props.setUndoStack && props.undoStack) {
           props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
         }
         
-        // Update design status if callback provided
         if (props.checkDesignStatus) {
           props.checkDesignStatus(canvas);
         }
@@ -233,16 +352,30 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         },
       });
       
+      // Add bounce entrance animation
+      emojiObject.set({ opacity: 0, scaleX: 2, scaleY: 2 });
       canvas.add(emojiObject);
-      canvas.setActiveObject(emojiObject);
-      canvas.renderAll();
       
-      // Save canvas state if callback provided
+      emojiObject.animate('opacity', 1, {
+        duration: 300,
+        easing: fabric.util.ease.easeOutQuart
+      });
+      emojiObject.animate('scaleX', 1, {
+        duration: 500,
+        easing: fabric.util.ease.easeOutBounce
+      });
+      emojiObject.animate('scaleY', 1, {
+        duration: 500,
+        easing: fabric.util.ease.easeOutBounce,
+        onChange: () => canvas.renderAll()
+      });
+      
+      canvas.setActiveObject(emojiObject);
+      
       if (props.setUndoStack && props.undoStack) {
         props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
       }
       
-      // Update design status if callback provided
       if (props.checkDesignStatus) {
         props.checkDesignStatus(canvas);
       }

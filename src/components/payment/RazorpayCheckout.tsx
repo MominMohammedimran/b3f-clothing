@@ -1,160 +1,156 @@
 
-import React, { useEffect, useState } from 'react'; 
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Shield, AlertTriangle } from 'lucide-react';
-import { formatIndianRupees } from '@/utils/currency';
-import { useAuth } from '@/context/AuthContext';
-
-const loadRazorpayScript = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if ((window as any).Razorpay) return resolve(true);
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-};
+import { supabase } from '@/integrations/supabase/client';
 
 interface RazorpayCheckoutProps {
   amount: number;
-  customOrderId: string; // Your internal order ID
-  onSuccess: (transactionDetails: any) => void;
-  onFailure: () => void;
+  customerInfo: {
+    name: string;
+    email: string;
+    contact: string;
+  };
+  cartItems: any[];
+  shippingAddress: any;
+  onSuccess: (response: any) => void;
+  onError: () => void;
+}
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
 }
 
 const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
   amount,
-  customOrderId,
+  customerInfo,
+  cartItems,
+  shippingAddress,
   onSuccess,
-  onFailure
+  onError
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
-  const [isTestMode] = useState(false); // Switch to true for testing
-  const { currentUser, userProfile } = useAuth();
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadRazorpayScript().then(setIsScriptLoaded);
-  }, []);
-
-  const handlePayment = async () => {
-    setIsLoading(true);
-    try {
-      if (!(window as any).Razorpay && !(await loadRazorpayScript())) {
-        throw new Error('Razorpay not available');
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
       }
 
-      const name = userProfile?.display_name || currentUser?.user_metadata?.full_name || 'Customer';
-      const email = currentUser?.email || userProfile?.email || 'customer@example.com';
-      const phone = userProfile?.phone_number || currentUser?.user_metadata?.phone || '9999999999';
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
-      // Call your deployed Supabase Edge Function URL here:
-      const createRes = await fetch(`https://cmpggiyuiattqjmddcac.functions.supabase.co/create-razorpay-order`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await import('@/integrations/supabase/client')).supabase.auth.getSession().then(s => s.data.session?.access_token)}`
-        },
-        body: JSON.stringify({
-          amount,
-          orderId: customOrderId
-        }),
+  const createRazorpayOrder = async () => {
+    try {
+      console.log('Creating Razorpay order with Supabase function...');
+      
+      const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+        body: {
+          amount: amount * 100,
+          currency: 'INR',
+          receipt: `receipt_${Date.now()}`,
+          cartItems,
+          shippingAddress,
+          customerInfo
+        }
       });
 
-      const createData = await createRes.json();
-
-      if (!createRes.ok || !createData.order_id) {
-        throw new Error(createData.error || 'Failed to create Razorpay order');
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Failed to create order: ${error.message}`);
       }
 
-      const razorpay = new (window as any).Razorpay({
-        key: "rzp_live_FQUylFpHDtgrDj", // Your live Razorpay public key
-        amount: createData.amount, // amount in paise
-        currency: createData.currency,
-        name: "B3F Prints & Men's Wear",
-        description: `Payment for Order #${customOrderId}`,
-        order_id: createData.order_id,
+      if (!data) {
+        throw new Error('No data received from order creation');
+      }
+
+      console.log('Order created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Error creating Razorpay order:', error);
+      throw error;
+    }
+  };
+
+  const handlePayment = async () => {
+    setLoading(true);
+    
+    try {
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        throw new Error('Failed to load Razorpay SDK');
+      }
+
+      const orderData = await createRazorpayOrder();
+
+      const options = {
+        key: orderData.key_id || 'rzp_live_FQUylFpHDtgrDj',
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'B3F Prints & Men\'s Wear',
+        description: 'Custom Print Order',
+        order_id: orderData.order_id,
         prefill: {
-          name,
-          email,
-          contact: phone
+          name: customerInfo.name,
+          email: customerInfo.email,
+          contact: customerInfo.contact
         },
         theme: {
-          color: "#3399cc"
+          color: '#3399cc'
         },
         modal: {
           ondismiss: () => {
-            toast.error('Payment was cancelled');
-            onFailure();
-            setIsLoading(false);
-          },
-        },
-        handler: async function (response: any) {
-          try {
-            // Optionally verify payment signature server-side here if needed
-            toast.success('Payment successful!');
-            onSuccess({
-              paymentId: response.razorpay_payment_id,
-              orderId: response.razorpay_order_id,
-              signature: response.razorpay_signature,
-              amount,
-              currency: 'INR',
-            });
-          } catch (verifyError) {
-            console.error("Verification error:", verifyError);
-            toast.error('Payment verification failed.');
-            onFailure();
-          } finally {
-            setIsLoading(false);
+            setLoading(false);
+            onError();
           }
         },
-      });
+        handler: function (response: any) {
+          console.log('Payment successful:', response);
+          setLoading(false);
+          onSuccess({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature
+          });
+        }
+      };
 
-      razorpay.on('payment.failed', function (response: any) {
-        console.error("Payment failed:", response.error);
+      const rzp = new window.Razorpay(options);
+      
+      rzp.on('payment.failed', function (response: any) {
+        console.error('Payment failed:', response.error);
+        setLoading(false);
         toast.error(`Payment failed: ${response.error.description}`);
-        onFailure();
-        setIsLoading(false);
+        onError();
       });
 
-      razorpay.open();
-    } catch (err: any) {
-      console.error('Payment error:', err);
-      toast.error('Payment failed: ' + (err.message || 'Unknown error'));
-      onFailure();
-      setIsLoading(false);
+      rzp.open();
+
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      setLoading(false);
+      toast.error('Failed to initialize payment. Please try again.');
+      onError();
     }
   };
 
   return (
-    <div className="w-full">
-      {isTestMode && (
-        <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center text-yellow-700">
-          <AlertTriangle className="w-4 h-4 mr-2" />
-          <span className="text-xs">Test mode enabled — no real payments processed.</span>
-        </div>
-      )}
-
-      <Button
-        onClick={handlePayment}
-        disabled={isLoading || !isScriptLoaded}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
-      >
-        {isLoading ? 'Processing...' : `Pay ${formatIndianRupees(amount)} with Razorpay`}
-      </Button>
-
-      <div className="mt-4 text-xs text-gray-500 text-center">
-        <div className="flex items-center justify-center">
-          <Shield className="w-3 h-3 mr-1" />
-          <p>Secure payments by Razorpay</p>
-        </div>
-        <p className="mt-1">By continuing, you agree to our terms of service.</p>
-      </div>
-    </div>
+    <Button
+      onClick={handlePayment}
+      disabled={loading}
+      className="w-full"
+      size="lg"
+    >
+      {loading ? 'Processing...' : `Pay ₹${amount.toFixed(2)} with Razorpay`}
+    </Button>
   );
 };
 

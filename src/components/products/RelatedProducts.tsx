@@ -22,7 +22,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({ product, onProductCli
             <ProductCard
               key={relatedProduct.id}
               product={relatedProduct}
-              onClick={(product) => onProductClick(product)}
+              onClick={onProductClick}
             />
           ))}
         </div>

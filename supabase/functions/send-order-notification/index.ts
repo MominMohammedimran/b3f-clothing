@@ -1,157 +1,177 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-interface OrderNotificationRequest {
-  orderId: string;
-  customerEmail: string;
-  customerName: string;
-  status: string;
-  orderItems: any[];
-  totalAmount: number;
-  shippingAddress: any;
-}
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-const getEmailTemplate = (orderData: OrderNotificationRequest) => {
-  const statusMessages = {
-    'pending': 'Your order has been received and is being processed.',
-    'confirmed': 'Your order has been confirmed and is being prepared.',
-    'processing': 'Your order is currently being processed.',
-    'shipped': 'Your order has been shipped and is on its way to you.',
-    'delivered': 'Your order has been delivered successfully.',
-    'cancelled': 'Your order has been cancelled.'
-  };
-
-  const itemsHtml = orderData.orderItems.map(item => `
-    <tr style="border-bottom: 1px solid #eee;">
-      <td style="padding: 10px; text-align: left;">${item.name || 'Custom Design'}</td>
-      <td style="padding: 10px; text-align: center;">${item.quantity || 1}</td>
-      <td style="padding: 10px; text-align: right;">₹${item.price || 0}</td>
-    </tr>
-  `).join('');
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Order Update - ${orderData.orderId}</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: #4F46E5; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
-        <h1 style="margin: 0; font-size: 24px;">B3F Prints</h1>
-        <p style="margin: 5px 0 0 0; opacity: 0.9;">Custom Printing Solutions</p>
-      </div>
-      
-      <h2 style="color: #333;">Order Update: ${orderData.status.toUpperCase()}</h2>
-      
-      <p>Dear ${orderData.customerName},</p>
-      
-      <p>${statusMessages[orderData.status] || 'Your order status has been updated.'}</p>
-      
-      <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h3 style="margin: 0 0 10px 0;">Order Details</h3>
-        <p><strong>Order ID:</strong> ${orderData.orderId}</p>
-        <p><strong>Status:</strong> ${orderData.status.charAt(0).toUpperCase() + orderData.status.slice(1)}</p>
-        <p><strong>Total Amount:</strong> ₹${orderData.totalAmount}</p>
-      </div>
-      
-      <h3>Order Items</h3>
-      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-        <thead>
-          <tr style="background: #f8f9fa;">
-            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item</th>
-            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
-            <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemsHtml}
-        </tbody>
-      </table>
-      
-      ${orderData.shippingAddress ? `
-      <h3>Shipping Address</h3>
-      <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <p style="margin: 5px 0;">${orderData.shippingAddress.fullName || orderData.customerName}</p>
-        <p style="margin: 5px 0;">${orderData.shippingAddress.address || orderData.shippingAddress.street || ''}</p>
-        <p style="margin: 5px 0;">${orderData.shippingAddress.city || ''}, ${orderData.shippingAddress.state || ''} ${orderData.shippingAddress.zipCode || ''}</p>
-        <p style="margin: 5px 0;">${orderData.shippingAddress.country || 'India'}</p>
-        ${orderData.shippingAddress.phone ? `<p style="margin: 5px 0;">Phone: ${orderData.shippingAddress.phone}</p>` : ''}
-      </div>
-      ` : ''}
-      
-      <div style="background: #4F46E5; color: white; padding: 20px; border-radius: 5px; margin-top: 30px; text-align: center;">
-        <p style="margin: 0;">Thank you for choosing B3F Prints!</p>
-        <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">For any queries, contact us at b3f.prints.pages.de@gmail.com</p>
-      </div>
-    </body>
-    </html>
-  `;
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
+const handler = async (req: Request): Promise<Response> => {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { 
+      orderId, 
+      customerEmail, 
+      customerName, 
+      status, 
+      orderItems, 
+      totalAmount, 
+      shippingAddress 
+    } = await req.json();
 
-    const orderData: OrderNotificationRequest = await req.json();
-
-    console.log(`Sending order notification email to ${orderData.customerEmail} for order ${orderData.orderId}`);
-
-    // Generate HTML email content
-    const htmlContent = getEmailTemplate(orderData);
-
-    // Here you would integrate with your SMTP service
-    // For now, we'll log the email content and return success
-    console.log("Email notification content generated:", {
-      to: orderData.customerEmail,
-      subject: `Order Update: ${orderData.orderId} - ${orderData.status.toUpperCase()}`,
-      from: 'b3f.prints.pages.dev@gmail.com'
+    console.log('Sending order notification email:', {
+      orderId,
+      customerEmail,
+      status,
+      itemCount: orderItems?.length || 0
     });
 
-    // TODO: Integrate with actual SMTP service (SendGrid, Resend, etc.)
-    // const emailResult = await sendEmail({
-    //   from: 'b3f.prints.pages.de@gmail.com',
-    //   to: orderData.customerEmail,
-    //   subject: `Order Update: ${orderData.orderId} - ${orderData.status.toUpperCase()}`,
-    //   html: htmlContent
-    // });
+    // Email template based on status
+    let subject = '';
+    let htmlContent = '';
+
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        subject = `Order Confirmed - ${orderId}`;
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Order Confirmed!</h2>
+            <p>Dear ${customerName},</p>
+            <p>Thank you for your order! Your order <strong>${orderId}</strong> has been confirmed and is being processed.</p>
+            
+            <div style="background-color: #f3f4f6; padding: 20px; margin: 20px 0; border-radius: 8px;">
+              <h3>Order Details:</h3>
+              <p><strong>Order Number:</strong> ${orderId}</p>
+              <p><strong>Total Amount:</strong> ₹${totalAmount}</p>
+              <p><strong>Status:</strong> Confirmed</p>
+            </div>
+
+            <div style="background-color: #f9fafb; padding: 15px; margin: 15px 0; border-radius: 6px;">
+              <h4>Items Ordered:</h4>
+              ${orderItems?.map((item: any) => `
+                <div style="margin: 10px 0; padding: 10px; border-left: 3px solid #2563eb;">
+                  <strong>${item.name}</strong><br>
+                  Quantity: ${item.quantity} | Price: ₹${item.price}
+                  ${item.size ? `| Size: ${item.size}` : ''}
+                </div>
+              `).join('') || '<p>No items found</p>'}
+            </div>
+
+            ${shippingAddress ? `
+              <div style="background-color: #f0f9ff; padding: 15px; margin: 15px 0; border-radius: 6px;">
+                <h4>Shipping Address:</h4>
+                <p>${shippingAddress.fullName}<br>
+                ${shippingAddress.address}<br>
+                ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zipCode}<br>
+                ${shippingAddress.country}</p>
+              </div>
+            ` : ''}
+
+            <p>We'll keep you updated on your order status. Thank you for choosing B3F Prints!</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #6b7280; font-size: 14px;">
+                Best regards,<br>
+                B3F Prints Team<br>
+                <a href="https://b3f-prints-pages.dev" style="color: #2563eb;">b3f-prints-pages.dev</a>
+              </p>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'processing':
+        subject = `Order Processing - ${orderId}`;
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #f59e0b;">Order Processing</h2>
+            <p>Dear ${customerName},</p>
+            <p>Your order <strong>${orderId}</strong> is now being processed. We're working on preparing your items for shipment.</p>
+            <p>Total Amount: ₹${totalAmount}</p>
+            <p>We'll notify you once your order is ready to ship!</p>
+            <p>Best regards,<br>B3F Prints Team</p>
+          </div>
+        `;
+        break;
+
+      case 'shipped':
+        subject = `Order Shipped - ${orderId}`;
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #10b981;">Order Shipped!</h2>
+            <p>Dear ${customerName},</p>
+            <p>Great news! Your order <strong>${orderId}</strong> has been shipped and is on its way to you.</p>
+            <p>Total Amount: ₹${totalAmount}</p>
+            <p>You should receive your order within 3-5 business days.</p>
+            <p>Best regards,<br>B3F Prints Team</p>
+          </div>
+        `;
+        break;
+
+      case 'delivered':
+        subject = `Order Delivered - ${orderId}`;
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #059669;">Order Delivered!</h2>
+            <p>Dear ${customerName},</p>
+            <p>Your order <strong>${orderId}</strong> has been successfully delivered!</p>
+            <p>Total Amount: ₹${totalAmount}</p>
+            <p>We hope you're happy with your purchase. Thank you for choosing B3F Prints!</p>
+            <p>Best regards,<br>B3F Prints Team</p>
+          </div>
+        `;
+        break;
+
+      default:
+        subject = `Order Update - ${orderId}`;
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Order Update</h2>
+            <p>Dear ${customerName},</p>
+            <p>Your order <strong>${orderId}</strong> status has been updated to: <strong>${status}</strong></p>
+            <p>Total Amount: ₹${totalAmount}</p>
+            <p>Best regards,<br>B3F Prints Team</p>
+          </div>
+        `;
+    }
+
+    // Mock email sending (replace with actual email service like Resend)
+    console.log('Email would be sent:', {
+      to: customerEmail,
+      subject,
+      html: htmlContent
+    });
+
+    // Simulate successful email sending
+    const emailResult = {
+      success: true,
+      messageId: `email_${Date.now()}`,
+      to: customerEmail,
+      subject
+    };
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Order notification email prepared",
-        orderId: orderData.orderId,
-        status: orderData.status,
-        emailContent: htmlContent
-      }),
+      JSON.stringify(emailResult),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     );
+
   } catch (error) {
-    console.error("Error sending order notification:", error);
+    console.error('Error sending order notification:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-      }),
+      JSON.stringify({ error: error.message }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       }
     );
   }
-});
+};
+
+serve(handler);

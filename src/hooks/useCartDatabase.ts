@@ -29,6 +29,7 @@ export const useCartDatabase = () => {
       // Transform database records to CartItem format
       const transformedItems: CartItem[] = data?.map(item => ({
         id: item.id,
+        product_id: item.product_id,
         productId: item.product_id,
         name: item.name,
         price: item.price,
@@ -60,12 +61,12 @@ export const useCartDatabase = () => {
         .from('carts')
         .select('id, quantity')
         .eq('user_id', currentUser.id)
-        .eq('product_id', item.productId)
+        .eq('product_id', item.product_id || item.productId)
         .maybeSingle();
 
       // Transform CartItem to database format
       const dbItem = {
-        product_id: item.productId,
+        product_id: item.product_id || item.productId,
         name: item.name,
         price: item.price,
         quantity: item.quantity,

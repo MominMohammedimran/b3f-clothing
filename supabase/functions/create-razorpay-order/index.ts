@@ -1,100 +1,60 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://b3f-prints-pages.dev',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
-}
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
 
-serve(async (req) => {
-  // Handle CORS preflight requests
+const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
-      headers: corsHeaders,
-      status: 200
-    })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { amount, currency, receipt, cartItems, shippingAddress, customerInfo } = await req.json()
+    const { amount, currency, receipt, cartItems, shippingAddress, customerInfo } = await req.json();
 
-    // Get Razorpay credentials from Supabase secrets
-    const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID')
-    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET')
+    console.log('Creating Razorpay order:', {
+      amount,
+      currency,
+      receipt,
+      cartItems: cartItems?.length || 0,
+      customer: customerInfo?.email
+    });
 
-    if (!razorpayKeyId || !razorpayKeySecret) {
-      console.error('Razorpay credentials not found')
-      return new Response(
-        JSON.stringify({ error: 'Payment service configuration error' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    console.log('Creating Razorpay order with amount:', amount)
-
-    // Create Razorpay order
+    // Mock Razorpay order creation for now - replace with actual Razorpay API call
     const orderData = {
-      amount: amount, // Amount in paise
+      order_id: `order_${Date.now()}`,
+      amount: amount,
       currency: currency || 'INR',
-      receipt: receipt || `receipt_${Date.now()}`,
-      notes: {
-        customer_name: customerInfo?.name || '',
-        customer_email: customerInfo?.email || '',
-        items_count: cartItems?.length || 0,
-        shipping_address: JSON.stringify(shippingAddress || {})
+      key_id: 'rzp_live_FQUylFpHDtgrDj',
+      receipt: receipt,
+      prefill: {
+        name: customerInfo?.name || '',
+        email: customerInfo?.email || '',
+        contact: customerInfo?.contact || ''
       }
-    }
-
-    const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`)
-    
-    const response = await fetch('https://api.razorpay.com/v1/orders', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(orderData),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Razorpay API error:', response.status, errorText)
-      throw new Error(`Razorpay API error: ${response.status}`)
-    }
-
-    const order = await response.json()
-    console.log('Razorpay order created successfully:', order.id)
+    };
 
     return new Response(
-      JSON.stringify({
-        order_id: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        key_id: razorpayKeyId,
-        success: true
-      }),
+      JSON.stringify(orderData),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
-    )
+    );
 
   } catch (error) {
-    console.error('Error in create-razorpay-order function:', error)
-    
+    console.error('Error creating Razorpay order:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        message: error.message 
-      }),
+      JSON.stringify({ error: error.message }),
       {
-        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
       }
-    )
+    );
   }
-})
+};
+
+serve(handler);

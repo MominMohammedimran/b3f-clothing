@@ -16,6 +16,7 @@ import CustomizationSidebar from '../components/design/CustomizationSidebar';
 import { useDesignCanvas } from '@/hooks/useDesignCanvas';
 import { useDesignToolInventory } from '@/hooks/useDesignToolInventory';
 import { useDesignProducts } from '@/hooks/useDesignProducts';
+import { validateObjectsWithinBoundary, showBoundaryValidationError } from '@/components/design/BoundaryValidator';
 
 const DesignTool = () => {
   const navigate = useNavigate();
@@ -170,6 +171,19 @@ const DesignTool = () => {
     return designComplete.front && designComplete.back;
   };
 
+  const validateDesignWithBoundary = () => {
+    if (!canvas) return false;
+    
+    // Check if there are design elements
+    if (!hasDesignElements()) {
+      return false;
+    }
+    
+    // Check if all elements are within boundary
+    const boundaryId = `design-boundary-${activeProduct}`;
+    return validateObjectsWithinBoundary(canvas, boundaryId);
+  };
+
   const generateDesignPreview = () => {
     if (!canvas) return null;
     
@@ -198,6 +212,7 @@ const DesignTool = () => {
       return;
     }
 
+    // Validate design elements exist
     if (!validateDesign()) {
       if (isDualSided) {
         toast.error("Incomplete design", {
@@ -209,6 +224,33 @@ const DesignTool = () => {
         });
       }
       return;
+    }
+
+    // Validate boundary for current view
+    if (!validateDesignWithBoundary()) {
+      showBoundaryValidationError();
+      return;
+    }
+
+    // For dual-sided designs, check both sides
+    if (isDualSided && activeProduct === 'tshirt') {
+      // Save current side first
+      if (canvas) {
+        const currentDesign = canvas.toDataURL({ format: 'webp', quality: 0.9 });
+        if (productView === 'front') {
+          setFrontDesign(currentDesign);
+        } else {
+          setBackDesign(currentDesign);
+        }
+      }
+
+      // Check if both sides are designed
+      if (!frontDesign || !backDesign) {
+        toast.error("Incomplete design", {
+          description: "Please design both front and back sides for dual-sided printing",
+        });
+        return;
+      }
     }
 
     try {
@@ -227,21 +269,6 @@ const DesignTool = () => {
       const previewImage = generateDesignPreview();
      
       if (isDualSided && activeProduct === 'tshirt') {
-        // Save current side if needed
-        let currentPreview = previewImage;
-        if (productView === 'front') {
-          setFrontDesign(currentPreview!);
-        } else if (productView === 'back') {
-          setBackDesign(currentPreview!);
-        }
-       
-        if (!frontDesign || !backDesign) {
-          toast.error("Incomplete design", {
-            description: "Please design both front and back sides for dual-sided printing",
-          });
-          return;
-        }
-       
         const customProduct = {
           product_id: `custom-${activeProduct}-dual-${Date.now()}`,
           name: `Custom ${products[activeProduct]?.name || 'Product'} (Dual-Sided)`,
@@ -418,7 +445,6 @@ const DesignTool = () => {
                 onOpenTextModal={() => setIsTextModalOpen(true)}
                 onOpenImageModal={() => setIsImageModalOpen(true)}
                 onOpenEmojiModal={() => setIsEmojiModalOpen(true)}
-                onSaveDesign={saveDesign}
                 onAddToCart={handleAddToCart}
                 validateDesign={validateDesign}
               />

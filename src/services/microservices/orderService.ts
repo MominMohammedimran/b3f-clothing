@@ -9,6 +9,8 @@ const mockOrders: Record<string, Order> = {
     id: 'order-1',
     userId: 'user-1',
     user_id: 'user-1',
+    userEmail: 'user@example.com',
+    user_email: 'user@example.com',
     orderNumber: 'ORD12345',
     order_number: 'ORD12345',
     status: 'processing',
@@ -16,6 +18,7 @@ const mockOrders: Record<string, Order> = {
     items: [
       {
         id: 'item-1',
+        product_id: 'product-1',
         productId: 'product-1',
         name: 'Premium T-Shirt',
         price: 999.99,
@@ -24,6 +27,7 @@ const mockOrders: Record<string, Order> = {
       },
       {
         id: 'item-2',
+        product_id: 'product-2',
         productId: 'product-2',
         name: 'Designer Jeans',
         price: 1499.99,
@@ -76,6 +80,8 @@ export class OrderMicroservice {
         id: newOrderId,
         userId: orderData.userId || orderData.user_id || 'anonymous',
         user_id: orderData.userId || orderData.user_id || 'anonymous',
+        userEmail: orderData.userEmail || orderData.user_email || '',
+        user_email: orderData.userEmail || orderData.user_email || '',
         orderNumber: `ORD${Math.floor(100000 + Math.random() * 900000)}`,
         order_number: `ORD${Math.floor(100000 + Math.random() * 900000)}`,
         status: 'processing',
@@ -87,7 +93,9 @@ export class OrderMicroservice {
         shippingAddress: orderData.shippingAddress,
         shipping_address: orderData.shippingAddress || orderData.shipping_address,
         paymentMethod: orderData.paymentMethod || orderData.payment_method || 'cod',
-        payment_method: orderData.paymentMethod || orderData.payment_method || 'cod'
+        payment_method: orderData.paymentMethod || orderData.payment_method || 'cod',
+        deliveryFee: orderData.deliveryFee || orderData.delivery_fee || 0,
+        delivery_fee: orderData.deliveryFee || orderData.delivery_fee || 0
       };
       
       mockOrders[newOrderId] = newOrder;
@@ -167,7 +175,7 @@ export class OrderMicroservice {
 
         await sendNotification({
           userId: order.userId,
-          orderId,
+          orderId: orderId,
           type: notificationType,
           data: notificationData
         });

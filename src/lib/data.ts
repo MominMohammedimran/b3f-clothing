@@ -1,23 +1,21 @@
 
-import { Product, Category, Order, TrackingInfo, Review, Location } from './types';
-
+import { Product, Category, Location } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
 
 // Resolved product list
+export let products: Product[] = [];
 
+async function getProducts() {
+  const { data, error } = await supabase.from('products').select('*');
+  if (error) {
+    console.error('Error fetching products:', error);
+    return;
+  }
 
-// Orders array for compatibility
-export let orders: Order[] = [];
-
-
-
-
-
-function transformProductImages(products: any[]): Product[] {
-  return products.map((product: any) => ({
+  products = (data || []).map((product: any) => ({
     id: product.id?.toString(),
-    productId: product.productId?.toString(),
+    productId: product.product_id?.toString() ?? product.id?.toString(),
     code: product.code || '',
     name: product.name || '',
     price: product.price || 0,
@@ -33,68 +31,62 @@ function transformProductImages(products: any[]): Product[] {
   }));
 }
 
-export let products: Product[] = [];
+// 👇 This ensures the fetch runs once, on app load
+void getProducts();
+// Mock orders data
 
-async function getProducts() {
-  const { data, error } = await supabase.from('products').select('*');
-  if (error) {
-    console.error('Error fetching products:', error);
-    return;
-  }
-  products = transformProductImages(data || []);
-}
 
-getProducts();
+
+
 
 export const categories: Category[] = [
   {
     id: '1',
-    name: 'Shirts',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/shirt.webp'
+    name: 'T-Shirt Print',
+    image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/tshirt-print.webp'
   },
   {
-    id: '2',
-    name: 'Pants',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/pant.webp'
+    id: '2', 
+    name: 'Mug Print',
+    image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/mug-print.webp'
   },
   {
     id: '3',
-    name: 'Tshirt-print',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/tshirt-print.webp'
+    name: 'Cap Print',
+    image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/cap-print.webp'
   },
   {
     id: '4',
-    name: 'mug-print',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/mug-print.webp'
+    name: 'Pant', 
+    image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/pant.webp'
   },
   {
     id: '5',
-    name: 'cap-print',
-    icon: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/cap-print.webp'
-  },
- 
+    name: 'Shirt',
+    image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/shirt.webp'
+  }
 ];
-
-
-
-export const popularSearches = [
-  "T-shirts",
-  "Custom Mugs",
-  "Shirts",
-  "Pants",
-];
-
-
-
-export const locations: Location[] = [
-  { id: '1', name: 'Andhra Pradesh', code: 'AP' },
-  { id: '2', name: 'Karnataka', code: 'KA' },
-  { id: '3', name: 'Tamil Nadu', code: 'TN' },
-  { id: '4', name: 'Maharashtra', code: 'MH' },
-  { id: '5', name: 'Delhi', code: 'DL' },
-  { id: '6', name: 'Gujarat', code: 'GJ' },
-  { id: '7', name: 'Kerala', code: 'KL' },
-  { id: '8', name: 'Telangana', code: 'TG' },
-  { id: '9', name: 'Uttar Pradesh', code: 'UP' },
-  { id: '10', name: 'West Bengal', code: 'WB' }
+// Mock orders data for OrdersHistory component
+export const orders = [
+  {
+    id: 'order-1',
+    orderNumber: 'ORD-001',
+    userId: 'user-1',
+    items: [
+      {
+        id: 'item-1',
+        product_id: 'tshirt',
+        name: 'Custom T-Shirt',
+        image: '/lovable-uploads/tshirt.png',
+        price: 250,
+        quantity: 1
+      }
+    ],
+    total: 250,
+    status: 'delivered' as const,
+    paymentMethod: 'razorpay',
+    shippingAddress: {},
+    createdAt: '2024-01-15T10:00:00Z',
+    date: '2024-01-15T10:00:00Z'
+  }
 ];

@@ -33,7 +33,7 @@ const ProductQuantitySelector: React.FC<ProductQuantitySelectorProps> = ({
   };
 
   return (
-  <div className="flex  ">
+  <div className="flex justify-items-center ">
       <button
         onClick={handleDecrement}
         className="bg-gray-100 text-xl hover:bg-gray-200 text-gray-600 rounded-l-md  px-2"

@@ -38,7 +38,7 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
       return product;
     }
     
-    return product.id || product.productId || (product as any).product_id || '';
+    return product.id || '';
   };
   
   // Function to fetch wishlist data from Supabase
@@ -71,7 +71,8 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
           category: 'General',
           rating: 4.5,
           discountPercentage: 0,
-          tags: ['featured'], 
+          tags: ['featured'],
+          stock: 10
         }));
         
         return items;
@@ -195,7 +196,8 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
         discountPercentage: product.discountPercentage || 0,
         rating: product.rating || 0,
         category: product.category || '',
-        tags: Array.isArray(product.tags) ? product.tags : ['featured']
+        tags: Array.isArray(product.tags) ? product.tags : ['featured'],
+        stock: product.stock || 10
       };
       
       setWishlistItems(prev => [...prev, newItem]);

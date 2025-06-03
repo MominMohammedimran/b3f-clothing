@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from '@/lib/utils';
 import OrderStatusActions from './orders/OrderStatusActions';
-import OrderItems from './orders/OrderItems';
 import OrderDesignDownload from './orders/OrderDesignDownload';
 import { Trash2 } from 'lucide-react';
 import { CartItem } from '@/lib/types';
@@ -71,7 +70,37 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
         
         <div className="space-y-6">
           {/* Order items */}
-          <OrderItems items={order.items} total={order.total} />
+          <div className="space-y-4">
+            <h3 className="font-medium">Order Items</h3>
+            {order.items?.map((item, index) => (
+              <div key={index} className="flex items-center justify-between border-b pb-4">
+                <div className="flex items-center space-x-4">
+                  {item.image && (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                  )}
+                  <div>
+                    <h3 className="font-medium">{item.name}</h3>
+                    {item.size && <p className="text-sm text-gray-600">Size: {item.size}</p>}
+                    {item.color && <p className="text-sm text-gray-600">Color: {item.color}</p>}
+                    <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">{formatCurrency(item.price * item.quantity)}</p>
+                  <p className="text-sm text-gray-600">{formatCurrency(item.price)} each</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <OrderDesignDownload 
+            items={order.items} 
+            orderNumber={order.order_number} 
+          />
           
           {/* Order details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,12 +127,6 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                   <p className="text-sm">{order.shipping_address.country}</p>
                 </>
               )}
-              
-              {/* Add Download Button */}
-              <OrderDesignDownload 
-                items={order.items} 
-                orderNumber={order.order_number} 
-              />
             </div>
           </div>
           

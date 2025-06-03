@@ -13,7 +13,7 @@ const ProductDetailsPage = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
-  
+  console.log("ss",product)
   useEffect(() => {
     if (!productId) return;
     
@@ -25,17 +25,20 @@ const ProductDetailsPage = () => {
     } else {
       // Provide a default product if none found
       const defaultProduct = {
-        id: productId || "default-product",
+        id: "default-product",
+        productId:productId||"ajs",
         code: "SAMPLE-001",
         name: "Sample Product",
         description: "This is a sample product description.",
         price: 99.99,
         originalPrice: 129.99,
-        discountPercentage: 20,
+        discountPercentage: 50,
         image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500",
+        images:["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500"],
         rating: 4.5,
         category: "Sample Category",
         tags: ["featured", "new"],
+        sizes: ['Standard'],
         stock: 15
       };
       

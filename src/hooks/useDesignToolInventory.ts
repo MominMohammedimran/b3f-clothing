@@ -1,146 +1,126 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface SizeInventory {
-  [productType: string]: {
-    [size: string]: number;
-  };
-}
-
 export const useDesignToolInventory = () => {
-  const [sizeInventory, setSizeInventory] = useState<SizeInventory>({
-    tshirt: { S: 10, M: 10, L: 10, XL: 10 },
-    mug: { Standard: 10 },
-    cap: { Standard: 10 }
-  });
-  const [loading, setLoading] = useState<boolean>(true);
-  
-  // Fetch product inventory data
-  const fetchProductInventory = async () => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', 'inventory');
-      
-      if (error && !error.message.includes('does not exist')) {
-        throw error;
-      }
-      
-      const inventory: SizeInventory = {
-        tshirt: { S: 10, M: 10, L: 10, XL: 10 },
-        mug: { Standard: 10 },
-        cap: { Standard: 10 }
-      };
-      
-      if (data && data.length > 0) {
-        data.forEach((item: any) => {
-          const [productType, size] = (item.name || '').split('_');
-          if (productType && inventory[productType] && size) {
-            inventory[productType][size] = item.stock || 0;
-          }
-        });
-      }
-      
-      setSizeInventory(inventory);
-    } catch (error) {
-      console.error('Error fetching product inventory:', error);
-      if (!error?.message?.includes('does not exist')) {
-        toast.error('Failed to load product inventory data');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Update product inventory
-  const updateInventory = async (
-    productType: string, 
-    size: string, 
-    quantityChange: number
-  ): Promise<boolean> => {
-    try {
-      const currentQuantity = sizeInventory[productType]?.[size] || 0;
-      const newQuantity = Math.max(0, currentQuantity + quantityChange);
-      const inventoryName = `${productType}_${size}`;
-      const productId = `inv-${productType}-${size}`; // ✅ Fix added here
-      
-      const { data: existingItem, error: checkError } = await supabase
-        .from('products')
-        .select('id, stock')
-        .eq('category', 'inventory')
-        .eq('name', inventoryName)
-        .maybeSingle();
+  const [sizeInventory, setSizeInventory] = useState<Record<string, Record<string, number>>>({});
+  const [loading, setLoading] = useState(false);
 
-      if (checkError && !checkError.message.includes('does not exist')) {
-        throw checkError;
-      }
+  const fetchProductInventory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('id, code, variants')
+        .in('code', ['TSHIRT001', 'MUG001', 'CAP001']);
 
-      let success = false;
-      
-      if (existingItem) {
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({
-            productId,
-            stock: newQuantity,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingItem.id);
-          
-        success = !updateError;
-        if (updateError) {
-          console.error('Update error:', updateError);
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from('products')
-          .insert({
-            name: inventoryName,
-            category: 'inventory',
-            stock: newQuantity,
-            price: 0,
-            original_price: 0,
-            code: `INV-${productType.toUpperCase()}-${size}`,
-            productId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          
-        success = !insertError;
-        if (insertError) {
-          console.error('Insert error:', insertError);
-        }
-      }
-      
-      if (success) {
-        setSizeInventory(prev => ({
-          ...prev,
-          [productType]: {
-            ...prev[productType],
-            [size]: newQuantity
-          }
-        }));
-      }
-      
-      return success;
-    } catch (error) {
-      console.error('Error updating inventory:', error);
-      return false;
-    }
-  };
-  
-  useEffect(() => {
-    fetchProductInventory();
-  }, []);
-  
-  return {
-    sizeInventory,
-    fetchProductInventory,
-    updateInventory,
-    loading
-  };
+      if (error) throw error;
+
+      const inventory: Record<string, Record<string, number>> = {};
+      
+      products?.forEach((product: any) => {
+        let productKey = 'tshirt';
+        if (product.code?.includes('MUG')) productKey = 'mug';
+        if (product.code?.includes('CAP')) productKey = 'cap';
+        
+        inventory[productKey] = {};
+        
+        // Check if variants exists and is an array
+        if (product.variants && Array.isArray(product.variants)) {
+          product.variants.forEach((variant: any) => {
+            if (variant.size && typeof variant.stock === 'number') {
+              inventory[productKey][variant.size.toLowerCase()] = variant.stock;
+            }
+          });
+        } else {
+          // Default inventory if no variants
+          const defaultSizes = productKey === 'mug' || productKey === 'cap' 
+            ? ['standard'] 
+            : ['s', 'm', 'l', 'xl'];
+          
+          defaultSizes.forEach(size => {
+            inventory[productKey][size] = 10;
+          });
+        }
+      });
+
+      setSizeInventory(inventory);
+      console.log('Fetched inventory:', inventory);
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      toast.error('Failed to fetch product inventory');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateInventory = useCallback(async (productId: string, size: string, quantityChange: number) => {
+    try {
+      // Get current product data
+      const productCode = productId === 'tshirt' ? 'TSHIRT001' : 
+                         productId === 'mug' ? 'MUG001' : 'CAP001';
+      
+      const { data: product, error: fetchError } = await supabase
+        .from('products')
+        .select('variants')
+        .eq('code', productCode)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Ensure variants is an array - cast to any to bypass TypeScript type issues
+      const productData = product as any;
+      let variants = Array.isArray(productData.variants) ? [...productData.variants] : [];
+      
+      // Find existing variant or create new one
+      const variantIndex = variants.findIndex((v: any) => 
+        v.size?.toLowerCase() === size.toLowerCase()
+      );
+      
+      if (variantIndex >= 0) {
+        // Update existing variant
+        variants[variantIndex].stock = Math.max(0, variants[variantIndex].stock + quantityChange);
+      } else {
+        // Add new variant
+        variants.push({
+          size: size.toLowerCase(),
+          stock: Math.max(0, quantityChange)
+        });
+      }
+
+      // Update database - cast to any to bypass TypeScript restrictions
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ 
+          variants: variants,
+          updated_at: new Date().toISOString()
+        } as any)
+        .eq('code', productCode);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setSizeInventory(prev => ({
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          [size.toLowerCase()]: Math.max(0, (prev[productId]?.[size.toLowerCase()] || 0) + quantityChange)
+        }
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('Error updating inventory:', error);
+      toast.error('Failed to update inventory');
+      return false;
+    }
+  }, []);
+
+  return {
+    sizeInventory,
+    loading,
+    fetchProductInventory,
+    updateInventory
+  };
 };

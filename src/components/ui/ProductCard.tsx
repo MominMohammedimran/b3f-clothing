@@ -33,7 +33,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       onViewDetails(product);
     }
   };
-  console.log("ss",product)
 
   return (
     <Card className="group hover:shadow-lg transition-shadow cursor-pointer" onClick={handleClick}>
@@ -60,7 +59,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
         
+      
         
+        <Button 
+          className="w-full mt-2" 
+          onClick={handleAddToCart}
+          disabled={product.stock <= 0}
+        >
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
+        </Button>
       </CardContent>
     </Card>
   );

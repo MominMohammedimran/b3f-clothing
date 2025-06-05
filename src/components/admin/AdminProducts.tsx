@@ -17,30 +17,26 @@ const AdminProducts: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sizeInventories, setSizeInventories] = useState<Record<string, Record<string, number>>>({});
   const [managingSizeProduct, setManagingSizeProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     fetchProducts();
-    fetchSizeInventories();
   }, []);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      // First try to get products from a products table
-      const { data: productsData, error: productsError } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (productsError && !productsError.message.includes('does not exist')) {
-        throw productsError;
+      if (error) {
+        throw error;
       }
 
-      if (productsData && productsData.length > 0) {
-        // Transform the data to match Product interface
-        const transformedProducts: Product[] = productsData.map((product: any) => ({
+      if (data) {
+        const transformedProducts: Product[] = data.map((product: any) => ({
           id: product.id,
           code: product.code || `PROD-${product.id.slice(0, 8)}`,
           name: product.name,
@@ -53,25 +49,10 @@ const AdminProducts: React.FC = () => {
           image: product.image || '',
           images: Array.isArray(product.images) ? product.images : [],
           sizes: Array.isArray(product.sizes) ? product.sizes : [],
-          tags: Array.isArray(product.tags) ? product.tags : []
+          tags: Array.isArray(product.tags) ? product.tags : [],
+          variants: product.variants || []
         }));
         setProducts(transformedProducts);
-      } else {
-        // Fallback to settings table
-        const { data: settingsData, error: settingsError } = await supabase
-          .from('settings')
-          .select('*')
-          .eq('type', 'products');
-
-        if (settingsError) throw settingsError;
-
-        if (settingsData && settingsData.length > 0) {
-          const settingsValue = settingsData[0].settings;
-          if (typeof settingsValue === 'object' && settingsValue !== null && 'products' in settingsValue) {
-            const productsFromSettings = (settingsValue as { products: any[] }).products || [];
-            setProducts(productsFromSettings);
-          }
-        }
       }
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -81,75 +62,61 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const fetchSizeInventories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('type', 'product_inventory');
-
-      if (error && !error.message.includes('does not exist')) {
-        throw error;
-      }
-
-      if (data && data.length > 0) {
-        const inventoryData = data[0].settings;
-        const parsedInventories: Record<string, Record<string, number>> = {};
-        
-        if (typeof inventoryData === 'object' && inventoryData !== null) {
-          Object.entries(inventoryData).forEach(([productId, inventoryString]) => {
-            if (typeof inventoryString === 'string') {
-              const sizes: Record<string, number> = {};
-              inventoryString.split(' ').forEach(sizeEntry => {
-                if (sizeEntry.includes(':')) {
-                  const [size, qty] = sizeEntry.split(':');
-                  sizes[size.toLowerCase()] = parseInt(qty) || 0;
-                }
-              });
-              parsedInventories[productId] = sizes;
-            }
-          });
-        }
-        
-        setSizeInventories(parsedInventories);
-      }
-    } catch (error) {
-      console.error('Error fetching size inventories:', error);
-    }
-  };
-
   const handleSaveProduct = async (productData: Product) => {
     try {
-      let updatedProducts;
-      
       if (editingProduct) {
         // Update existing product
-        updatedProducts = products.map(p => 
-          p.id === editingProduct.id ? { ...productData, id: editingProduct.id } : p
-        );
+        const { error } = await supabase
+          .from('products')
+          .update({
+            name: productData.name,
+            description: productData.description,
+            price: productData.price,
+            original_price: productData.originalPrice,
+            discount_percentage: productData.discountPercentage,
+            category: productData.category,
+            stock: productData.stock,
+            image: productData.image,
+            images: productData.images,
+            sizes: productData.sizes,
+            tags: productData.tags,
+            code: productData.code,
+            variants: productData.variants || [],
+            updated_at: new Date().toISOString()
+          } as any)
+          .eq('id', editingProduct.id);
+
+        if (error) throw error;
+        toast.success('Product updated successfully');
       } else {
         // Add new product
-        const newProduct = {
-          ...productData,
-          id: `product_${Date.now()}`,
-        };
-        updatedProducts = [newProduct, ...products];
+        const { error } = await supabase
+          .from('products')
+          .insert({
+            name: productData.name,
+            description: productData.description,
+            price: productData.price,
+            original_price: productData.originalPrice,
+            discount_percentage: productData.discountPercentage,
+            category: productData.category,
+            stock: productData.stock,
+            image: productData.image,
+            images: productData.images,
+            sizes: productData.sizes,
+            tags: productData.tags,
+            code: productData.code,
+            variants: productData.variants || [],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          } as any);
+
+        if (error) throw error;
+        toast.success('Product created successfully');
       }
 
-      // Save to settings table as fallback
-      const { error } = await supabase
-        .from('settings')
-        .upsert({
-          type: 'products',
-          settings: { products: updatedProducts } as any
-        });
-
-      if (error) throw error;
-
-      setProducts(updatedProducts);
+      await fetchProducts();
       setEditingProduct(null);
       setShowAddForm(false);
-      toast.success(editingProduct ? 'Product updated successfully' : 'Product created successfully');
     } catch (error) {
       console.error('Error saving product:', error);
       toast.error('Failed to save product');
@@ -160,18 +127,14 @@ const AdminProducts: React.FC = () => {
     if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      const updatedProducts = products.filter(p => p.id !== productId);
-      
       const { error } = await supabase
-        .from('settings')
-        .upsert({
-          type: 'products',
-          settings: { products: updatedProducts } as any
-        });
+        .from('products')
+        .delete()
+        .eq('id', productId);
 
       if (error) throw error;
 
-      setProducts(updatedProducts);
+      await fetchProducts();
       toast.success('Product deleted successfully');
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -179,14 +142,30 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const handleInventoryUpdate = (productId: string, inventory: Record<string, number>) => {
-    setSizeInventories(prev => ({
-      ...prev,
-      [productId]: inventory
-    }));
-    
-    // Update the display immediately
-    toast.success('Inventory updated successfully');
+  const handleInventoryUpdate = async (productId: string, inventory: Record<string, number>) => {
+    try {
+      // Convert inventory object to variants array format
+      const variants = Object.entries(inventory).map(([size, stock]) => ({
+        size,
+        stock
+      }));
+
+      const { error } = await supabase
+        .from('products')
+        .update({
+          variants: variants,
+          updated_at: new Date().toISOString()
+        } as any)
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      await fetchProducts();
+      toast.success('Inventory updated successfully');
+    } catch (error) {
+      console.error('Error updating inventory:', error);
+      toast.error('Failed to update inventory');
+    }
   };
 
   const filteredProducts = products.filter(product =>
@@ -195,21 +174,31 @@ const AdminProducts: React.FC = () => {
     product.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatInventoryDisplay = (productId: string) => {
-    const inventory = sizeInventories[productId];
-    if (!inventory || Object.keys(inventory).length === 0) {
+  const formatInventoryDisplay = (product: Product) => {
+    if (!product.variants || !Array.isArray(product.variants) || product.variants.length === 0) {
       return 'No sizes configured';
     }
     
-    return Object.entries(inventory)
-      .map(([size, qty]) => `${size.toUpperCase()}:${qty}`)
+    return product.variants
+      .map((variant: any) => `${variant.size?.toUpperCase()}:${variant.stock || 0}`)
       .join(' ');
   };
 
-  const getTotalStock = (productId: string) => {
-    const inventory = sizeInventories[productId];
-    if (!inventory) return 0;
-    return Object.values(inventory).reduce((sum, qty) => sum + qty, 0);
+  const getTotalStock = (product: Product) => {
+    if (!product.variants || !Array.isArray(product.variants)) return 0;
+    return product.variants.reduce((sum: number, variant: any) => sum + (variant.stock || 0), 0);
+  };
+
+  const getCurrentInventory = (product: Product) => {
+    if (!product.variants || !Array.isArray(product.variants)) return {};
+    
+    const inventory: Record<string, number> = {};
+    product.variants.forEach((variant: any) => {
+      if (variant.size) {
+        inventory[variant.size.toLowerCase()] = variant.stock || 0;
+      }
+    });
+    return inventory;
   };
 
   if (editingProduct || showAddForm) {
@@ -273,7 +262,7 @@ const AdminProducts: React.FC = () => {
         <ProductSizeManager
           productId={managingSizeProduct.id}
           productName={managingSizeProduct.name}
-          currentInventory={sizeInventories[managingSizeProduct.id] || {}}
+          currentInventory={getCurrentInventory(managingSizeProduct)}
           onInventoryUpdate={handleInventoryUpdate}
         />
       </div>
@@ -330,10 +319,10 @@ const AdminProducts: React.FC = () => {
                       </div>
                       <div className="mt-2">
                         <p className="text-sm text-gray-600">
-                          <strong>Size Inventory:</strong> {formatInventoryDisplay(product.id)}
+                          <strong>Size Inventory:</strong> {formatInventoryDisplay(product)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          <strong>Total Stock:</strong> {getTotalStock(product.id)} units
+                          <strong>Total Stock:</strong> {getTotalStock(product)} units
                         </p>
                       </div>
                     </div>

@@ -1,7 +1,3 @@
-
--- Schema for the application database
--- This file defines the database schema in a declarative way
-
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -33,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Product Variants Table (e.g. size, color)
+-- Product Variants Table
 CREATE TABLE IF NOT EXISTS public.product_variants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
@@ -64,7 +60,10 @@ CREATE TABLE IF NOT EXISTS public.reviews (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create stored procedures
+-- =============================
+-- Stored Procedures
+-- =============================
+
 CREATE OR REPLACE FUNCTION create_order(
   p_user_id UUID,
   p_order_number TEXT,
@@ -74,7 +73,7 @@ CREATE OR REPLACE FUNCTION create_order(
   p_payment_method TEXT,
   p_delivery_fee NUMERIC,
   p_shipping_address JSONB,
-  p_payment_details JSONB -- ✅ ADD THIS
+  p_payment_details JSONB
 ) RETURNS JSON AS $$
 DECLARE
   v_order_id UUID;
@@ -82,21 +81,17 @@ DECLARE
 BEGIN
   INSERT INTO public.orders (
     user_id, order_number, total, status, items,
-    payment_method, delivery_fee, shipping_address, payment_details -- ✅ ADD
+    payment_method, delivery_fee, shipping_address, payment_details
   ) VALUES (
     p_user_id, p_order_number, p_total, p_status, p_items,
-    p_payment_method, p_delivery_fee, p_shipping_address, p_payment_details -- ✅ ADD
+    p_payment_method, p_delivery_fee, p_shipping_address, p_payment_details
   )
   RETURNING id INTO v_order_id;
 
-  SELECT row_to_json(o) INTO v_result
-  FROM public.orders o
-  WHERE o.id = v_order_id;
-
+  SELECT row_to_json(o) INTO v_result FROM public.orders o WHERE o.id = v_order_id;
   RETURN v_result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 
 CREATE OR REPLACE FUNCTION create_order_tracking(
   p_order_id UUID,
@@ -115,46 +110,16 @@ BEGIN
     p_order_id, p_status, p_current_location, p_estimated_delivery::TIMESTAMP WITH TIME ZONE, p_history
   )
   RETURNING id INTO v_tracking_id;
-  
-  SELECT row_to_json(t) INTO v_result
-  FROM public.order_tracking t
-  WHERE t.id = v_tracking_id;
-  
+
+  SELECT row_to_json(t) INTO v_result FROM public.order_tracking t WHERE t.id = v_tracking_id;
   RETURN v_result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION get_order_by_id(order_id UUID) 
-RETURNS JSON AS $$
-DECLARE
-  v_result JSON;
-BEGIN
-  SELECT row_to_json(o)
-  INTO v_result
-  FROM public.orders o
-  WHERE o.id = order_id;
-  
-  RETURN v_result;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- =============================
+-- Row-Level Security (RLS)
+-- =============================
 
-CREATE OR REPLACE FUNCTION get_order_tracking(order_id UUID) 
-RETURNS JSON AS $$
-DECLARE
-  v_result JSON;
-BEGIN
-  SELECT row_to_json(t)
-  INTO v_result
-  FROM public.order_tracking t
-  WHERE t.order_id = order_id;
-  
-  RETURN v_result;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Set up Row Level Security policies
-
--- Enable RLS on all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.addresses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
@@ -165,38 +130,25 @@ ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_location_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for profiles
+-- Example RLS Policies
+
 CREATE POLICY "Users can view their own profile"
-  ON public.profiles
-  FOR SELECT
-  USING (auth.uid() = id);
+  ON public.profiles FOR SELECT USING (auth.uid() = id);
 
 CREATE POLICY "Users can update their own profile"
-  ON public.profiles
-  FOR UPDATE
-  USING (auth.uid() = id);
+  ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- RLS Policies for addresses
 CREATE POLICY "Users can manage their own addresses"
-  ON public.addresses
-  FOR ALL
-  USING (auth.uid() = user_id);
+  ON public.addresses FOR ALL USING (auth.uid() = user_id);
 
--- RLS Policies for orders
 CREATE POLICY "Users can view their own orders"
-  ON public.orders
-  FOR SELECT
-  USING (auth.uid() = user_id);
+  ON public.orders FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can create their own orders"
-  ON public.orders
-  FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  ON public.orders FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- RLS Policies for order tracking
 CREATE POLICY "Users can view tracking for their own orders"
-  ON public.order_tracking
-  FOR SELECT
+  ON public.order_tracking FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM public.orders
@@ -204,41 +156,29 @@ CREATE POLICY "Users can view tracking for their own orders"
     )
   );
 
--- RLS Policies for carts
 CREATE POLICY "Users can manage their own cart"
-  ON public.carts
-  FOR ALL
-  USING (auth.uid() = user_id);
+  ON public.carts FOR ALL USING (auth.uid() = user_id);
 
--- RLS Policies for wishlists
 CREATE POLICY "Users can manage their own wishlist"
-  ON public.wishlists
-  FOR ALL
-  USING (auth.uid() = user_id);
+  ON public.wishlists FOR ALL USING (auth.uid() = user_id);
 
--- RLS Policies for locations (public read)
 CREATE POLICY "Public can view locations"
-  ON public.locations
-  FOR SELECT
-  USING (true);
+  ON public.locations FOR SELECT USING (true);
 
--- RLS Policies for user location preferences
 CREATE POLICY "Users can manage their own location preferences"
-  ON public.user_location_preferences
-  FOR ALL
-  USING (auth.uid() = user_id);
+  ON public.user_location_preferences FOR ALL USING (auth.uid() = user_id);
 
--- RLS Policies for admin users
 CREATE POLICY "Admins can view admin_users"
-  ON public.admin_users
-  FOR SELECT
+  ON public.admin_users FOR SELECT
   USING (
     auth.email() IN (SELECT email FROM public.admin_users)
   );
 
--- Insert initial data
+-- =============================
+-- Seed Locations
+-- =============================
 INSERT INTO public.locations (name, code)
-VALUES 
+VALUES
   ('Karnataka', 'KA'),
   ('Tamil Nadu', 'TN'),
   ('Kerala', 'KL'),

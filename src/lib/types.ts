@@ -70,6 +70,11 @@ export interface UserProfile {
   };
 }
 
+export interface ProductVariant {
+  size: string;
+  stock: number;
+}
+
 export interface Product {
   id: string;
   productId?: string;
@@ -85,14 +90,9 @@ export interface Product {
   rating?: number;
   category: string;
   tags?: string[];
-  stock: number;
+  stock?: number;
   sizes?: string[];
   variants?: ProductVariant[];
-}
-
-export interface ProductVariant {
-  size: string;
-  stock: number;
 }
 
 export interface Category {

@@ -42,38 +42,23 @@ const ProductSizeManager: React.FC<ProductSizeManagerProps> = ({
   const saveInventory = async () => {
     setLoading(true);
     try {
-      // Format inventory as "s:5 m:8 l:10" string
-      const inventoryString = Object.entries(inventory || {})
+      // Convert inventory object to variants array format
+      const variants = Object.entries(inventory || {})
         .filter(([_, qty]) => qty > 0)
-        .map(([size, qty]) => `${size}:${qty}`)
-        .join(' ');
+        .map(([size, qty]) => ({
+          size,
+          stock: qty
+        }));
 
-      console.log('Saving inventory:', inventoryString);
+      console.log('Saving variants:', variants);
 
-      // Get current inventory data
-      const { data: currentData, error: fetchError } = await supabase
-        .from('settings')
-        .select('settings')
-        .eq('type', 'product_inventory')
-        .maybeSingle();
-
-      if (fetchError && !fetchError.message.includes('No rows found')) {
-        throw fetchError;
-      }
-
-      const currentSettings = (currentData?.settings as Record<string, any>) || {};
-      const updatedSettings = {
-        ...currentSettings,
-        [productId]: inventoryString
-      };
-
-      // Upsert the inventory data
       const { error } = await supabase
-        .from('settings')
-        .upsert({
-          type: 'product_inventory',
-          settings: updatedSettings as any
-        });
+        .from('products')
+        .update({
+          variants: variants,
+          updated_at: new Date().toISOString()
+        } as any)
+        .eq('id', productId);
 
       if (error) throw error;
 
@@ -125,10 +110,10 @@ const ProductSizeManager: React.FC<ProductSizeManagerProps> = ({
 
         <div className="mt-4 p-3 bg-gray-50 rounded">
           <p className="text-sm text-gray-600">
-            <strong>Current Inventory String:</strong>{' '}
+            <strong>Current Inventory:</strong>{' '}
             {Object.entries(inventory || {})
               .filter(([_, qty]) => qty > 0)
-              .map(([size, qty]) => `${size}:${qty}`)
+              .map(([size, qty]) => `${size.toUpperCase()}:${qty}`)
               .join(' ') || 'No inventory set'}
           </p>
         </div>

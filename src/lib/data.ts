@@ -1,13 +1,18 @@
 
-import { Product, Category, Location } from './types';
+import { Product, Category } from './types';
+
 import { supabase } from '@/integrations/supabase/client';
 
 
 // Resolved product list
+// Resolved product list
 export let products: Product[] = [];
-
 async function getProducts() {
-  const { data, error } = await supabase.from('products').select('*');
+  const { data, error } = await supabase.from('products').select(`
+    *
+    )
+  `);
+
   if (error) {
     console.error('Error fetching products:', error);
     return;
@@ -24,17 +29,16 @@ async function getProducts() {
     image: product.image || '',
     images: product.images || [],
     rating: product.rating || 0,
-    category: product.category || '',
+    category: product.categories?.name || product.category || '',
     tags: product.tags || [],
     sizes: product.sizes || [],
-    description: product.description || ''
+    description: product.description || '',
+    variants: product.product_variants || []
   }));
 }
 
-// 👇 This ensures the fetch runs once, on app load
-void getProducts();
-// Mock orders data
-
+// Load products on module import
+getProducts();
 
 
 
@@ -66,6 +70,7 @@ export const categories: Category[] = [
     image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/shirt.webp'
   }
 ];
+
 // Mock orders data for OrdersHistory component
 export const orders = [
   {

@@ -10,7 +10,7 @@ import { Edit, Trash2, Plus, Package } from 'lucide-react';
 import ProductEditForm from '../../components//admin/ProductEditForm';
 import ProductSizeManager from '../../components/admin/ProductSizeManager';
 import { Product } from '@/lib/types';
-
+import AdminLayout from '../../components/admin/AdminLayout';
 const AdminProducts: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,6 +231,7 @@ const AdminProducts: React.FC = () => {
     };
 
     return (
+       <AdminLayout title="Products">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
@@ -254,11 +255,13 @@ const AdminProducts: React.FC = () => {
           }}
         />
       </div>
+      </AdminLayout>
     );
   }
 
   if (managingSizeProduct) {
     return (
+        <AdminLayout title="Products">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Manage Size Inventory</h2>
@@ -277,10 +280,12 @@ const AdminProducts: React.FC = () => {
           onInventoryUpdate={handleInventoryUpdate}
         />
       </div>
+      </AdminLayout>
     );
   }
 
   return (
+      <AdminLayout title="Products">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Products Management</h2>
@@ -375,6 +380,7 @@ const AdminProducts: React.FC = () => {
         </div>
       )}
     </div>
+    </AdminLayout>
   );
 };
 

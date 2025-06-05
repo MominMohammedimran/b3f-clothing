@@ -109,16 +109,9 @@ const Navbar = () => {
     <div className={`fixed top-0 left-0 right-0 z-40 bg-white transition-all duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
       <div className="container-custom">
         <div className="flex items-center justify-between py-3">
-          <div className="flex items-center gap-4">
-            <LocationPopover
-              locations={locations}
-              currentLocation={currentLocation}
-              onSelectLocation={handleLocationSelect}
-              triggerClassName="px-2 py-1 border border-green-600 rounded-md hover:bg-green-50 transition-colors"
-            />
-          </div>
           
-          <Link to="/" className="flex items-center transition-transform hover:scale-105">
+          
+          <Link to="/" className="flex justify-space-between transition-transform hover:scale-105">
             <div className="h-2 sm:h-5 md:h-5 object-contain flex items-center justify-center bg-white-600 text-white px-6 rounded">
               <img style={{height:"42px",marginTop:"2px"}} src="/lovable-uploads/B3F.jpg" alt="Logo" />
             </div>

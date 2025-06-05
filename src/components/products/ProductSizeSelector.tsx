@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useInventoryManager } from '@/hooks/useInventoryManager';
 
 interface ProductSizeSelectorProps {
   productId: string;
@@ -27,10 +25,8 @@ const ProductSizeSelector: React.FC<ProductSizeSelectorProps> = ({
   selectedSizes = [],
   onSizeToggle,
   allowMultiple = false,
-  showStock = true
+  showStock = true,
 }) => {
-  const { getAvailableQuantity } = useInventoryManager();
-
   const handleSizeClick = (size: string) => {
     if (allowMultiple && onSizeToggle) {
       onSizeToggle(size);
@@ -43,7 +39,7 @@ const ProductSizeSelector: React.FC<ProductSizeSelectorProps> = ({
     if (sizeQuantities) {
       return sizeQuantities[size.toLowerCase()] || 0;
     }
-    return getAvailableQuantity(productId, size);
+    return 0; // fallback
   };
 
   const isSelected = (size: string): boolean => {
@@ -56,6 +52,7 @@ const ProductSizeSelector: React.FC<ProductSizeSelectorProps> = ({
   return (
     <div className={`space-y-3 justify-items-center ${className}`}>
       <h3 className="text-lg font-medium">Select Size:</h3>
+
       <div className="flex flex-wrap gap-2">
         {sizes.map((size) => {
           const availableQuantity = getQuantityForSize(size);
@@ -65,26 +62,24 @@ const ProductSizeSelector: React.FC<ProductSizeSelectorProps> = ({
           return (
             <div key={size} className="relative">
               <Button
-                variant={selected ? "default" : "outline"}
+                variant={selected ? 'default' : 'outline'}
                 onClick={() => !isOutOfStock && handleSizeClick(size)}
                 disabled={isOutOfStock}
-                className={`
-                  relative h-12 min-w-[3rem] px-4
+                className={`relative h-12 min-w-[3rem] px-4
                   ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : ''}
-                  ${selected ? 'ring-2 ring-blue-500' : ''}
-                `}
+                  ${selected ? 'ring-2 ring-blue-500' : ''}`}
               >
                 {size.toUpperCase()}
                 {isOutOfStock && (
-                  <span className="absolute inset-0 top-7 flex items-center justify-center text-xs text-red-500 font-medium">
+                  <span className="absolute top-[2.6rem] left-1/2 transform -translate-x-1/2 text-xs text-red-500 font-medium">
                     Out
                   </span>
                 )}
               </Button>
-              
+
               {!isOutOfStock && showStock && (
-                <Badge 
-                  variant="secondary" 
+                <Badge
+                  variant="secondary"
                   className="absolute -top-2 -right-2 min-w-[1.5rem] h-6 text-xs"
                 >
                   {availableQuantity}
@@ -94,14 +89,14 @@ const ProductSizeSelector: React.FC<ProductSizeSelectorProps> = ({
           );
         })}
       </div>
-      
+
       {(selectedSize || selectedSizes.length > 0) && showStock && (
         <p className="text-sm text-gray-600">
-          {allowMultiple && selectedSizes.length > 0 ? (
-            `Selected sizes: ${selectedSizes.join(', ')}`
-          ) : selectedSize ? (
-            `Available quantity: ${getQuantityForSize(selectedSize)} pieces`
-          ) : null}
+          {allowMultiple && selectedSizes.length > 0
+            ? `Selected sizes: ${selectedSizes.join(', ')}`
+            : selectedSize
+            ? `Available quantity: ${getQuantityForSize(selectedSize)} pieces`
+            : null}
         </p>
       )}
     </div>

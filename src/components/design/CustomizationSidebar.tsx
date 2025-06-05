@@ -152,6 +152,26 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
         </div>
       </div>
 
+      {  
+        <div className="p-4 bg-gray-50 rounded text-center">
+             <p className="font-medium mb-4">
+              If you want to share your design privately,<br />
+             click the button below:
+             </p>
+
+        <a
+            href="https://wa.me/919581319687"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-green-600 text-white font-semibold px-6 py-2 rounded shadow hover:bg-green-700 transition"
+         >
+             WhatsApp
+         </a>
+     </div>
+
+
+      }
+
       {/* Total Price Display */}
       {getTotalPrice && (
         <div className="p-3 bg-gray-50 rounded">

@@ -86,17 +86,22 @@ const AdminWebsiteUsers = () => {
       setIsSaving(true);
       console.log('Updating user:', editingUser.id, formData);
       
+      // Ensure reward_points is properly converted to integer
+      const rewardPoints = parseInt(String(formData.reward_points || 0));
+      
       const updateData = {
         first_name: formData.first_name || null,
         last_name: formData.last_name || null,
         phone: formData.phone || null,
-        phone_number: formData.phone || null, // Update both phone fields for consistency
+        phone_number: formData.phone || null,
         address: formData.address || null,
         display_name: formData.display_name || null,
         date_of_birth: formData.date_of_birth || null,
-        reward_points: parseInt(String(formData.reward_points || 0)),
+        reward_points: rewardPoints,
         updated_at: new Date().toISOString()
       };
+
+      console.log('Update data being sent:', updateData);
 
       const { data, error } = await supabase
         .from('profiles')
@@ -116,7 +121,7 @@ const AdminWebsiteUsers = () => {
       await queryClient.invalidateQueries({ queryKey: ['websiteUsers'] });
       await refetch();
       
-      toast.success('User profile updated successfully');
+      toast.success(`User profile updated successfully. Reward points set to ${rewardPoints}.`);
       setShowEditDialog(false);
       setEditingUser(null);
       setFormData({});
@@ -129,7 +134,6 @@ const AdminWebsiteUsers = () => {
   };
 
   const handleViewOrderHistory = (userId: string) => {
-    // Navigate to user order history
     window.open(`/admin/users/${userId}/orders`, '_blank');
   };
 
@@ -219,7 +223,7 @@ const AdminWebsiteUsers = () => {
                       <td className="px-4 py-2">{user.email || 'No email'}</td>
                       <td className="px-4 py-2">{user.phone || user.phone_number || 'Not provided'}</td>
                       <td className="px-4 py-2">
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                           {user.reward_points || 0} pts
                         </span>
                       </td>
@@ -322,9 +326,13 @@ const AdminWebsiteUsers = () => {
                   id="rewardPoints"
                   type="number"
                   min="0"
+                  step="1"
                   value={formData.reward_points || 0}
                   onChange={(e) => setFormData({ ...formData, reward_points: parseInt(e.target.value) || 0 })}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Each point equals ₹1. Current: {formData.reward_points || 0} points
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-4">

@@ -42,9 +42,10 @@ const CartItem = ({ id, image, name, price, quantity, options }: CartItemProps) 
   };
 
   return (
+    
     <div className="flex flex-col sm:flex-row gap-4 py-6 border-b">
       {/* Product Image */}
-      <Link to={`/product/${id}`} className="w-full sm:w-24 h-24 overflow-hidden rounded-md bg-gray-100">
+      <Link to={`/product/details${id}`} className="w-full sm:w-24 h-24 overflow-hidden rounded-md bg-gray-100">
         <img 
           src={image} 
           alt={name} 
@@ -56,7 +57,7 @@ const CartItem = ({ id, image, name, price, quantity, options }: CartItemProps) 
       <div className="flex-1">
         <div className="flex justify-between">
           <div>
-            <Link to={`/product/${id}`} className="text-lg font-medium text-gray-900 hover:text-brand-navy">
+            <Link to={`/product/details/${id}`} className="text-lg font-medium text-gray-900 hover:text-brand-navy">
               {name}
             </Link>
             

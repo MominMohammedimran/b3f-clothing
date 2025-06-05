@@ -26,7 +26,8 @@ export const sendOrderConfirmationEmail = async (orderData: OrderEmailData) => {
         status: 'confirmed',
         orderItems: orderData.orderDetails.items,
         totalAmount: orderData.orderDetails.total,
-        shippingAddress: orderData.shippingAddress
+        shippingAddress: orderData.shippingAddress,
+        businessEmail: 'b3f.prints.pages.dev@gmail.com' // Added business email
       }
     });
 
@@ -55,7 +56,8 @@ export const sendOrderStatusUpdateEmail = async (orderData: OrderEmailData) => {
         status: orderData.status || 'processing',
         orderItems: orderData.orderDetails.items,
         totalAmount: orderData.orderDetails.total,
-        shippingAddress: orderData.shippingAddress
+        shippingAddress: orderData.shippingAddress,
+        businessEmail: 'b3f.prints.pages.dev@gmail.com' // Added business email
       }
     });
 
@@ -72,7 +74,6 @@ export const sendOrderStatusUpdateEmail = async (orderData: OrderEmailData) => {
   }
 };
 
-// Helper function to automatically send emails when order status changes
 export const handleOrderStatusChange = async (
   orderId: string,
   newStatus: string,

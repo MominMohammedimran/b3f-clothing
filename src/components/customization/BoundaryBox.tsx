@@ -21,7 +21,7 @@ const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view }) => {
         return {
           ...style,
           top: view === 'back' ? '140px' : '160px',
-          left: view ==='back'? '110px':'115px',
+          left: view === 'back' ? '110px' : '115px',
           width: '80px',
           height: '100px',
         };
@@ -54,7 +54,7 @@ const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view }) => {
 
   return (
     <div
-      id="design-boundary"
+      id={`design-boundary-${productType}`}
       style={getBoundaryStyle()}
       className="design-boundary"
     />

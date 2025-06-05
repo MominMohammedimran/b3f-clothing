@@ -1,11 +1,11 @@
--- UUID extension
+-- UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =============================
 -- Products and related tables
 -- =============================
 
--- Categories table
+-- Categories Table
 CREATE TABLE IF NOT EXISTS public.categories (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Products table
+-- Products Table
 CREATE TABLE IF NOT EXISTS public.products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Product variants (e.g. size, color)
+-- Product Variants Table
 CREATE TABLE IF NOT EXISTS public.product_variants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.product_variants (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Orders table (include payment_details)
+-- Orders Table
 CREATE TABLE IF NOT EXISTS public.orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -51,13 +51,15 @@ CREATE TABLE IF NOT EXISTS public.orders (
   payment_method TEXT,
   delivery_fee NUMERIC,
   shipping_address JSONB,
-  payment_details JSONB, -- ✅ ADD THIS LINE
+  payment_details JSONB, -- ✅ payment details added
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- =============================
+-- RLS Policies for Orders
+-- =============================
 
--- RLS policies for orders
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view their own orders"

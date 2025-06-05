@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatOrderStatus, formatOrderDate, formatAddress } from '@/utils/orderUtils';
 import OrderDesignDownload from '@/components/admin/orders/OrderDesignDownload';
-
+import AdminLayout from '../../components/admin/AdminLayout';
 interface Order {
   id: string;
   order_number: string;
@@ -79,17 +79,20 @@ const AdminOrderView = () => {
 
   if (loading) {
     return (
+      <AdminLayout title='Orders'>
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading order...</span>
         </div>
       </div>
+      </AdminLayout>
     );
   }
 
   if (!order) {
     return (
+      <AdminLayout title='Orders'>
       <div className="p-6">
         <div className="text-center">
           <p className="text-gray-500">Order not found</p>
@@ -99,10 +102,12 @@ const AdminOrderView = () => {
           </Button>
         </div>
       </div>
+      </AdminLayout>
     );
   }
 
   return (
+    <AdminLayout title='Orders'>
     <div className="p-6">
       <div className="flex items-center mb-6">
         <Button 
@@ -199,6 +204,7 @@ const AdminOrderView = () => {
         </div>
       </div>
     </div>
+    </AdminLayout>
   );
 };
 

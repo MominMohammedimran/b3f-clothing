@@ -29,12 +29,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   const [internalQuantity, setInternalQuantity] = useState(1);
   const [internalSelectedSizes, setInternalSelectedSizes] = useState<string[]>([]);
   const [internalSelectedSize, setInternalSelectedSize] = useState('');
-  
-  // Use props or internal state
+
   const quantity = propQuantity ?? internalQuantity;
   const currentSelectedSizes = selectedSizes ?? internalSelectedSizes;
   const currentSelectedSize = selectedSize ?? internalSelectedSize;
-  
+
   const handleQuantityChange = (newQuantity: number) => {
     if (onQuantityChange) {
       onQuantityChange(newQuantity);
@@ -57,27 +56,53 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     } else if (setSelectedSize && !allowMultipleSizes) {
       setSelectedSize(size);
     } else {
-      // Internal state management for multiple sizes
-      setInternalSelectedSizes(prev => 
-        prev.includes(size) 
-          ? prev.filter(s => s !== size)
-          : [...prev, size]
+      setInternalSelectedSizes(prev =>
+        prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
       );
     }
   };
 
-  // Calculate total price based on selected sizes and quantity
-  const effectiveSelectedSizes = allowMultipleSizes ? currentSelectedSizes : (currentSelectedSize ? [currentSelectedSize] : []);
+  const effectiveSelectedSizes = allowMultipleSizes
+    ? currentSelectedSizes
+    : currentSelectedSize
+    ? [currentSelectedSize]
+    : [];
+
   const sizeMultiplier = effectiveSelectedSizes.length > 1 ? effectiveSelectedSizes.length : 1;
   const basePrice = product.price * sizeMultiplier;
   const totalPrice = basePrice * quantity;
 
-  // Create size quantities from product data
+  // Build sizeQuantities and availableSizes from product.variants with proper JSON parsing
   const sizeQuantities: Record<string, number> = {};
-  if (product.sizes) {
-    product.sizes.forEach(size => {
-      sizeQuantities[size] = product.stock || 0;
-    });
+  const availableSizes: string[] = [];
+
+  // Parse variants properly from JSON if needed
+  let productVariants = product.variants;
+  if (typeof productVariants === 'string') {
+    try {
+      productVariants = JSON.parse(productVariants);
+    } catch (e) {
+      console.error('Error parsing product variants:', e);
+      productVariants = [];
+    }
+  }
+
+  if (Array.isArray(productVariants)) {
+    for (const variant of productVariants) {
+      if (variant && variant.size) {
+        const sizeKey = variant.size.toLowerCase();
+        sizeQuantities[sizeKey] = variant.stock || 0;
+        if (!availableSizes.includes(variant.size)) {
+          availableSizes.push(variant.size);
+        }
+      }
+    }
+  } else if (Array.isArray(product.sizes)) {
+    // Fallback to sizes array if variants not available
+    for (const size of product.sizes) {
+      availableSizes.push(size);
+      sizeQuantities[size.toLowerCase()] = product.stock || 10;
+    }
   }
 
   return (
@@ -88,14 +113,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
           Name : <span className="text-gray-600">{product.name}</span>
         </p>
         <span
-          className="absolute top-1/2 right-0 -translate-y-1/2 text-2xl font-semibold text-white drop-shadow-md select-none 
-           bg-black px-2 py-1 rounded-lg shadow-md z-20"
-          style={{ whiteSpace: "nowrap" }}
+          className="absolute top-1/2 right-0 -translate-y-1/2 text-2xl font-semibold text-white drop-shadow-md select-none
+          bg-black px-2 py-1 rounded-lg shadow-md z-20"
+          style={{ whiteSpace: 'nowrap' }}
         >
-           ₹{totalPrice}
-           {sizeMultiplier > 1 && (
-             <span className="text-sm block">({sizeMultiplier} sizes × {quantity})</span>
-           )}
+          ₹{totalPrice}
+          {sizeMultiplier > 1 && (
+            <span className="text-sm block">({sizeMultiplier} sizes × {quantity})</span>
+          )}
         </span>
       </div>
 
@@ -105,10 +130,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       </p>
 
       {/* Size Selector */}
-      {product.sizes && product.sizes.length > 0 && (
+      {availableSizes.length > 0 && (
         <ProductSizeSelector
           productId={product.id}
-          sizes={product.sizes}
+          sizes={availableSizes}
           selectedSize={currentSelectedSize}
           onSizeSelect={handleSizeSelect}
           sizeQuantities={sizeQuantities}
@@ -120,11 +145,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       )}
 
       {/* Quantity Selector */}
-      <div className='justify-items-center flex gap-3'>
+      <div className="justify-items-center flex gap-3">
         <h3 className="text-lg font-semibold text-gray-800 mb-2s">Select Quantity</h3>
         <ProductQuantitySelector
           quantity={quantity}
-          maxQuantity={product.stock || 10}
+          maxQuantity={10}
           onChange={handleQuantityChange}
         />
       </div>

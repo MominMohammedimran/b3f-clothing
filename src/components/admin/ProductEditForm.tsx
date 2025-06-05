@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Product } from '@/lib/types';
 import ProductVariantsForm from './ProductVariantsForm';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ProductVariant {
   size: string;
@@ -21,22 +23,81 @@ interface ProductEditFormProps {
 const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, onCancel }) => {
   const [formData, setFormData] = useState<Product>(product);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [loading, setLoading] = useState(false);
 
+  // Fetch fresh product data when component mounts
   useEffect(() => {
-    // Initialize variants from product data
-    if (product.variants && Array.isArray(product.variants)) {
-      setVariants(product.variants);
-    } else if (product.sizes && Array.isArray(product.sizes)) {
-      // Convert old sizes to variants format
-      const defaultVariants = product.sizes.map(size => ({
-        size,
-        stock: Math.floor(product.stock / product.sizes.length) || 0
-      }));
-      setVariants(defaultVariants);
-    } else {
-      setVariants([]);
-    }
-  }, [product]);
+    const fetchLatestProductData = async () => {
+      if (product.id) {
+        try {
+          const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', product.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching latest product data:', error);
+            return;
+          }
+
+          if (data) {
+            // Cast data to any to avoid TypeScript issues with database types
+            const dbProduct = data as any;
+            
+            // Parse the variants from the database (it's stored as jsonb)
+            let parsedVariants: ProductVariant[] = [];
+            if (dbProduct.variants) {
+              try {
+                parsedVariants = Array.isArray(dbProduct.variants) ? dbProduct.variants : JSON.parse(dbProduct.variants as string);
+              } catch (e) {
+                console.error('Error parsing variants:', e);
+                parsedVariants = [];
+              }
+            }
+
+            // Parse images array
+            let parsedImages: string[] = [];
+            if (dbProduct.images) {
+              try {
+                parsedImages = Array.isArray(dbProduct.images) ? dbProduct.images : JSON.parse(dbProduct.images as string);
+              } catch (e) {
+                console.error('Error parsing images:', e);
+                parsedImages = [];
+              }
+            }
+
+            // Parse tags array
+            let parsedTags: string[] = [];
+            if (dbProduct.tags) {
+              try {
+                parsedTags = Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags as string);
+              } catch (e) {
+                console.error('Error parsing tags:', e);
+                parsedTags = [];
+              }
+            }
+
+            const updatedProduct: Product = {
+              ...dbProduct,
+              originalPrice: dbProduct.original_price,
+              discountPercentage: dbProduct.discount_percentage,
+              variants: parsedVariants,
+              images: parsedImages,
+              tags: parsedTags
+            };
+            
+            setFormData(updatedProduct);
+            setVariants(parsedVariants);
+          }
+        } catch (error) {
+          console.error('Error fetching product:', error);
+        }
+      }
+    };
+
+    fetchLatestProductData();
+  }, [product.id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -71,18 +132,27 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, onCa
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     
-    // Ensure variants are included in the final product data
-    const finalProduct = {
-      ...formData,
-      variants,
-      sizes: variants.map(v => v.size),
-      stock: variants.reduce((sum, v) => sum + v.stock, 0)
-    };
-    
-    onSave(finalProduct);
+    try {
+      // Ensure variants are included in the final product data
+      const finalProduct = {
+        ...formData,
+        variants,
+        sizes: variants.map(v => v.size),
+        stock: variants.reduce((sum, v) => sum + v.stock, 0)
+      };
+      
+      await onSave(finalProduct);
+      toast.success('Product updated successfully');
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast.error('Failed to save product');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -212,11 +282,11 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, onCa
       />
 
       <div className="flex justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
           Cancel
         </Button>
-        <Button type="submit">
-          {product.id ? 'Update Product' : 'Create Product'}
+        <Button type="submit" disabled={loading}>
+          {loading ? 'Saving...' : (product.id ? 'Update Product' : 'Create Product')}
         </Button>
       </div>
     </form>

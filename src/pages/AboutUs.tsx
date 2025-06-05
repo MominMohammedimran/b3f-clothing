@@ -2,7 +2,8 @@ import React from 'react';
 import Layout from '../components/layout/Layout';
 import SEOHelmet from '../components/seo/SEOHelmet';
 import { useSEO } from '../hooks/useSEO';
-
+import { Link } from 'react-router-dom';
+import{ArrowLeft} from 'lucide-react'
 const AboutUs = () => {
   const seoData = useSEO({
     title: 'About Us - Premium Custom Printing Services',
@@ -14,6 +15,13 @@ const AboutUs = () => {
     <Layout>
       <SEOHelmet {...seoData} />
       <div className="container-custom pt-2 pb-24 mt-10">
+        <div className="flex items-center mb-4 mt-4">
+                  <Link to="/" className="mr-2">
+                    <ArrowLeft size={24} className="back-arrow" />
+                  </Link>
+                  <h1 className="text-2xl font-bold text-green-600">Back</h1>
+                </div>
+        
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold text-center ">About Us</h1>
           

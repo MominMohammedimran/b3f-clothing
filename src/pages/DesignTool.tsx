@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -16,7 +15,7 @@ import CustomizationSidebar from '../components/design/CustomizationSidebar';
 import { useDesignCanvas } from '@/hooks/useDesignCanvas';
 import { useDesignToolInventory } from '@/hooks/useDesignToolInventory';
 import { useDesignProducts } from '@/hooks/useDesignProducts';
-import { validateObjectsWithinBoundary, showBoundaryValidationError } from '@/components/design/BoundaryValidator';
+import { validateObjectsWithinBoundary, showBoundaryValidationError, moveObjectsIntoBoundary } from '@/components/design/BoundaryValidator';
 
 const DesignTool = () => {
   const navigate = useNavigate();
@@ -24,6 +23,7 @@ const DesignTool = () => {
   const [activeProduct, setActiveProduct] = useState<string>('tshirt');
   const [productView, setProductView] = useState<string>('front');
   const [selectedSize, setSelectedSize] = useState<string>('M');
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
@@ -88,7 +88,6 @@ const DesignTool = () => {
     }
   }, [params.productCode]);
 
-  // Fetch product inventory on component mount
   useEffect(() => {
     fetchProductInventory();
   }, []);
@@ -111,6 +110,7 @@ const DesignTool = () => {
       setActiveProduct(productId);
       setProductView('front');
       setSelectedSize(productId === 'tshirt' ? 'M' : 'Standard');
+      setSelectedSizes([]);
       setIsDualSided(false);
       setFrontDesign(null);
       setBackDesign(null);
@@ -163,7 +163,35 @@ const DesignTool = () => {
     }
   };
 
+  const handleSizeToggle = (size: string) => {
+    setSelectedSizes(prev => {
+      if (prev.includes(size)) {
+        return prev.filter(s => s !== size);
+      } else {
+        return [...prev, size];
+      }
+    });
+    
+    if (!selectedSizes.includes(size)) {
+      setSelectedSize(size);
+    }
+  };
+
+  const getTotalPrice = () => {
+    const product = products[activeProduct];
+    const basePrice = product?.price || 200;
+    const effectiveSizes = selectedSizes.length > 0 ? selectedSizes : (selectedSize ? [selectedSize] : []);
+    const sizeMultiplier = effectiveSizes.length > 1 ? effectiveSizes.length : 1;
+    const dualSidedCost = isDualSided ? 100 : 0;
+    
+    return (basePrice * sizeMultiplier) + dualSidedCost;
+  };
+
   const validateDesign = () => {
+    if (!hasDesignElements()) {
+      return false;
+    }
+    
     if (!isDualSided) {
       return hasDesignElements();
     }
@@ -174,12 +202,10 @@ const DesignTool = () => {
   const validateDesignWithBoundary = () => {
     if (!canvas) return false;
     
-    // Check if there are design elements
     if (!hasDesignElements()) {
       return false;
     }
     
-    // Check if all elements are within boundary
     const boundaryId = `design-boundary-${activeProduct}`;
     return validateObjectsWithinBoundary(canvas, boundaryId);
   };
@@ -188,7 +214,6 @@ const DesignTool = () => {
     if (!canvas) return null;
     
     try {
-      // Generate the full canvas with both background and design elements
       const previewDataUrl = canvas.toDataURL({
         format: 'png',
         quality: 1.0,
@@ -198,7 +223,6 @@ const DesignTool = () => {
       return previewDataUrl;
     } catch (error) {
       console.error('Error generating design preview:', error);
-      // Fallback to full canvas export
       return canvas.toDataURL({ format: 'png', quality: 1.0 });
     }
   };
@@ -212,7 +236,14 @@ const DesignTool = () => {
       return;
     }
 
-    // Validate design elements exist
+    const effectiveSizes = selectedSizes.length > 0 ? selectedSizes : (selectedSize ? [selectedSize] : []);
+    if (effectiveSizes.length === 0) {
+      toast.error("Size required", {
+        description: "Please select at least one size",
+      });
+      return;
+    }
+
     if (!validateDesign()) {
       if (isDualSided) {
         toast.error("Incomplete design", {
@@ -226,15 +257,23 @@ const DesignTool = () => {
       return;
     }
 
-    // Validate boundary for current view
+    // ENHANCED BOUNDARY VALIDATION - Check if elements are within dotted line
     if (!validateDesignWithBoundary()) {
-      showBoundaryValidationError();
+      toast.error("Design elements outside boundary!", {
+        description: "Please move all text, images, and emojis within the dotted design area before adding to cart.",
+        duration: 4000,
+      });
+      
+      // Optional: Auto-move elements into boundary
+      const boundaryId = `design-boundary-${activeProduct}`;
+      moveObjectsIntoBoundary(canvas!, boundaryId);
+      toast.info("Design elements moved into boundary", {
+        description: "We've automatically moved your elements within the design area.",
+      });
       return;
     }
 
-    // For dual-sided designs, check both sides
     if (isDualSided && activeProduct === 'tshirt') {
-      // Save current side first
       if (canvas) {
         const currentDesign = canvas.toDataURL({ format: 'webp', quality: 0.9 });
         if (productView === 'front') {
@@ -244,7 +283,6 @@ const DesignTool = () => {
         }
       }
 
-      // Check if both sides are designed
       if (!frontDesign || !backDesign) {
         toast.error("Incomplete design", {
           description: "Please design both front and back sides for dual-sided printing",
@@ -256,77 +294,76 @@ const DesignTool = () => {
     try {
       if (!canvas) return;
      
-      // Check inventory
-      if (sizeInventory[activeProduct] && sizeInventory[activeProduct][selectedSize] <= 0) {
-        toast.error("Out of stock", {
-          description: `${products[activeProduct]?.name} in size ${selectedSize} is currently out of stock`,
-        });
-        return;
+      for (const size of effectiveSizes) {
+        if (sizeInventory[activeProduct] && sizeInventory[activeProduct][size.toLowerCase()] <= 0) {
+          toast.error("Out of stock", {
+            description: `${products[activeProduct]?.name} in size ${size} is currently out of stock`,
+          });
+          return;
+        }
       }
 
-      // Get canvas data for storage and generate proper preview
       const canvasJSON = canvas.toJSON();
       const previewImage = generateDesignPreview();
+      const totalPrice = getTotalPrice();
      
       if (isDualSided && activeProduct === 'tshirt') {
         const customProduct = {
           product_id: `custom-${activeProduct}-dual-${Date.now()}`,
           name: `Custom ${products[activeProduct]?.name || 'Product'} (Dual-Sided)`,
-          price: 300,
+          price: totalPrice,
           image: frontDesign,
           quantity: 1,
-          size: selectedSize,
+          size: effectiveSizes.join(', '),
           metadata: {
             view: 'Dual-Sided',
             backImage: backDesign,
             designData: canvasJSON,
-            previewImage: frontDesign
+            previewImage: frontDesign,
+            selectedSizes: effectiveSizes
           }
         };
        
         await addToCart(customProduct);
        
-        // Update inventory
-        const success = await updateInventory(activeProduct, selectedSize, -1);
-        if (success) {
-          toast.success("Added to cart", {
-            description: "Dual-sided design added to cart successfully"
-          });
-         
-          setTimeout(() => {
-            navigate('/cart');
-          }, 1000);
+        for (const size of effectiveSizes) {
+          await updateInventory(activeProduct, size, -1);
         }
+        
+        toast.success("Added to cart", {
+          description: `Dual-sided design added to cart for ${effectiveSizes.length} size${effectiveSizes.length > 1 ? 's' : ''}`
+        });
        
       } else {
         const customProduct = {
           product_id: `custom-${activeProduct}-${Date.now()}`,
           name: `Custom ${products[activeProduct]?.name || 'Product'}`,
-          price: products[activeProduct]?.price || 200,
+          price: totalPrice,
           image: previewImage || '/placeholder.svg',
           quantity: 1,
-          size: selectedSize,
+          size: effectiveSizes.join(', '),
           metadata: {
             view: productView,
             designData: canvasJSON,
-            previewImage: previewImage
+            previewImage: previewImage,
+            selectedSizes: effectiveSizes
           }
         };
        
         await addToCart(customProduct);
        
-        // Update inventory
-        const success = await updateInventory(activeProduct, selectedSize, -1);
-        if (success) {
-          toast.success("Added to cart", {
-            description: "Design added to cart successfully"
-          });
-         
-          setTimeout(() => {
-            navigate('/cart');
-          }, 1000);
+        for (const size of effectiveSizes) {
+          await updateInventory(activeProduct, size, -1);
         }
+        
+        toast.success("Added to cart", {
+          description: `Design added to cart for ${effectiveSizes.length} size${effectiveSizes.length > 1 ? 's' : ''}`
+        });
       }
+     
+      setTimeout(() => {
+        navigate('/cart');
+      }, 1000);
      
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -365,6 +402,7 @@ const DesignTool = () => {
   if (productsLoading) {
     return (
       <Layout>
+        
         <div className="container-custom px-4">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -447,6 +485,9 @@ const DesignTool = () => {
                 onOpenEmojiModal={() => setIsEmojiModalOpen(true)}
                 onAddToCart={handleAddToCart}
                 validateDesign={validateDesign}
+                selectedSizes={selectedSizes}
+                onSizeToggle={handleSizeToggle}
+                getTotalPrice={getTotalPrice}
               />
             </div>
           </div>

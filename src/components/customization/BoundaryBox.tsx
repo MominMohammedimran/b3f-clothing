@@ -28,18 +28,18 @@ const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view }) => {
       case 'mug':
         return {
           ...style,
-          top: '140px',
-          left: '115px',
-          width: '130px',
-          height: '155px',
+          top: '126px',
+          left: '80px',
+          width: '120px',
+          height: '130px',
         };
       case 'cap':
         return {
           ...style,
-          top: '110px',
-          left: '122px',
-          width: '150px',
-          height: '90px',
+          top: '105px',
+          left: '102px',
+          width: '110px',
+          height: '70px',
         };
       default:
         return {

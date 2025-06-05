@@ -47,7 +47,7 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
 }) => {
   const product = products[activeProduct];
   const productSizes = product?.sizes || ['S', 'M', 'L', 'XL'];
-  
+  console.log(product)
   return (
     <div className="bg-white rounded-lg border shadow-lg p-6 space-y-6">
       

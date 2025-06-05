@@ -185,7 +185,9 @@ const Orders = () => {
                   <div key={order.id} className="border border-gray-200 rounded-lg overflow-hidden">
                     <div className="p-4 bg-gray-50 flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <div className="text-sm text-gray-500 mb-1">Order #{order.order_number}</div>
+                        <div className="text-sm text-gray-500 mb-1 break-words max-w-[200px]">
+  Order #{order.order_number}
+</div>
                         <div className="font-semibold">{formatOrderDate(order.createdAt)}</div>
                       </div>
                       

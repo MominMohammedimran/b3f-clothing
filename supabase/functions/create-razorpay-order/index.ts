@@ -32,7 +32,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { amount, currency, receipt, cartItems, shippingAddress, customerInfo }: OrderRequest = await req.json();
@@ -41,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Create Razorpay order using direct API call
     const razorpayKeyId = 'rzp_live_FQUylFpHDtgrDj';
-    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET') || 'your_razorpay_secret_key';
+    const razorpayKeySecret =  'hICwlPjUOy0YGydGJDEsW00m';
     
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
     

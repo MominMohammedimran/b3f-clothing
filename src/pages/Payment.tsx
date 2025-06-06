@@ -209,52 +209,40 @@ const Payment = () => {
     }
   };
 
- const handleOnlinePayment = async () => {
-    setLoading(true);
-
-    try {
-      const response = await fetch('https://api.razorpay.com/v1/payment_links', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization:
-            'Basic ' +
-            btoa(`${import.meta.env.RAZORPAY_KEY_ID}:${import.meta.env.RAZORPAY_KEY_SECRET}`),
+const handleOnlinePayment = async () => {
+  setLoading(true);
+  try {
+    const response = await fetch('/api/create-payment-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: totalPrice * 100,
+        description: 'B3F Prints Order',
+        customer: {
+          name: 'Customer',
+          email: currentUser?.email,
+          contact: currentUser?.phone || '',
         },
-        body: JSON.stringify({
-          amount: totalPrice * 100, // in paisa
-          currency: 'INR',
-          description: 'B3F Prints Order',
-          customer: {
-            name: 'Customer',
-            email: currentUser?.email,
-            contact: currentUser?.phone || '',
-          },
-          notify: {
-            sms: false,
-            email: true,
-          },
-          callback_url: `https://b3f-prrints.pages.dev/oder-complete`,
-          callback_method: 'get',
-        }),
-      });
+        callback_url: `https://b3f-prrints.pages.dev/order-complete`,
+      }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok || !data.short_url) {
-        toast.error(data.error?.description || 'Failed to create payment link');
-        return;
-      }
-
-      // Redirect user to Razorpay hosted payment link
-      window.location.href = data.short_url;
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Unable to create Razorpay payment link');
-    } finally {
-      setLoading(false);
+    if (!response.ok || !data.short_url) {
+      toast.error(data.error?.description || 'Failed to create payment link');
+      return;
     }
-  };
+
+    window.location.href = data.short_url;
+  } catch (error) {
+    console.error('Error:', error);
+    toast.error('Unable to create Razorpay payment link');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (!currentUser || !cartItems.length || !shippingAddress) {
     return (

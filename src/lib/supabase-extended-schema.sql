@@ -53,12 +53,29 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+create table if not exists payments (
+  id uuid primary key default uuid_generate_v4(),
+  razorpay_payment_id text,
+  razorpay_order_id text,
+  razorpay_signature text,
+  status text,
+  created_at timestamp default now()
+);
 
 -- Add RLS policies for all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+-- Enable RLS on payments table
+alter table payments enable row level security;
+
+-- Allow insert from any user (adjust for your auth logic)
+create policy "Allow insert for all"
+on payments
+for insert
+using (true);
+
 
 -- Profiles RLS policies
 CREATE POLICY "Users can view their own profile"

@@ -209,92 +209,51 @@ const Payment = () => {
     }
   };
 
-  const handleRazorpaySuccess = async (transactionDetails: any) => {
-    if (!currentUser || !cartItems.length) {
-      toast.error('Missing required information for order placement');
-      return;
-    }
+ const handleOnlinePayment = async () => {
+    setLoading(true);
 
-    setProcessingPayment(true);
     try {
-      const orderNumber = generateOrderNumber();
-      const serializedItems = serializeCartItems(cartItems);
-      const normalizedAddress = normalizeShippingAddress(shippingAddress);
-      
-      console.log('Creating Razorpay order with transaction:', transactionDetails);
-      
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: currentUser.id,
-          user_email: currentUser.email,
-          order_number: orderNumber,
-          total: finalTotal,
-          status: 'confirmed',
-          items: serializedItems,
-          payment_method: 'razorpay',
-          delivery_fee: deliveryFee,
-          shipping_address: normalizedAddress,
-          payment_details: {
-            method: 'razorpay',
-            status: 'completed',
-            transaction_id: transactionDetails.razorpay_payment_id,
-            razorpay_payment_id: transactionDetails.razorpay_payment_id,
-            razorpay_order_id: transactionDetails.razorpay_order_id,
-            razorpay_signature: transactionDetails.razorpay_signature,
-            reward_points_used: rewardPointsUsed,
-            amount: finalTotal,
-            currency: 'INR'
+      const response = await fetch('https://api.razorpay.com/v1/payment_links', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:
+            'Basic ' +
+            btoa(`${import.meta.env.RAZORPAY_KEY_ID}:${import.meta.env.RAZORPAY_KEY_SECRET}`),
+        },
+        body: JSON.stringify({
+          amount: totalPrice * 100, // in paisa
+          currency: 'INR',
+          description: 'B3F Prints Order',
+          customer: {
+            name: 'Customer',
+            email: currentUser?.email,
+            contact: currentUser?.phone || '',
           },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+          notify: {
+            sms: false,
+            email: true,
+          },
+          callback_url: `https://b3f-prrints.pages.dev/oder-complete`,
+          callback_method: 'get',
+        }),
+      });
 
-      if (orderError) {
-        console.error('Order creation error:', orderError);
-        throw new Error(`Failed to create order: ${orderError.message}`);
+      const data = await response.json();
+
+      if (!response.ok || !data.short_url) {
+        toast.error(data.error?.description || 'Failed to create payment link');
+        return;
       }
 
-      await sendOrderEmail(orderData, 'confirmed');
-
-      if (rewardPointsUsed > 0) {
-        await supabase
-          .from('profiles')
-          .update({ 
-            reward_points: (userProfile?.reward_points || 0) - rewardPointsUsed 
-          })
-          .eq('id', currentUser.id);
-      }
-
-      console.log('Razorpay order created successfully:', orderData);
-      await clearCart();
-      toast.success('Payment successful! Order confirmed.');
-
-      setTimeout(() => {
-        navigate(`/order-complete/${orderData.id}`, {
-          state: { orderData },
-          replace: true
-        });
-      }, 500);
-
+      // Redirect user to Razorpay hosted payment link
+      window.location.href = data.short_url;
     } catch (error) {
-      console.error('Razorpay Payment error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
-      toast.error(`Payment failed: ${errorMessage}`);
+      console.error('Error:', error);
+      toast.error('Unable to create Razorpay payment link');
     } finally {
-      setProcessingPayment(false);
+      setLoading(false);
     }
-  };
-
-  const handleRazorpayError = () => {
-    console.error('Razorpay payment failed');
-    setProcessingPayment(false);
-    
-    toast.error('Payment failed', {
-      description: 'Please try again or use a different payment method'
-    });
   };
 
   if (!currentUser || !cartItems.length || !shippingAddress) {
@@ -388,18 +347,15 @@ const Payment = () => {
 
             <div className="space-y-4">
               {paymentMethod === 'razorpay' ? (
-                <RazorpayCheckout
-                  amount={finalTotal}
-                  customerInfo={{
-                    name: shippingAddress?.fullName || userProfile?.display_name || 'Customer',
-                    email: currentUser?.email || '',
-                    contact: shippingAddress?.phone || userProfile?.phone || ''
-                  }}
-                  cartItems={cartItems}
-                  shippingAddress={shippingAddress}
-                  onSuccess={handleRazorpaySuccess}
-                  onError={handleRazorpayError}
-                />
+               <Button
+  onClick={handleOnlinePayment}
+  disabled={loading}
+  className="w-full"
+  size="lg"
+>
+  {loading ? 'Redirecting...' : `Pay Online - ₹${finalTotal}`}
+</Button>
+
               ) : (
                 <Button
                   onClick={handleCODPayment}

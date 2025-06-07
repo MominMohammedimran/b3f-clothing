@@ -1,49 +1,51 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface GoogleSignInButtonProps {
-  isSignUp?: boolean;
+  loading?: boolean;
   className?: string;
 }
 
 const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ 
-  isSignUp = false, 
+  loading = false, 
   className = "" 
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const { signInWithGoogle } = useAuth();
-
   const handleGoogleSignIn = async () => {
-    setIsLoading(true);
     try {
-      await signInWithGoogle();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+
+      if (error) {
+        toast.error('Failed to sign in with Google');
+        console.error('Google sign in error:', error);
+      }
     } catch (error) {
-      console.error('Google sign-in error:', error);
+      console.error('Google sign in error:', error);
       toast.error('Failed to sign in with Google');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
     <Button
-      onClick={handleGoogleSignIn}
-      disabled={isLoading}
+      type="button"
       variant="outline"
-      className={`w-full ${className}`}
+      onClick={handleGoogleSignIn}
+      disabled={loading}
+      className={`w-full flex items-center justify-center gap-2 ${className}`}
     >
-      <img
-        src="https://developers.google.com/identity/images/g-logo.png"
-        alt="Google logo"
-        className="w-5 h-5 mr-2"
+      <img 
+        src="/lovable-uploads/google/signin.png" 
+        alt="Google" 
+        className="w-5 h-5"
       />
-      {isLoading 
-        ? (isSignUp ? 'Continuing to Google account...' : 'Signing in to Google...')
-        : (isSignUp ? 'Continue with Google' : 'Sign in with Google')
-      }
+      Continue with Google
     </Button>
   );
 };

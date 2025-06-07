@@ -153,6 +153,7 @@ export interface Database {
           total: number
           updated_at: string
           user_id: string
+          upi_input:string
         }
         Insert: {
           created_at?: string
@@ -167,6 +168,7 @@ export interface Database {
           total: number
           updated_at?: string
           user_id: string
+          upi_input:string
         }
         Update: {
           created_at?: string
@@ -181,6 +183,7 @@ export interface Database {
           total?: number
           updated_at?: string
           user_id?: string
+          upi_input:string
         }
         Relationships: []
       }
@@ -226,6 +229,49 @@ export interface Database {
             referencedColumns: ["id"];
           }
         ];
+      }
+      payments: {
+        Row: {
+          id: string
+          order_id: string | null
+          amount: number
+          upi_id: string | null
+          utr: string | null
+          screenshot_url: string | null
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          order_id?: string | null
+          amount: number
+          upi_id?: string | null
+          utr?: string | null
+          screenshot_url?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string | null
+          amount?: number
+          upi_id?: string | null
+          utr?: string | null
+          screenshot_url?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       products: {
         Row: {
@@ -403,6 +449,12 @@ export interface Database {
           user_email: string;
         };
         Returns: boolean;
+      };
+      confirm_payment: {
+        Args: {
+          payment_id: string;
+        };
+        Returns: Json;
       };
     };
     Enums: {};

@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
   shipping_address JSONB,
   date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  upi_input TEXT
 );
 
 -- Order tracking table

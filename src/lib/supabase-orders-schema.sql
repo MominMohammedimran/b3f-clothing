@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
   shipping_address JSONB,
   payment_details JSONB, -- ✅ payment details added
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  upi_input text
 );
 create table if not exists payments (
   id uuid primary key default uuid_generate_v4(),
@@ -72,6 +73,7 @@ create table if not exists payments (
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 -- Enable RLS on payments table
 alter table payments enable row level security;
+ALTER TABLE orders  ADD COLUMN upi_input TEXT;S
 
 -- Allow insert from any user (adjust for your auth logic)
 create policy "Allow insert for all"

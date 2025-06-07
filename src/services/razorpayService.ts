@@ -19,21 +19,39 @@ interface OrderNotificationData {
   shippingAddress?: any;
 }
 
-// Function to send order notification email
+// Function to send order notification email via Cloudflare Function
 export const sendOrderNotificationEmail = async (orderData: OrderNotificationData): Promise<boolean> => {
   try {
     console.log('Sending order notification email:', orderData);
 
-    const { data, error } = await supabase.functions.invoke('send-order-notification', {
-      body: orderData
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: orderData.customerEmail,
+        subject: `Order ${orderData.status} - ${orderData.orderId}`,
+        text: `Dear ${orderData.customerName},
+
+Your order ${orderData.orderId} has been ${orderData.status}.
+
+Order Details:
+- Order ID: ${orderData.orderId}
+- Total Amount: ₹${orderData.totalAmount}
+- Status: ${orderData.status}
+
+Thank you for shopping with B3F Prints & Men's Wear!
+
+Best regards,
+B3F Prints Team`
+      })
     });
 
-    if (error) {
-      console.error('Error sending order notification email:', error);
+    if (!response.ok) {
+      console.error('Error sending order notification email:', await response.text());
       return false;
     }
 
-    console.log('Order notification email sent successfully:', data);
+    console.log('Order notification email sent successfully');
     return true;
   } catch (error) {
     console.error('Error in sendOrderNotificationEmail:', error);

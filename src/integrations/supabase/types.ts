@@ -374,6 +374,57 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          order_id: string | null
+          screenshot_url: string | null
+          status: string
+          updated_at: string
+          upi_id: string
+          utr: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          upi_id?: string
+          utr?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          upi_id?: string
+          utr?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_with_user_email"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           created_at: string | null
@@ -726,6 +777,10 @@ export type Database = {
       }
     }
     Functions: {
+      confirm_payment: {
+        Args: { payment_id: string }
+        Returns: Json
+      }
       create_order: {
         Args: {
           p_user_id: string

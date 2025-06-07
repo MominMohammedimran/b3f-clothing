@@ -37,7 +37,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
   setLoading(true);
 
   try {
-    const response = await fetch('/functions/api/create-order.js', {
+    const response = await fetch('functions/api/create-order.js', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

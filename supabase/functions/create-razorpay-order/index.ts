@@ -40,8 +40,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Order request:', { amount, currency, receipt, customerInfo });
 
     // Create Razorpay order using direct API call
-    const razorpayKeyId = 'rzp_live_FQUylFpHDtgrDj';
-    const razorpayKeySecret =  'hICwlPjUOy0YGydGJDEsW00m';
+    const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
+    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
     
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
     

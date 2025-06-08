@@ -1,6 +1,7 @@
 export async function onRequestPost(context) {
+  console.log(context.env.RAZORPAY_KEY_ID);
   try {
-    const { amount, currency, receipt, cartItems, shippingAddress, customerInfo, orderNumber } = await context.request.json();
+    const { amount, currency, customerInfo, orderNumber } = await context.request.json();
 
     const {
       RAZORPAY_KEY_ID,
@@ -8,19 +9,19 @@ export async function onRequestPost(context) {
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE,
     } = context.env;
- console.log('ahhh',context.env.RAZORPAY_KEY_ID);
+
     if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
       return new Response(JSON.stringify({ error: 'Missing env vars' }), { status: 500 });
     }
 
-    // ✅ Step 1: Get real user ID from Supabase JWT
+    // ✅ Step 1: Decode Supabase JWT to get user ID
     const authHeader = context.request.headers.get('Authorization') || '';
     const jwt = authHeader.replace('Bearer ', '').trim();
 
     let userId = null;
     if (jwt && jwt.length > 20) {
       try {
-        const [header, payload] = jwt.split('.').slice(0, 2);
+        const [_, payload] = jwt.split('.');
         const decodedPayload = JSON.parse(atob(payload));
         userId = decodedPayload.sub || null;
       } catch (err) {
@@ -43,10 +44,10 @@ export async function onRequestPost(context) {
       body: JSON.stringify({
         amount,
         currency,
-        receipt,
+        receipt: orderNumber,
         notes: {
-          customer_email: customerInfo.email,
-          customer_name: customerInfo.name,
+          customer_email: customerInfo?.email || '',
+          customer_name: customerInfo?.name || '',
         },
       }),
     });
@@ -58,7 +59,7 @@ export async function onRequestPost(context) {
 
     const razorpayOrder = await razorpayRes.json();
 
-    // ✅ Step 3: Insert Order into Supabase
+    // ✅ Step 3: Insert minimal order record into Supabase
     const orderInsertRes = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
       method: 'POST',
       headers: {
@@ -68,14 +69,12 @@ export async function onRequestPost(context) {
         Prefer: 'return=representation',
       },
       body: JSON.stringify({
-        order_number: orderNumber || receipt,
+        order_number: orderNumber,
         user_id: userId,
         total: amount / 100,
         status: 'pending',
-        items: cartItems,
         payment_method: 'razorpay',
-        shipping_address: shippingAddress,
-        user_email: customerInfo.email,
+        user_email: customerInfo?.email || '',
         payment_details: {
           razorpay_order_id: razorpayOrder.id,
           amount,

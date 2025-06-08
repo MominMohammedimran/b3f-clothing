@@ -58,17 +58,12 @@ const UserProfileInfo: React.FC<UserProfileInfoProps> = ({ profile }) => {
   };
   
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-2 md:grid-cols-2 w-full mb-8">
-               <TabsTrigger value="settings" className="  text-xl md:block">Settings</TabsTrigger>
-               <TabsTrigger value="rewards" className=" text-xl md:block">Rewards</TabsTrigger>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className='pb-8'>
+              <TabsList className="grid   w-[50%] m-auto mb-8">
+               <TabsTrigger value="rewards" className=" text-xl text-center md:block mb-2">Rewards</TabsTrigger>
                 
               </TabsList>
            
-            
-              <TabsContent value="settings">
-                <AppSettings />
-              </TabsContent>
                 <TabsContent value="rewards">
                 <RewardPoints />
               </TabsContent>

@@ -86,7 +86,7 @@ const AdminProducts: React.FC = () => {
       const { data, error } = await supabase
         .from('settings')
         .select('*')
-        .eq('type', 'product_inventory');
+        .eq('type', 'products');
 
       if (error && !error.message.includes('does not exist')) {
         throw error;

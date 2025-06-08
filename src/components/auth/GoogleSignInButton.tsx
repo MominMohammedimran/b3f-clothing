@@ -1,34 +1,40 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GoogleSignInButtonProps {
-  loading?: boolean;
+  onSuccess?: () => void;
   className?: string;
 }
 
-const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ 
-  loading = false, 
-  className = "" 
-}) => {
+const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ onSuccess, className = '' }) => {
+  const [loading, setLoading] = useState(false);
+
   const handleGoogleSignIn = async () => {
+    setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/`
         }
       });
 
       if (error) {
-        toast.error('Failed to sign in with Google');
-        console.error('Google sign in error:', error);
+        throw error;
       }
-    } catch (error) {
+
+      if (data) {
+        toast.success('Redirecting to Google...');
+        if (onSuccess) onSuccess();
+      }
+    } catch (error: any) {
       console.error('Google sign in error:', error);
-      toast.error('Failed to sign in with Google');
+      toast.error(error.message || 'Failed to sign in with Google');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,16 +42,16 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     <Button
       type="button"
       variant="outline"
+      className={`w-full ${className}`}
       onClick={handleGoogleSignIn}
       disabled={loading}
-      className={`w-full flex items-center justify-center gap-2 ${className}`}
     >
-      <img 
-        src="/lovable-uploads/google/signin.png" 
-        alt="Google" 
-        className="w-5 h-5"
+      <img
+        src="/lovable-uploads/google/signin.png"
+        alt="Google"
+        className="w-5 h-5 mr-2"
       />
-      Continue with Google
+      {loading ? 'Signing in...' : 'Continue with Google'}
     </Button>
   );
 };

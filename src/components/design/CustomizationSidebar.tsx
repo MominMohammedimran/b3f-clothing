@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,7 +13,7 @@ interface CustomizationSidebarProps {
   onSizeChange: (size: string) => void;
   isDualSided: boolean;
   onDualSidedChange: (checked: boolean) => void;
-  sizeInventory: Record<string, Record<string, number>>;
+  sizeInventory: Record<string, Record<string, number>>; // you may remove this if unused now
   products: Record<string, any>;
   onOpenTextModal: () => void;
   onOpenImageModal: () => void;
@@ -46,11 +45,14 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
   getTotalPrice
 }) => {
   const product = products[activeProduct];
-  const productSizes = product?.sizes || ['S', 'M', 'L', 'XL'];
-  console.log(product)
+  const productVariants = Array.isArray(product?.variants)
+  ? product.variants.filter(v => v && typeof v.size === 'string' && typeof v.stock === 'number')
+  : [];
+
+
   return (
     <div className="bg-white rounded-lg border shadow-lg p-6 space-y-6">
-      
+
       {/* Design Tools */}
       <div className='border p-4'>
         <h3 className="text-sm text-center font-medium mb-2">Add Elements</h3>
@@ -68,12 +70,8 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
       </div>
 
       {/* Product View Selector */}
-
       <div className='border pb-4 pt-2'>
-        
-
-      <h2 className="text-lg  text-center font-semibold pb-4">Customize Your Design</h2>
-
+        <h2 className="text-lg text-center font-semibold pb-4">Customize Your Design</h2>
         <h3 className="text-sm text-center font-medium mb-2">View</h3>
         <div className="flex justify-self-center gap-2">
           <Button
@@ -109,68 +107,66 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
         </div>
       )}
 
-      {/* Size Selection */}
+      {/* Size Selection with Variants */}
       <div className='border pb-4'>
         <h3 className="text-sm font-medium text-center mb-2">Size Selection</h3>
         <div className="space-x-2 flex flex-wrap justify-center">
-          {productSizes.map((size) => {
-            const stock = sizeInventory[activeProduct]?.[size] || 0;
-            const isSelected = onSizeToggle ? selectedSizes.includes(size) : selectedSize === size;
-            
-            return (
-              <div key={size} className="grid grid-col-2 items-center justify-between p-2 border rounded">
-                <div className="flex items-center space-x-2">
-                  {onSizeToggle ? (
-                    <Checkbox
-                      checked={isSelected}
-                      className='text-center'
-                      onCheckedChange={() => onSizeToggle(size)}
-                      disabled={stock <= 0}
-                    />
-                  ) : (
-                    <Button
-                      variant={isSelected ? 'default' : 'outline'}
-                      size="sm"
-                      className='text-center'
-                      onClick={() => onSizeChange(size)}
-                      disabled={stock <= 0}
-                    >
-                      {size}
-                    </Button>
-                  )}
-              
-                </div>
-                <div className="text-center">
-                  <div className="text-xs text-gray-500">Stock: {stock}</div>
-                  {stock <= 0 && (
-                    <div className="text-xs text-red-700">Out of Stock</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {productVariants.map((variant) => {
+  const size=variant?.size||'unknown';
+  const stock=variant?.stock??0;
+  const isSelected = onSizeToggle ? selectedSizes.includes(size) : selectedSize === size;
+
+  return (
+    <div key={size} className="grid grid-col-2 items-center justify-between p-2 border rounded">
+      <div className="flex items-center space-x-2">
+        {onSizeToggle ? (
+          <Checkbox
+            checked={isSelected}
+            className="text-center"
+            onCheckedChange={() => onSizeToggle(size)}
+            disabled={stock <= 0}
+          />
+        ) : (
+          <Button
+            variant={isSelected ? 'default' : 'outline'}
+            size="sm"
+            className="text-center"
+            onClick={() => onSizeChange(size)}
+            disabled={stock <= 0}
+          >
+            {size}
+          </Button>
+        )}
+      </div>
+      <div className="text-center">
+        <div className="text-xs text-gray-500">{size} Stock: {stock}</div>
+        {stock <= 0 && (
+          <div className="text-xs text-red-700">Out of Stock</div>
+        )}
+      </div>
+    </div>
+  );
+})}
+
+
         </div>
       </div>
 
-      {  
-        <div className="p-4 bg-gray-50 rounded text-center">
-             <p className="font-medium mb-4">
-              If you want to share your design privately,<br />
-             click the button below:
-             </p>
-
+      {/* WhatsApp Share */}
+      <div className="p-4 bg-gray-50 rounded text-center">
+        <p className="font-medium mb-4">
+          If you want to share your design privately,<br />
+          click the button below:
+        </p>
         <a
-            href="https://wa.me/919581319687"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-green-600 text-white font-semibold px-6 py-2 rounded shadow hover:bg-green-700 transition"
-         >
-             WhatsApp
-         </a>
-     </div>
-
-
-      }
+          href="https://wa.me/919581319687"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block bg-green-600 text-white font-semibold px-6 py-2 rounded shadow hover:bg-green-700 transition"
+        >
+          WhatsApp
+        </a>
+      </div>
 
       {/* Total Price Display */}
       {getTotalPrice && (
@@ -182,11 +178,10 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
         </div>
       )}
 
-
-      {/* Action Buttons - Removed Save Design button */}
+      {/* Action Button */}
       <div className="space-y-2">
-        <Button 
-          className="w-full" 
+        <Button
+          className="w-full"
           onClick={onAddToCart}
           disabled={!validateDesign()}
         >

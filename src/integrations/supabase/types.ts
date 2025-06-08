@@ -266,6 +266,7 @@ export type Database = {
           status: string
           total: number
           updated_at: string | null
+          upi_input: string | null
           user_email: string | null
           user_id: string
         }
@@ -282,6 +283,7 @@ export type Database = {
           status?: string
           total: number
           updated_at?: string | null
+          upi_input?: string | null
           user_email?: string | null
           user_id: string
         }
@@ -298,6 +300,7 @@ export type Database = {
           status?: string
           total?: number
           updated_at?: string | null
+          upi_input?: string | null
           user_email?: string | null
           user_id?: string
         }

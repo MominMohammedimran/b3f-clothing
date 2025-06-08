@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, Loader2, Database, Mail, Shield, Settings, Download, Upload, Trash2, Plus } from 'lucide-react';
+import { Save, Loader2, Download, Upload, Trash2, Plus, Globe, Mail, CreditCard, Shield, Bell, Settings, Database } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 
 interface Settings {
@@ -35,11 +35,45 @@ interface Settings {
   reward_points_ratio: number;
   shipping_zones: string[];
   payment_methods: string[];
+  smtp_host: string;
+  smtp_port: number;
+  smtp_username: string;
+  smtp_password: string;
+  backup_frequency: string;
+  backup_location: string;
+  enable_analytics: boolean;
+  google_analytics_id: string;
+  facebook_pixel_id: string;
+  enable_chat_support: boolean;
+  support_email: string;
+  support_phone: string;
+  working_hours: string;
+  enable_multi_currency: boolean;
+  default_language: string;
+  enable_guest_checkout: boolean;
+  enable_product_reviews: boolean;
+  enable_order_tracking: boolean;
+  enable_inventory_alerts: boolean;
   social_media_links: {
     facebook: string;
     instagram: string;
     twitter: string;
     youtube: string;
+    linkedin: string;
+    whatsapp: string;
+  };
+  seo_settings: {
+    meta_title: string;
+    meta_description: string;
+    keywords: string;
+    robots_txt: string;
+  };
+  security_settings: {
+    enable_2fa: boolean;
+    session_timeout: number;
+    max_login_attempts: number;
+    password_min_length: number;
+    enable_captcha: boolean;
   };
   [key: string]: string | number | boolean | string[] | object;
 }
@@ -71,11 +105,45 @@ const AdminSettings = () => {
     reward_points_ratio: 1,
     shipping_zones: ['All India'],
     payment_methods: ['Razorpay', 'COD'],
+    smtp_host: '',
+    smtp_port: 587,
+    smtp_username: '',
+    smtp_password: '',
+    backup_frequency: 'daily',
+    backup_location: 'cloud',
+    enable_analytics: false,
+    google_analytics_id: '',
+    facebook_pixel_id: '',
+    enable_chat_support: false,
+    support_email: 'support@b3ffashion.com',
+    support_phone: '+91 9876543210',
+    working_hours: '9:00 AM - 6:00 PM',
+    enable_multi_currency: false,
+    default_language: 'en',
+    enable_guest_checkout: true,
+    enable_product_reviews: true,
+    enable_order_tracking: true,
+    enable_inventory_alerts: true,
     social_media_links: {
       facebook: '',
       instagram: '',
       twitter: '',
-      youtube: ''
+      youtube: '',
+      linkedin: '',
+      whatsapp: ''
+    },
+    seo_settings: {
+      meta_title: 'B3F Fashion - Your Style Destination',
+      meta_description: 'Discover the latest fashion trends at B3F Fashion',
+      keywords: 'fashion, clothing, style, trends',
+      robots_txt: 'User-agent: *\nAllow: /'
+    },
+    security_settings: {
+      enable_2fa: false,
+      session_timeout: 30,
+      max_login_attempts: 5,
+      password_min_length: 8,
+      enable_captcha: false
     }
   });
   const [loading, setLoading] = useState(false);
@@ -156,6 +224,16 @@ const AdminSettings = () => {
     }));
   };
 
+  const handleNestedChange = (parent: string, field: string, value: string | number | boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent] as object,
+        [field]: value
+      }
+    }));
+  };
+
   const handleSocialMediaChange = (platform: string, value: string) => {
     setSettings(prev => ({
       ...prev,
@@ -230,48 +308,51 @@ const AdminSettings = () => {
 
   return (
     <AdminLayout title="Admin Settings">
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <div className="flex gap-2">
-            <Button onClick={exportSettings} variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <label className="cursor-pointer">
-              <Button variant="outline" asChild>
-                <span>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import
-                </span>
-              </Button>
-              <input
-                type="file"
-                accept=".json"
-                onChange={importSettings}
-                className="hidden"
-              />
-            </label>
-            <Button onClick={handleSave} disabled={saving}>
+      <div className="p-2 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <h1 className="text-xl md:text-2xl font-bold">Settings</h1>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
               Save Settings
             </Button>
           </div>
         </div>
 
-        <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="business">Business</TabsTrigger>
-            <TabsTrigger value="ecommerce">E-commerce</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="general" className="space-y-4 md:space-y-6">
+          <div className="overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1">
+              <TabsTrigger value="general" className="text-xs md:text-sm">
+                <Globe className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                <span className="hidden sm:inline">General</span>
+              </TabsTrigger>
+              <TabsTrigger value="business" className="text-xs md:text-sm">
+                <Mail className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                <span className="hidden sm:inline">Business</span>
+              </TabsTrigger>
+              <TabsTrigger value="ecommerce" className="text-xs md:text-sm">
+                <CreditCard className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                <span className="hidden sm:inline">E-commerce</span>
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="text-xs md:text-sm">
+                <Bell className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                <span className="hidden sm:inline">Notifications</span>
+              </TabsTrigger>
+              <TabsTrigger value="security" className="text-xs md:text-sm">
+                <Shield className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                <span className="hidden sm:inline">Security</span>
+              </TabsTrigger>
+              <TabsTrigger value="advanced" className="text-xs md:text-sm">
+                <Database className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                <span className="hidden sm:inline">Advanced</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="general">
             <Card>
               <CardHeader>
-                <CardTitle>General Settings</CardTitle>
+                <CardTitle className="text-lg md:text-xl">General Settings</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -315,12 +396,45 @@ const AdminSettings = () => {
                 <div>
                   <label className="block text-sm font-medium mb-1">Site Description</label>
                   <textarea
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md text-sm"
                     rows={3}
                     value={settings.site_description}
                     onChange={(e) => handleInputChange('site_description', e.target.value)}
                     placeholder="Site description"
                   />
+                </div>
+
+                {/* SEO Settings */}
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-medium mb-4">SEO Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Meta Title</label>
+                      <Input
+                        value={settings.seo_settings.meta_title}
+                        onChange={(e) => handleNestedChange('seo_settings', 'meta_title', e.target.value)}
+                        placeholder="Meta title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Keywords</label>
+                      <Input
+                        value={settings.seo_settings.keywords}
+                        onChange={(e) => handleNestedChange('seo_settings', 'keywords', e.target.value)}
+                        placeholder="keyword1, keyword2, keyword3"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium mb-1">Meta Description</label>
+                    <textarea
+                      className="w-full p-2 border rounded-md text-sm"
+                      rows={3}
+                      value={settings.seo_settings.meta_description}
+                      onChange={(e) => handleNestedChange('seo_settings', 'meta_description', e.target.value)}
+                      placeholder="Meta description"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -329,7 +443,7 @@ const AdminSettings = () => {
           <TabsContent value="business">
             <Card>
               <CardHeader>
-                <CardTitle>Business Information</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Business Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -350,12 +464,29 @@ const AdminSettings = () => {
                       placeholder="+91 9876543210"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Support Email</label>
+                    <Input
+                      type="email"
+                      value={settings.support_email}
+                      onChange={(e) => handleInputChange('support_email', e.target.value)}
+                      placeholder="support@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Working Hours</label>
+                    <Input
+                      value={settings.working_hours}
+                      onChange={(e) => handleInputChange('working_hours', e.target.value)}
+                      placeholder="9:00 AM - 6:00 PM"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Business Address</label>
                   <textarea
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md text-sm"
                     rows={3}
                     value={settings.business_address}
                     onChange={(e) => handleInputChange('business_address', e.target.value)}
@@ -371,7 +502,7 @@ const AdminSettings = () => {
                         <label className="block text-sm font-medium mb-1 capitalize">{platform}</label>
                         <Input
                           value={url}
-                          onChange={(e) => handleSocialMediaChange(platform, e.target.value)}
+                          onChange={(e) => handleNestedChange('social_media_links', platform, e.target.value)}
                           placeholder={`https://${platform}.com/yourpage`}
                         />
                       </div>
@@ -386,7 +517,7 @@ const AdminSettings = () => {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>E-commerce Features</CardTitle>
+                  <CardTitle className="text-lg md:text-xl">E-commerce Features</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -487,7 +618,7 @@ const AdminSettings = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Shipping Zones</CardTitle>
+                  <CardTitle className="text-lg md:text-xl">Shipping Zones</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -516,7 +647,7 @@ const AdminSettings = () => {
           <TabsContent value="notifications">
             <Card>
               <CardHeader>
-                <CardTitle>Notification Settings</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Notification Settings</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -570,7 +701,7 @@ const AdminSettings = () => {
           <TabsContent value="security">
             <Card>
               <CardHeader>
-                <CardTitle>Security & Maintenance</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Security & Maintenance</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -614,6 +745,94 @@ const AdminSettings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="advanced">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg md:text-xl">Analytics & Tracking</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">Enable Analytics</h3>
+                      <p className="text-sm text-gray-600">Track website performance</p>
+                    </div>
+                    <Switch
+                      checked={settings.enable_analytics}
+                      onCheckedChange={(checked) => handleInputChange('enable_analytics', checked)}
+                    />
+                  </div>
+                  
+                  {settings.enable_analytics && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Google Analytics ID</label>
+                        <Input
+                          value={settings.google_analytics_id}
+                          onChange={(e) => handleInputChange('google_analytics_id', e.target.value)}
+                          placeholder="GA-XXXXXXXXX"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Facebook Pixel ID</label>
+                        <Input
+                          value={settings.facebook_pixel_id}
+                          onChange={(e) => handleInputChange('facebook_pixel_id', e.target.value)}
+                          placeholder="XXXXXXXXXXXXXXX"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg md:text-xl">Backup & Maintenance</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Backup Frequency</label>
+                      <select
+                        className="w-full p-2 border rounded-md text-sm"
+                        value={settings.backup_frequency}
+                        onChange={(e) => handleInputChange('backup_frequency', e.target.value)}
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Backup Location</label>
+                      <select
+                        className="w-full p-2 border rounded-md text-sm"
+                        value={settings.backup_location}
+                        onChange={(e) => handleInputChange('backup_location', e.target.value)}
+                      >
+                        <option value="cloud">Cloud Storage</option>
+                        <option value="local">Local Storage</option>
+                        <option value="both">Both</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">Maintenance Mode</h3>
+                      <p className="text-sm text-gray-600">Put site in maintenance mode</p>
+                    </div>
+                    <Switch
+                      checked={settings.maintenance_mode}
+                      onCheckedChange={(checked) => handleInputChange('maintenance_mode', checked)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

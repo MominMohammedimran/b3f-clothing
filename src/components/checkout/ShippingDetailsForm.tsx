@@ -54,16 +54,20 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
           <Input
             id="firstName"
             {...register('firstName', { required: 'First name is required' })}
-            error={errors.firstName?.message}
           />
+          {errors.firstName && (
+            <p className="text-sm text-red-600 mt-1">{errors.firstName.message}</p>
+          )}
         </div>
         <div>
           <Label htmlFor="lastName">Last Name *</Label>
           <Input
             id="lastName"
             {...register('lastName', { required: 'Last name is required' })}
-            error={errors.lastName?.message}
           />
+          {errors.lastName && (
+            <p className="text-sm text-red-600 mt-1">{errors.lastName.message}</p>
+          )}
         </div>
       </div>
 
@@ -80,8 +84,10 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
                 message: 'Please enter a valid email'
               }
             })}
-            error={errors.email?.message}
           />
+          {errors.email && (
+            <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
+          )}
         </div>
         <div>
           <Label htmlFor="phone">Phone Number *</Label>
@@ -89,8 +95,10 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
             id="phone"
             type="tel"
             {...register('phone', { required: 'Phone number is required' })}
-            error={errors.phone?.message}
           />
+          {errors.phone && (
+            <p className="text-sm text-red-600 mt-1">{errors.phone.message}</p>
+          )}
         </div>
       </div>
 
@@ -99,8 +107,10 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
         <Input
           id="address"
           {...register('address', { required: 'Address is required' })}
-          error={errors.address?.message}
         />
+        {errors.address && (
+          <p className="text-sm text-red-600 mt-1">{errors.address.message}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -109,24 +119,30 @@ const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
           <Input
             id="city"
             {...register('city', { required: 'City is required' })}
-            error={errors.city?.message}
           />
+          {errors.city && (
+            <p className="text-sm text-red-600 mt-1">{errors.city.message}</p>
+          )}
         </div>
         <div>
           <Label htmlFor="state">State *</Label>
           <Input
             id="state"
             {...register('state', { required: 'State is required' })}
-            error={errors.state?.message}
           />
+          {errors.state && (
+            <p className="text-sm text-red-600 mt-1">{errors.state.message}</p>
+          )}
         </div>
         <div>
           <Label htmlFor="zipCode">ZIP Code *</Label>
           <Input
             id="zipCode"
             {...register('zipCode', { required: 'ZIP code is required' })}
-            error={errors.zipCode?.message}
           />
+          {errors.zipCode && (
+            <p className="text-sm text-red-600 mt-1">{errors.zipCode.message}</p>
+          )}
         </div>
       </div>
 

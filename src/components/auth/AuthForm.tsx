@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthFormContainer } from './AuthFormContainer';
+import AuthFormContainer from './AuthFormContainer';
 import { useSupabaseClient } from '@/hooks/useSupabaseClient';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -22,8 +22,8 @@ export function AuthForm({ initialMode = 'signin', redirectTo = '/', isAdmin = f
 
   // For admin logins, use the container component for consistent UI
   if (isAdmin) {
-    return <AuthFormContainer initialMode={initialMode} redirectTo={redirectTo} isAdmin={true} />;
+    return <AuthFormContainer mode={initialMode} />;
   }
 
-  return <AuthFormContainer initialMode={initialMode} redirectTo={redirectTo} />;
+  return <AuthFormContainer mode={initialMode} />;
 }

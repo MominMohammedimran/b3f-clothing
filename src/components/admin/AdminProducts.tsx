@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Edit, Trash2, Plus, Package } from 'lucide-react';
+import { Edit, Trash2, Plus, Package, Search } from 'lucide-react';
 import ProductEditForm from './ProductEditForm';
 import ProductSizeManager from './ProductSizeManager';
 import { Product } from '@/lib/types';
@@ -50,7 +50,7 @@ const AdminProducts: React.FC = () => {
           images: Array.isArray(product.images) ? product.images : [],
           sizes: Array.isArray(product.sizes) ? product.sizes : [],
           tags: Array.isArray(product.tags) ? product.tags : [],
-          variants: product.variants || []
+          variants: Array.isArray(product.variants) ? product.variants : []
         }));
         setProducts(transformedProducts);
       }
@@ -64,51 +64,43 @@ const AdminProducts: React.FC = () => {
 
   const handleSaveProduct = async (productData: Product) => {
     try {
+      const dataToSave = {
+        name: productData.name,
+        description: productData.description,
+        price: productData.price,
+        original_price: productData.originalPrice,
+        discount_percentage: productData.discountPercentage,
+        category: productData.category,
+        stock: productData.stock,
+        image: productData.image,
+        images: productData.images,
+        sizes: productData.sizes,
+        tags: productData.tags,
+        code: productData.code,
+        productId: productData.code || `PROD-${Date.now()}`,
+        updated_at: new Date().toISOString()
+      } as any; // Type assertion to allow variants
+
+      // Add variants if they exist
+      if (productData.variants) {
+        dataToSave.variants = productData.variants;
+      }
+
       if (editingProduct) {
-        // Update existing product
         const { error } = await supabase
           .from('products')
-          .update({
-            name: productData.name,
-            description: productData.description,
-            price: productData.price,
-            original_price: productData.originalPrice,
-            discount_percentage: productData.discountPercentage,
-            category: productData.category,
-            stock: productData.stock,
-            image: productData.image,
-            images: productData.images,
-            sizes: productData.sizes,
-            tags: productData.tags,
-            code: productData.code,
-            variants: productData.variants || [],
-            updated_at: new Date().toISOString()
-          } as any)
+          .update(dataToSave)
           .eq('id', editingProduct.id);
 
         if (error) throw error;
         toast.success('Product updated successfully');
       } else {
-        // Add new product
         const { error } = await supabase
           .from('products')
           .insert({
-            name: productData.name,
-            description: productData.description,
-            price: productData.price,
-            original_price: productData.originalPrice,
-            discount_percentage: productData.discountPercentage,
-            category: productData.category,
-            stock: productData.stock,
-            image: productData.image,
-            images: productData.images,
-            sizes: productData.sizes,
-            tags: productData.tags,
-            code: productData.code,
-            variants: productData.variants || [],
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          } as any);
+            ...dataToSave,
+            created_at: new Date().toISOString()
+          });
 
         if (error) throw error;
         toast.success('Product created successfully');
@@ -144,7 +136,6 @@ const AdminProducts: React.FC = () => {
 
   const handleInventoryUpdate = async (productId: string, inventory: Record<string, number>) => {
     try {
-      // Convert inventory object to variants array format
       const variants = Object.entries(inventory).map(([size, stock]) => ({
         size,
         stock
@@ -155,7 +146,7 @@ const AdminProducts: React.FC = () => {
         .update({
           variants: variants,
           updated_at: new Date().toISOString()
-        } as any)
+        } as any) // Type assertion to allow variants
         .eq('id', productId);
 
       if (error) throw error;
@@ -220,15 +211,18 @@ const AdminProducts: React.FC = () => {
     };
 
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+      <div className="p-4 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-xl md:text-2xl font-bold">
+            {editingProduct ? 'Edit Product' : 'Add New Product'}
+          </h2>
           <Button
             variant="outline"
             onClick={() => {
               setEditingProduct(null);
               setShowAddForm(false);
             }}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
@@ -248,12 +242,13 @@ const AdminProducts: React.FC = () => {
 
   if (managingSizeProduct) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Manage Size Inventory</h2>
+      <div className="p-4 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-xl md:text-2xl font-bold">Manage Size Inventory</h2>
           <Button
             variant="outline"
             onClick={() => setManagingSizeProduct(null)}
+            className="w-full sm:w-auto"
           >
             Back to Products
           </Button>
@@ -270,85 +265,94 @@ const AdminProducts: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Products Management</h2>
-        <Button onClick={() => setShowAddForm(true)}>
+    <div className="p-4 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 className="text-xl md:text-2xl font-bold">Products Management</h2>
+        <Button onClick={() => setShowAddForm(true)} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Product
         </Button>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <Input
-          placeholder="Search products..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center">
+        <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
         <div className="grid gap-4">
           {filteredProducts.map((product) => (
-            <Card key={product.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4">
+            <Card key={product.id} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="flex flex-col lg:flex-row gap-4">
+                  <div className="flex items-start gap-4 flex-1">
                     <img
                       src={product.image || '/placeholder.svg'}
                       alt={product.name}
-                      className="w-16 h-16 object-cover rounded-lg"
+                      className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg flex-shrink-0"
                     />
-                    <div>
-                      <h3 className="text-lg font-semibold">{product.name}</h3>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base md:text-lg font-semibold truncate">{product.name}</h3>
                       <p className="text-sm text-gray-600">Code: {product.code}</p>
                       <p className="text-sm text-gray-600">Category: {product.category}</p>
-                      <div className="flex items-center space-x-2 mt-2">
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
                         <span className="text-lg font-bold">₹{product.price}</span>
                         {product.originalPrice && product.originalPrice > product.price && (
                           <span className="text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
                         )}
                         {product.discountPercentage && (
-                          <Badge variant="destructive">{product.discountPercentage}% OFF</Badge>
+                          <Badge variant="destructive" className="text-xs">{product.discountPercentage}% OFF</Badge>
                         )}
                       </div>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-600">
-                          <strong>Size Inventory:</strong> {formatInventoryDisplay(product)}
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs text-gray-600">
+                          <strong>Inventory:</strong> {formatInventoryDisplay(product)}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs text-gray-600">
                           <strong>Total Stock:</strong> {getTotalStock(product)} units
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  
+                  <div className="flex flex-row lg:flex-col gap-2 justify-end lg:justify-start">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setManagingSizeProduct(product)}
+                      className="flex-1 lg:flex-none"
                     >
-                      <Package className="h-4 w-4 mr-1" />
-                      Sizes
+                      <Package className="h-4 w-4 lg:mr-1" />
+                      <span className="hidden lg:inline">Sizes</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setEditingProduct(product)}
+                      className="flex-1 lg:flex-none"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-4 w-4 lg:mr-1" />
+                      <span className="hidden lg:inline">Edit</span>
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDeleteProduct(product.id)}
+                      className="flex-1 lg:flex-none"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 lg:mr-1" />
+                      <span className="hidden lg:inline">Delete</span>
                     </Button>
                   </div>
                 </div>

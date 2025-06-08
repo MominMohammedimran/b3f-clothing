@@ -6,8 +6,7 @@ import Layout from '../components/layout/Layout';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { Button } from '@/components/ui/button';
-import BharatPeUpiPayment from '../components/payment/BharatPeUpiPayment';
+import RazorpayCheckout from '../components/payment/RazorpayCheckout';
 
 // Create a simplified OrderSummary component for this page
 const OrderSummaryComponent = ({ 
@@ -69,12 +68,13 @@ const Payment = () => {
     }
   }, [currentUser, cartItems, shippingAddress, navigate]);
 
-  const generateOrderNumber = () => {
-    return `B3F-${Date.now().toString().slice(-6)}`;
+  const handlePaymentSuccess = (response: any) => {
+    console.log('Payment success:', response);
+    toast.success('Payment completed successfully!');
   };
 
-  const handlePaymentSuccess = () => {
-    toast.success('Redirecting to complete your payment...');
+  const handlePaymentError = () => {
+    toast.error('Payment failed. Please try again.');
   };
 
   if (!currentUser || !cartItems.length || !shippingAddress) {
@@ -87,30 +87,10 @@ const Payment = () => {
     );
   }
 
-  const orderData = {
-    orderId: generateOrderNumber(),
-    total: finalTotal,
-    items: cartItems.map(item => ({
-      id: item.id || `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      product_id: item.product_id || item.id,
-      name: item.name || 'Unknown Product',
-      price: Number(item.price) || 0,
-      quantity: Number(item.quantity) || 1,
-      size: item.size || '',
-      color: item.color || '',
-      image: item.image || '',
-      metadata: item.metadata || null
-    })),
-    shippingAddress: {
-      fullName: shippingAddress.fullName || shippingAddress.name || `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim() || 'Unknown',
-      address: shippingAddress.address || shippingAddress.addressLine1 || shippingAddress.street || '',
-      city: shippingAddress.city || '',
-      state: shippingAddress.state || '',
-      zipCode: shippingAddress.zipCode || shippingAddress.postalCode || '',
-      country: shippingAddress.country || 'India',
-      phone: shippingAddress.phone || '',
-      email: shippingAddress.email || currentUser?.email || ''
-    }
+  const customerInfo = {
+    name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim() || 'Guest',
+    email: shippingAddress.email || currentUser?.email || '',
+    contact: shippingAddress.phone || ''
   };
 
   return (
@@ -126,14 +106,18 @@ const Payment = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h2 className="text-lg font-semibold mb-4">BharatPe UPI Payment</h2>
+              <h2 className="text-lg font-semibold mb-4">Razorpay Payment</h2>
               <p className="text-gray-600 mb-4">
-                Pay securely using UPI to our BharatPe account. You will be redirected to complete your payment.
+                Pay securely using Razorpay. You can use Credit Card, Debit Card, Net Banking, UPI, or Wallets.
               </p>
               
-              <BharatPeUpiPayment 
-                orderData={orderData}
+              <RazorpayCheckout 
+                amount={finalTotal}
+                customerInfo={customerInfo}
+                cartItems={cartItems}
+                shippingAddress={shippingAddress}
                 onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
               />
             </div>
 
@@ -169,13 +153,13 @@ const Payment = () => {
             />
 
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-medium text-blue-800 mb-2">Payment Process:</h3>
-              <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-                <li>Click "Pay Now" above</li>
-                <li>Complete payment using your UPI app</li>
-                <li>Upload payment screenshot</li>
-                <li>Enter UTR number for verification</li>
-              </ol>
+              <h3 className="font-medium text-blue-800 mb-2">Secure Payment with Razorpay:</h3>
+              <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                <li>256-bit SSL encryption</li>
+                <li>PCI DSS compliant</li>
+                <li>Multiple payment options</li>
+                <li>Instant payment confirmation</li>
+              </ul>
             </div>
           </div>
         </div>

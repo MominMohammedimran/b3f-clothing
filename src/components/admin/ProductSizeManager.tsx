@@ -75,34 +75,37 @@ const ProductSizeManager: React.FC<ProductSizeManagerProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Size Inventory for {productName}</CardTitle>
+        <CardTitle className="text-lg md:text-xl">Size Inventory for {productName}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {standardSizes.map((size) => (
             <div key={size} className="space-y-2">
-              <label className="text-sm font-medium">{size}</label>
+              <label className="text-sm font-medium block">{size}</label>
               <Input
                 type="number"
                 min="0"
                 value={inventory[size.toLowerCase()] || 0}
                 onChange={(e) => handleInventoryChange(size, e.target.value)}
                 placeholder="0"
+                className="text-center"
               />
             </div>
           ))}
         </div>
 
-        <div className="flex justify-end space-x-2">
+        <div className="flex flex-col sm:flex-row justify-end gap-2">
           <Button
             variant="outline"
             onClick={() => setInventory(currentInventory || {})}
+            className="w-full sm:w-auto"
           >
             Reset
           </Button>
           <Button
             onClick={saveInventory}
             disabled={loading}
+            className="w-full sm:w-auto"
           >
             {loading ? 'Saving...' : 'Save Inventory'}
           </Button>

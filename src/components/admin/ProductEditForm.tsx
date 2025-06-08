@@ -1,13 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Product } from '@/lib/types';
-import ProductVariantsForm from './ProductVariantsForm';
+import { Plus, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface ProductVariant {
   size: string;
@@ -21,273 +20,208 @@ interface ProductEditFormProps {
 }
 
 const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, onCancel }) => {
-  const [formData, setFormData] = useState<Product>(product);
+  const [formData, setFormData] = useState({
+    name: product.name || '',
+    code: product.code || '',
+    description: product.description || '',
+    price: product.price || 0,
+    originalPrice: product.originalPrice || 0,
+    discountPercentage: product.discountPercentage || 0,
+    category: product.category || '',
+    image: product.image || '',
+    images: product.images || [],
+    tags: product.tags || [],
+    stock: product.stock || 0,
+  });
+
   const [variants, setVariants] = useState<ProductVariant[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [newTag, setNewTag] = useState('');
 
-  // Fetch fresh product data when component mounts
   useEffect(() => {
-    const fetchLatestProductData = async () => {
-      if (product.id) {
-        try {
-          const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .eq('id', product.id)
-            .single();
+    const fetchVariants = async () => {
+      if (!product?.id) return;
 
-          if (error) {
-            console.error('Error fetching latest product data:', error);
-            return;
-          }
+      const { data, error } = await supabase
+        .from('products')
+        .select('variants')
+        .eq('id', product.id)
+        .single();
 
-          if (data) {
-            // Cast data to any to avoid TypeScript issues with database types
-            const dbProduct = data as any;
-            
-            // Parse the variants from the database (it's stored as jsonb)
-            let parsedVariants: ProductVariant[] = [];
-            if (dbProduct.variants) {
-              try {
-                parsedVariants = Array.isArray(dbProduct.variants) ? dbProduct.variants : JSON.parse(dbProduct.variants as string);
-              } catch (e) {
-                console.error('Error parsing variants:', e);
-                parsedVariants = [];
-              }
-            }
-
-            // Parse images array
-            let parsedImages: string[] = [];
-            if (dbProduct.images) {
-              try {
-                parsedImages = Array.isArray(dbProduct.images) ? dbProduct.images : JSON.parse(dbProduct.images as string);
-              } catch (e) {
-                console.error('Error parsing images:', e);
-                parsedImages = [];
-              }
-            }
-
-            // Parse tags array
-            let parsedTags: string[] = [];
-            if (dbProduct.tags) {
-              try {
-                parsedTags = Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags as string);
-              } catch (e) {
-                console.error('Error parsing tags:', e);
-                parsedTags = [];
-              }
-            }
-
-            const updatedProduct: Product = {
-              ...dbProduct,
-              originalPrice: dbProduct.original_price,
-              discountPercentage: dbProduct.discount_percentage,
-              variants: parsedVariants,
-              images: parsedImages,
-              tags: parsedTags
-            };
-            
-            setFormData(updatedProduct);
-            setVariants(parsedVariants);
-          }
-        } catch (error) {
-          console.error('Error fetching product:', error);
-        }
+      if (error) {
+        console.error('Error fetching variants:', error);
+        return;
       }
+
+      let parsedVariants: ProductVariant[] = [];
+
+      if (data?.variants && Array.isArray(data.variants)) {
+        parsedVariants = data.variants.filter(
+          (v) => typeof v?.size === 'string' && typeof v?.stock === 'number'
+        );
+      }
+
+      setVariants(parsedVariants.length > 0 ? parsedVariants : [{ size: '', stock: 0 }]);
     };
 
-    fetchLatestProductData();
+    fetchVariants();
   }, [product.id]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'price' || name === 'originalPrice' || name === 'discountPercentage' || name === 'stock'
-        ? parseFloat(value) || 0
-        : value
-    }));
+  const handleInputChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleArrayChange = (name: string, value: string) => {
-    const arrayValue = value.split(',').map(item => item.trim()).filter(Boolean);
-    setFormData(prev => ({
-      ...prev,
-      [name]: arrayValue
-    }));
+  const addVariant = () => {
+    setVariants([...variants, { size: '', stock: 0 }]);
   };
 
-  const handleVariantsChange = (newVariants: ProductVariant[]) => {
-    setVariants(newVariants);
-    
-    // Update sizes and total stock based on variants
-    const sizes = newVariants.map(v => v.size);
-    const totalStock = newVariants.reduce((sum, v) => sum + v.stock, 0);
-    
-    setFormData(prev => ({
-      ...prev,
-      sizes,
-      stock: totalStock,
-      variants: newVariants
-    }));
+  const updateVariant = (index: number, field: keyof ProductVariant, value: string | number) => {
+    const updatedVariants = variants.map((variant, i) =>
+      i === index ? { ...variant, [field]: value } : variant
+    );
+    setVariants(updatedVariants);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      // Ensure variants are included in the final product data
-      const finalProduct = {
-        ...formData,
-        variants,
-        sizes: variants.map(v => v.size),
-        stock: variants.reduce((sum, v) => sum + v.stock, 0)
-      };
-      
-      await onSave(finalProduct);
-      toast.success('Product updated successfully');
-    } catch (error) {
-      console.error('Error saving product:', error);
-      toast.error('Failed to save product');
-    } finally {
-      setLoading(false);
+  const removeVariant = (index: number) => {
+    setVariants(variants.filter((_, i) => i !== index));
+  };
+
+  const addImage = () => {
+    if (newImageUrl.trim()) {
+      handleInputChange('images', [...formData.images, newImageUrl.trim()]);
+      setNewImageUrl('');
     }
   };
 
+  const removeImage = (index: number) => {
+    handleInputChange(
+      'images',
+      formData.images.filter((_, i) => i !== index)
+    );
+  };
+
+  const addTag = () => {
+    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+      handleInputChange('tags', [...formData.tags, newTag.trim()]);
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (index: number) => {
+    handleInputChange(
+      'tags',
+      formData.tags.filter((_, i) => i !== index)
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const cleanedVariants = variants.filter((v) => v.size && v.stock >= 0);
+    const totalStock = cleanedVariants.reduce((sum, v) => sum + v.stock, 0);
+
+    const productToSave: Product = {
+      ...product,
+      ...formData,
+      stock: totalStock,
+      variants: cleanedVariants,
+    };
+
+    onSave(productToSave);
+  };
+
+  const isInvalidVariant = variants.some((v) => !v.size || v.stock < 0);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="name">Product Name</Label>
-          <Input
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Basic Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Product Name</Label>
+              <Input id="name" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="code">Product Code</Label>
+              <Input id="code" value={formData.code} onChange={(e) => handleInputChange('code', e.target.value)} />
+            </div>
+          </div>
 
-        <div>
-          <Label htmlFor="code">Product Code</Label>
-          <Input
-            id="code"
-            name="code"
-            value={formData.code}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea id="description" value={formData.description} onChange={(e) => handleInputChange('description', e.target.value)} rows={3} />
+          </div>
 
-        <div>
-          <Label htmlFor="price">Price (₹)</Label>
-          <Input
-            id="price"
-            name="price"
-            type="number"
-            step="0.01"
-            min="0"
-            value={formData.price}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="price">Price</Label>
+              <Input id="price" type="number" step="0.01" value={formData.price} onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)} required />
+            </div>
+            <div>
+              <Label htmlFor="originalPrice">Original Price</Label>
+              <Input id="originalPrice" type="number" step="0.01" value={formData.originalPrice} onChange={(e) => handleInputChange('originalPrice', parseFloat(e.target.value) || 0)} />
+            </div>
+            <div>
+              <Label htmlFor="discountPercentage">Discount %</Label>
+              <Input id="discountPercentage" type="number" value={formData.discountPercentage} onChange={(e) => handleInputChange('discountPercentage', parseFloat(e.target.value) || 0)} />
+            </div>
+          </div>
 
-        <div>
-          <Label htmlFor="originalPrice">Original Price (₹)</Label>
-          <Input
-            id="originalPrice"
-            name="originalPrice"
-            type="number"
-            step="0.01"
-            min="0"
-            value={formData.originalPrice || formData.price}
-            onChange={handleInputChange}
-          />
-        </div>
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Input id="category" value={formData.category} onChange={(e) => handleInputChange('category', e.target.value)} required />
+          </div>
 
-        <div>
-          <Label htmlFor="discountPercentage">Discount (%)</Label>
-          <Input
-            id="discountPercentage"
-            name="discountPercentage"
-            type="number"
-            min="0"
-            max="100"
-            value={formData.discountPercentage || 0}
-            onChange={handleInputChange}
-          />
-        </div>
+          <div>
+            <Label htmlFor="image">Main Image URL</Label>
+            <Input id="image" value={formData.image} onChange={(e) => handleInputChange('image', e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
 
-        <div>
-          <Label htmlFor="category">Category</Label>
-          <Input
-            id="category"
-            name="category"
-            value={formData.category}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Product Variants & Stock (fetched from DB)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button type="button" onClick={addVariant} variant="outline">
+            <Plus className="h-4 w-4 mr-2" /> Add Size Variant
+          </Button>
 
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleInputChange}
-          rows={3}
-        />
-      </div>
+          <div className="space-y-3">
+            {variants.map((variant, index) => (
+              <div key={index} className="flex items-center gap-3 p-3 border rounded">
+                <div className="flex-1">
+                  <Label>Size</Label>
+                  <Input value={variant.size} onChange={(e) => updateVariant(index, 'size', e.target.value)} placeholder="e.g., S, M, L, XL" />
+                </div>
+                <div className="flex-1">
+                  <Label>Stock</Label>
+                  <Input type="number" value={variant.stock} onChange={(e) => updateVariant(index, 'stock', parseInt(e.target.value) || 0)} min="0" />
+                </div>
+                <Button type="button" variant="destructive" onClick={() => removeVariant(index)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
 
-      <div>
-        <Label htmlFor="image">Main Image URL</Label>
-        <Input
-          id="image"
-          name="image"
-          value={formData.image}
-          onChange={handleInputChange}
-          placeholder="https://example.com/image.jpg"
-        />
-      </div>
+          {variants.length > 0 && (
+            <div className="bg-blue-50 p-3 rounded">
+              <p className="text-sm text-blue-800">
+                Total Stock: {variants.reduce((sum, v) => sum + v.stock, 0)} units
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <div>
-        <Label htmlFor="images">Additional Images (comma-separated URLs)</Label>
-        <Input
-          id="images"
-          name="images"
-          value={formData.images?.join(', ') || ''}
-          onChange={(e) => handleArrayChange('images', e.target.value)}
-          placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="tags">Tags (comma-separated)</Label>
-        <Input
-          id="tags"
-          name="tags"
-          value={formData.tags?.join(', ') || ''}
-          onChange={(e) => handleArrayChange('tags', e.target.value)}
-          placeholder="featured, new, sale"
-        />
-      </div>
-
-      <ProductVariantsForm 
-        variants={variants}
-        onVariantsChange={handleVariantsChange}
-      />
-
-      <div className="flex justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Saving...' : (product.id ? 'Update Product' : 'Create Product')}
-        </Button>
+      <div className="flex justify-end space-x-3">
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={isInvalidVariant}>Save Product</Button>
       </div>
     </form>
   );

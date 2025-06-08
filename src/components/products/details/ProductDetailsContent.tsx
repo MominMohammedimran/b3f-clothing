@@ -1,42 +1,32 @@
 
 import React, { useState } from 'react';
 import { Product } from '@/lib/types';
+import ProductImage from '../ProductImage';
 import ProductDetails from '../ProductDetails';
-import ProductImageGallery from '../ProductImageGallery';
 
 interface ProductDetailsContentProps {
   product: Product;
 }
 
-const ProductDetailsContent = ({ product }: ProductDetailsContentProps) => {
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+const ProductDetailsContent: React.FC<ProductDetailsContentProps> = ({ product }) => {
+  const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
 
-  const handleSizeToggle = (size: string) => {
-    setSelectedSizes(prev => 
-      prev.includes(size) 
-        ? prev.filter(s => s !== size)
-        : [...prev, size]
-    );
-  };
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-      
-      <ProductImageGallery  
-        images={[product.image, ...(product.images || []).filter(img => img && img !== product.image)]}
-        productName={product.name}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white rounded-xl shadow-md p-6">
+      <ProductImage 
+        image={product.image} 
+        name={product.name} 
+        additionalImages={product.images || []}
       />
       
-      <ProductDetails 
-        product={product} 
-        selectedSizes={selectedSizes}
-        onSizeToggle={handleSizeToggle}
+      <ProductDetails
+        product={product}
+        selectedSize={selectedSize}
+        setSelectedSize={setSelectedSize}
         quantity={quantity}
         onQuantityChange={setQuantity}
-        allowMultipleSizes={true}
       />
- 
     </div>
   );
 };

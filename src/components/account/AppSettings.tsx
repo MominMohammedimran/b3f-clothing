@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Eye, EyeOff, Moon, Sun } from 'lucide-react';
-import { useSupabaseClient } from '../../hooks/useSupabase';
-
+import { useSupabaseClient } from '@/hooks/useSupabase';
 const AppSettings = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [passwordData, setPasswordData] = useState({

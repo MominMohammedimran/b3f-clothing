@@ -72,62 +72,74 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   const basePrice = product.price * sizeMultiplier;
   const totalPrice = basePrice * quantity;
 
-  // Build sizeQuantities and availableSizes from product.variants with proper JSON parsing
+  // Parse variants from JSON and build size data
   const sizeQuantities: Record<string, number> = {};
   const availableSizes: string[] = [];
-
+ console.log('ajs',product)
   // Parse variants properly from JSON if needed
   let productVariants = product.variants;
   if (typeof productVariants === 'string') {
     try {
       productVariants = JSON.parse(productVariants);
+      console.log('variant',productVariants)
     } catch (e) {
       console.error('Error parsing product variants:', e);
       productVariants = [];
     }
   }
 
-  if (Array.isArray(productVariants)) {
+  // Build size data from variants
+  if (Array.isArray(productVariants) && productVariants.length > 0) {
     for (const variant of productVariants) {
       if (variant && variant.size) {
         const sizeKey = variant.size.toLowerCase();
-        sizeQuantities[sizeKey] = variant.stock || 0;
-        if (!availableSizes.includes(variant.size)) {
+        const stock = variant.stock || 0;
+        sizeQuantities[sizeKey] = stock;
+        if (stock > 0 && !availableSizes.includes(variant.size)) {
           availableSizes.push(variant.size);
         }
       }
     }
-  } else if (Array.isArray(product.sizes)) {
+  } else if (Array.isArray(product.sizes) && product.sizes.length > 0) {
     // Fallback to sizes array if variants not available
     for (const size of product.sizes) {
       availableSizes.push(size);
       sizeQuantities[size.toLowerCase()] = product.stock || 10;
     }
+  } else {
+    // Default sizes if no variants or sizes
+    const defaultSizes = ['S', 'M', 'L', 'XL'];
+    for (const size of defaultSizes) {
+      availableSizes.push(size);
+      sizeQuantities[size.toLowerCase()] = product.stock || 10;
+    }
   }
-
   return (
-    <div className="space-y-8 bg-white p-6 rounded-xl shadow-md relative">
+    <div className="space-y-6 bg-white p-4 md:p-6 rounded-xl shadow-md">
       {/* Product Title + Price */}
       <div className="relative">
-        <p className="text-xl font-semibold text-gray-900 tracking-tight">
-          Name : <span className="text-gray-600">{product.name}</span>
-        </p>
-        <span
-          className="absolute top-1/2 right-0 -translate-y-1/2 text-2xl font-semibold text-white drop-shadow-md select-none
-          bg-black px-2 py-1 rounded-lg shadow-md z-20"
-          style={{ whiteSpace: 'nowrap' }}
-        >
-          ₹{totalPrice}
+        <h2 className="text-lg md:text-xl font-semibold text-gray-900 tracking-tight mb-2">
+          {product.name}
+        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <span className="text-2xl md:text-3xl font-bold text-blue-600">
+            ₹{totalPrice}
+          </span>
           {sizeMultiplier > 1 && (
-            <span className="text-sm block">({sizeMultiplier} sizes × {quantity})</span>
+            <span className="text-sm text-gray-600">
+              ({sizeMultiplier} sizes × {quantity} qty)
+            </span>
           )}
-        </span>
+        </div>
       </div>
 
       {/* Description */}
-      <p className="text-lg font-semibold text-gray-900 ">
-        Description : <span className="text-gray-600">{product.description}</span>
-      </p>
+      {product.description && (
+        <div>
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">Description</h3>
+          <p className="text-gray-600 text-sm md:text-base">{product.description}</p>
+        </div>
+      )}
 
       {/* Size Selector */}
       {availableSizes.length > 0 && (
@@ -145,8 +157,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       )}
 
       {/* Quantity Selector */}
-      <div className="justify-items-center flex gap-3">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2s">Select Quantity</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <h3 className="text-base md:text-lg font-semibold text-gray-800">Quantity</h3>
         <ProductQuantitySelector
           quantity={quantity}
           maxQuantity={10}
@@ -164,25 +176,25 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       />
 
       {/* Price breakdown and badges */}
-      <div className="flex flex-wrap items-center gap-3 mt-2">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         {product.originalPrice && product.originalPrice > product.price && (
           <>
-            <span className="text-lg text-gray-400 line-through">
+            <span className="text-gray-400 line-through">
               ₹{product.originalPrice * sizeMultiplier * quantity}
             </span>
-            <span className="bg-red-100 text-red-800 text-sm font-semibold px-3 py-1 rounded-full shadow">
+            <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
               {product.discountPercentage}% OFF
             </span>
           </>
         )}
         {sizeMultiplier > 1 && (
-          <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full shadow">
-            {sizeMultiplier} Sizes Selected (₹{basePrice} base price)
+          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+            {sizeMultiplier} Sizes
           </span>
         )}
         {quantity > 1 && (
-          <span className="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full shadow">
-            Quantity: {quantity}
+          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+            Qty: {quantity}
           </span>
         )}
       </div>

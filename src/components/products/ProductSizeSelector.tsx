@@ -1,13 +1,12 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
 interface ProductSizeSelectorProps {
   productId: string;
   sizes: string[];
-  selectedSize: string;
-  onSizeSelect: (size: string) => void;
-  className?: string;
+  selectedSize?: string;
+  onSizeSelect?: (size: string) => void;
   sizeQuantities?: Record<string, number>;
   selectedSizes?: string[];
   onSizeToggle?: (size: string) => void;
@@ -20,84 +19,82 @@ const ProductSizeSelector: React.FC<ProductSizeSelectorProps> = ({
   sizes,
   selectedSize,
   onSizeSelect,
-  className = '',
-  sizeQuantities,
+  sizeQuantities = {},
   selectedSizes = [],
   onSizeToggle,
   allowMultiple = false,
-  showStock = true,
+  showStock = false
 }) => {
   const handleSizeClick = (size: string) => {
     if (allowMultiple && onSizeToggle) {
       onSizeToggle(size);
-    } else {
+    } else if (onSizeSelect) {
       onSizeSelect(size);
     }
   };
 
-  const getQuantityForSize = (size: string): number => {
-    if (sizeQuantities) {
-      return sizeQuantities[size.toLowerCase()] || 0;
-    }
-    return 0; // fallback
-  };
-
-  const isSelected = (size: string): boolean => {
+  const isSizeSelected = (size: string) => {
     if (allowMultiple) {
       return selectedSizes.includes(size);
     }
     return selectedSize === size;
   };
 
-  return (
-    <div className={`space-y-3 justify-items-center ${className}`}>
-      <h3 className="text-lg font-medium">Select Size:</h3>
+  const getSizeStock = (size: string) => {
+    return sizeQuantities[size.toLowerCase()] || 0;
+  };
 
-      <div className="flex flex-wrap gap-2">
+  const isSizeAvailable = (size: string) => {
+    return getSizeStock(size) > 0;
+  };
+
+  if (!sizes || sizes.length === 0) {
+    return (
+      <div className="text-gray-500 text-center py-4">
+        No sizes available for this product
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-lg font-semibold text-gray-800">
+        {allowMultiple ? 'Select Sizes' : 'Select Size'}
+      </h3>
+      <div className="grid grid-cols-4 gap-2">
         {sizes.map((size) => {
-          const availableQuantity = getQuantityForSize(size);
-          const isOutOfStock = availableQuantity === 0;
-          const selected = isSelected(size);
+          const isSelected = isSizeSelected(size);
+          const isAvailable = isSizeAvailable(size);
+          const stock = getSizeStock(size);
 
           return (
             <div key={size} className="relative">
               <Button
-                variant={selected ? 'default' : 'outline'}
-                onClick={() => !isOutOfStock && handleSizeClick(size)}
-                disabled={isOutOfStock}
-                className={`relative h-12 min-w-[3rem] px-4
-                  ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : ''}
-                  ${selected ? 'ring-2 ring-blue-500' : ''}`}
+                variant={isSelected ? "default" : "outline"}
+                className={`w-full h-12 ${
+                  !isAvailable ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                onClick={() => handleSizeClick(size)}
+                disabled={!isAvailable}
               >
                 {size.toUpperCase()}
-                {isOutOfStock && (
-                  <span className="absolute top-[2.6rem] left-1/2 transform -translate-x-1/2 text-xs text-red-500 font-medium">
-                    Out
-                  </span>
-                )}
               </Button>
-
-              {!isOutOfStock && showStock && (
-                <Badge
-                  variant="secondary"
-                  className="absolute -top-2 -right-2 min-w-[1.5rem] h-6 text-xs"
-                >
-                  {availableQuantity}
-                </Badge>
+              {showStock && (
+                <div className="text-xs text-center mt-1 text-gray-600">
+                  Stock: {stock}
+                </div>
               )}
             </div>
           );
         })}
       </div>
-
-      {(selectedSize || selectedSizes.length > 0) && showStock && (
-        <p className="text-sm text-gray-600">
-          {allowMultiple && selectedSizes.length > 0
-            ? `Selected sizes: ${selectedSizes.join(', ')}`
-            : selectedSize
-            ? `Available quantity: ${getQuantityForSize(selectedSize)} pieces`
-            : null}
-        </p>
+      
+      {allowMultiple && selectedSizes.length > 0 && (
+        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>Selected sizes:</strong> {selectedSizes.join(', ')}
+          </p>
+        </div>
       )}
     </div>
   );

@@ -59,6 +59,38 @@ B3F Prints Team`
   }
 };
 
+// Function to create Razorpay order
+export const createRazorpayOrder = async (orderData: {
+  amount: number;
+  currency: string;
+  receipt: string;
+  cartItems: any[];
+  shippingAddress: any;
+  customerInfo: {
+    name: string;
+    email: string;
+    contact: string;
+  };
+}): Promise<any> => {
+  try {
+    const response = await fetch('/api/create-razorpay-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create Razorpay order');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating Razorpay order:', error);
+    throw error;
+  }
+};
+
 // Function to send a notification through multiple channels
 export const sendNotification = async (payload: any): Promise<boolean> => {
   try {

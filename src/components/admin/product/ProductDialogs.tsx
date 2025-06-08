@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Product } from '@/lib/types';
-import ProductForm from './form/ProductForm';
+import ProductEditForm from '../ProductEditForm';
 
 interface ProductDialogsProps {
   showEditDialog: boolean;
@@ -39,7 +39,8 @@ const ProductDialogs: React.FC<ProductDialogsProps> = ({
     category: '',
     tags: [],
     sizes: [],
-    stock: 0
+    stock: 0,
+    variants: []
   });
   
   return (
@@ -51,7 +52,7 @@ const ProductDialogs: React.FC<ProductDialogsProps> = ({
             <DialogHeader>
               <DialogTitle>Edit Product</DialogTitle>
             </DialogHeader>
-            <ProductForm
+            <ProductEditForm
               product={{
                 ...selectedProduct,
                 image: imagePreviewUrl || selectedProduct.image
@@ -69,7 +70,7 @@ const ProductDialogs: React.FC<ProductDialogsProps> = ({
           <DialogHeader>
             <DialogTitle>Add Product</DialogTitle>
           </DialogHeader>
-          <ProductForm
+          <ProductEditForm
             product={{
               ...newProduct,
               image: imagePreviewUrl

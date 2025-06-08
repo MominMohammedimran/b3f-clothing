@@ -46,6 +46,10 @@ const ProductDetailsPage = () => {
             stock: data.stock || 0,
             sizes: Array.isArray(data.sizes) ? data.sizes.filter(size => typeof size === 'string') : [],
             tags: Array.isArray(data.tags) ? data.tags.filter(tag => typeof tag === 'string') : [],
+            // ✅ Add variants check
+           variants: Array.isArray(data.variants)
+      ? data.variants.filter(v => typeof v === 'object' && v.size && v.stock !== undefined)
+      : []
           };
 
           setProduct(transformedProduct);

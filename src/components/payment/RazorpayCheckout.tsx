@@ -102,7 +102,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
       try {
         data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response:', parseError);
+        console.error('Failed to parse response:', parseError);g
         throw new Error('Invalid JSON response from server');
       }
 

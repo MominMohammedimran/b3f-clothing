@@ -1,121 +1,110 @@
-
 export async function onRequestPost(context) {
   try {
-    const { amount, currency, receipt, cartItems, shippingAddress, customerInfo } = await context.request.json();
+    const { amount, currency, receipt, cartItems, shippingAddress, customerInfo, orderNumber } = await context.request.json();
 
-    if (!amount || !currency || !receipt || !customerInfo) {
-      return new Response(JSON.stringify({ 
-        error: 'Missing required fields: amount, currency, receipt, customerInfo' 
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Get environment variables
     const {
       RAZORPAY_KEY_ID,
       RAZORPAY_KEY_SECRET,
       SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE
+      SUPABASE_SERVICE_ROLE,
     } = context.env;
 
     if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
-      return new Response(JSON.stringify({ 
-        error: 'Missing required environment variables' 
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(JSON.stringify({ error: 'Missing env vars' }), { status: 500 });
     }
 
-    // Create Razorpay order
-    const auth = btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
-    
-    const orderPayload = {
-      amount,
-      currency,
-      receipt,
-      notes: {
-        customer_email: customerInfo.email,
-        customer_name: customerInfo.name
+    // ✅ Step 1: Get real user ID from Supabase JWT
+    const authHeader = context.request.headers.get('Authorization') || '';
+    const jwt = authHeader.replace('Bearer ', '').trim();
+
+    let userId = null;
+    if (jwt && jwt.length > 20) {
+      try {
+        const [header, payload] = jwt.split('.').slice(0, 2);
+        const decodedPayload = JSON.parse(atob(payload));
+        userId = decodedPayload.sub || null;
+      } catch (err) {
+        console.warn('Failed to decode JWT');
       }
-    };
-
-    const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(orderPayload)
-    });
-
-    if (!razorpayResponse.ok) {
-      const errorText = await razorpayResponse.text();
-      console.error('Razorpay API error:', errorText);
-      throw new Error(`Razorpay API error: ${errorText}`);
     }
 
-    const razorpayOrder = await razorpayResponse.json();
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Invalid or missing Supabase token' }), { status: 401 });
+    }
 
-    // Store order in Supabase
-    const orderNumber = `B3F-${Date.now().toString().slice(-6)}`;
-    
-    const supabaseResponse = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+    // ✅ Step 2: Create Razorpay Order
+    const auth = btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
+    const razorpayRes = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`,
-        'apikey': SUPABASE_SERVICE_ROLE,
+        Authorization: `Basic ${auth}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-        order_number: orderNumber,
-        user_id: '00000000-0000-0000-0000-000000000000', // Default user for guest orders
+        amount,
+        currency,
+        receipt,
+        notes: {
+          customer_email: customerInfo.email,
+          customer_name: customerInfo.name,
+        },
+      }),
+    });
+
+    if (!razorpayRes.ok) {
+      const errorText = await razorpayRes.text();
+      throw new Error(`Razorpay Error: ${errorText}`);
+    }
+
+    const razorpayOrder = await razorpayRes.json();
+
+    // ✅ Step 3: Insert Order into Supabase
+    const orderInsertRes = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE}`,
+        apikey: SUPABASE_SERVICE_ROLE,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify({
+        order_number: orderNumber || receipt,
+        user_id: userId,
         total: amount / 100,
         status: 'pending',
         items: cartItems,
         payment_method: 'razorpay',
-        delivery_fee: 0,
         shipping_address: shippingAddress,
         user_email: customerInfo.email,
         payment_details: {
           razorpay_order_id: razorpayOrder.id,
-          amount: amount,
-          currency: currency
-        }
-      })
+          amount,
+          currency,
+        },
+      }),
     });
 
-    if (!supabaseResponse.ok) {
-      const errorText = await supabaseResponse.text();
-      console.error('Supabase error:', errorText);
-      throw new Error(`Supabase error: ${errorText}`);
+    if (!orderInsertRes.ok) {
+      const errorText = await orderInsertRes.text();
+      throw new Error(`Supabase Error: ${errorText}`);
     }
 
-    const order = await supabaseResponse.json();
+    const dbOrder = await orderInsertRes.json();
 
-    return new Response(JSON.stringify({
-      order_id: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-      key_id: RAZORPAY_KEY_ID,
-      order_number: orderNumber,
-      db_order_id: order[0].id
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error('Error in create-razorpay-order:', error);
-    
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Failed to create order',
-      details: error
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // ✅ Step 4: Return order info to frontend
+    return new Response(
+      JSON.stringify({
+        order_id: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        key_id: RAZORPAY_KEY_ID,
+        order_number: orderNumber,
+        db_order_id: dbOrder?.[0]?.id || null,
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (err) {
+    console.error('❌ create-order error:', err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }

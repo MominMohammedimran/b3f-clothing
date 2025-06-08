@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RazorpayCheckoutProps {
   amount: number;
@@ -29,7 +29,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
   cartItems,
   shippingAddress,
   onSuccess,
-  onError
+  onError,
 }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -54,7 +54,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
     setLoading(true);
 
     try {
-      // Load Razorpay script
       const isScriptLoaded = await loadRazorpayScript();
       if (!isScriptLoaded) {
         throw new Error('Failed to load Razorpay script');
@@ -62,55 +61,56 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
 
       const orderNumber = generateB3FOrderNumber();
 
-      // Try Supabase Edge Function first
-      let response;
+      // ✅ Get the logged-in user's access token
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('You must be logged in to proceed with payment.');
+      }
+
+      // 🔁 Send request to Cloudflare function or API
+      const response = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`, // ✅ real token
+        },
+        body: JSON.stringify({
+          amount: Math.round(amount * 100),
+          currency: 'INR',
+          receipt: orderNumber,
+          cartItems,
+          shippingAddress,
+          customerInfo,
+          orderNumber,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} - ${errorText || 'Unknown error'}`);
+      }
+
+      const responseText = await response.text();
+      if (!responseText.trim()) {
+        throw new Error('Empty response from server');
+      }
+
       let data;
-
       try {
-        response = await fetch('https://cmpggiyuiattqjmddcac.supabase.co/functions/v1/create-razorpay-order', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtcGdnaXl1aWF0dHFqbWRkY2FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzkwNDksImV4cCI6MjA2Mjk1NTA0OX0.-8ae0vFjxM6FR8RgssFduVaBjfERURWQL8Wj3i5TujE`
-          },
-          body: JSON.stringify({
-            amount: Math.round(amount * 100), // Convert to paise
-            currency: 'INR',
-            receipt: orderNumber,
-            cartItems,
-            shippingAddress,
-            customerInfo,
-            orderNumber
-          })
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`API error: ${response.status} - ${errorText || 'Unknown error'}`);
-        }
-
-        const responseText = await response.text();
-        if (!responseText.trim()) {
-          throw new Error('Empty response from server');
-        }
-
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('Failed to parse response:', parseError);
-          throw new Error('Invalid JSON response from server');
-        }
-
-      } catch (error) {
-        console.error('Payment setup error:', error);
-        throw error;
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        throw new Error('Invalid JSON response from server');
       }
 
       if (!data || !data.order_id) {
         throw new Error('Invalid response: missing order_id');
       }
 
-      // Configure Razorpay options
+      // 🧾 Razorpay Checkout Options
       const options = {
         key: data.key_id,
         amount: data.amount,
@@ -121,24 +121,52 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         prefill: {
           name: customerInfo.name,
           email: customerInfo.email,
-          contact: customerInfo.contact
+          contact: customerInfo.contact,
         },
         theme: {
-          color: '#2563eb'
+          color: '#2563eb',
         },
-        handler: function (response: any) {
-          console.log('Payment successful:', response);
-          toast.success('Payment successful!');
-          onSuccess(response);
-          navigate(`/order-complete?orderId=${data.db_order_id}&orderNumber=${data.order_number || orderNumber}`);
-        },
+        handler: async function (response: any) {
+  console.log('Payment successful:', response);
+  toast.success('Payment successful!');
+
+  try {
+    await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: customerInfo.email,
+        subject: `B3F Prints: Order ${data.order_number} Confirmation`,
+        text: `Dear ${customerInfo.name},
+
+We have received your payment for order ${data.order_number}.
+Thank you for shopping with B3F Prints!
+
+🧾 Order Total: ₹${(amount).toFixed(2)}
+🛒 Order ID: ${data.order_number}
+📦 We will notify you once it is shipped.
+
+– B3F Prints & Men's Wear`,
+      }),
+    });
+
+    toast.success('Confirmation email sent');
+  } catch (emailError) {
+    console.warn('Email sending failed:', emailError);
+    toast.warning('Order confirmed, but email failed to send');
+  }
+
+  onSuccess(response);
+  navigate(`/order-complete?orderId=${data.db_order_id}&orderNumber=${data.order_number || orderNumber}`);
+},
+
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             console.log('Payment cancelled');
             toast.error('Payment cancelled');
             onError();
-          }
-        }
+          },
+        },
       };
 
       const razorpay = new window.Razorpay(options);

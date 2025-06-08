@@ -6,11 +6,10 @@ export async function onRequestPost(context) {
       RAZORPAY_KEY_ID,
       RAZORPAY_KEY_SECRET,
       SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_SERVICE_ROLE,
     } = context.env;
-console.log("RAZORPAY_KEY_ID", context.env.RAZORPAY_KEY_ID);
-
-    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+ console.log('ahhh',context.env.RAZORPAY_KEY_ID);
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
       return new Response(JSON.stringify({ error: 'Missing env vars' }), { status: 500 });
     }
 
@@ -63,8 +62,8 @@ console.log("RAZORPAY_KEY_ID", context.env.RAZORPAY_KEY_ID);
     const orderInsertRes = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE}`,
+        apikey: SUPABASE_SERVICE_ROLE,
         'Content-Type': 'application/json',
         Prefer: 'return=representation',
       },

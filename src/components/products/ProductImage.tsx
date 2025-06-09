@@ -70,7 +70,7 @@ const ProductImage = ({ image, name, additionalImages = [] }: ProductImageProps)
       </div>
       
       {images.length > 1 && (
-        <div className="flex overflow-x-auto gap-4 py-2 no-scrollbar">
+        <div className="flex overflow-x-auto justify-evenly gap-4 py-2 no-scrollbar">
           {images.map((img, i) => (
             <button
               key={i}

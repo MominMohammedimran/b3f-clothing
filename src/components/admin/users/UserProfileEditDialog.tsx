@@ -68,7 +68,7 @@ const UserProfileEditDialog: React.FC<UserProfileEditDialogProps> = ({
         </DialogHeader>
         
         <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 text-lg">
             <TabsTrigger value="personal">Personal Info</TabsTrigger>
             <TabsTrigger value="address">Address Details</TabsTrigger>
           </TabsList>

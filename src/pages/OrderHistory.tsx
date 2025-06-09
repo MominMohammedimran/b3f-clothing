@@ -74,11 +74,18 @@ const OrderHistory = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-8 mt-10">
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
-          </div>
+       <div className="px-4 py-8">
+      <Link to="/" className="text-blue-600 font-semibold flex items-center space-x-2 mb-4">
+        <span className="text-xxl">←</span>
+        <span>Back</span>
+      </Link>
+
+      <Link to="/signin">
+        <div className="text-red-600 text-xl text-center font-semibold hover:underline cursor-pointer">
+          Sign in to show order
         </div>
+      </Link>
+    </div>
       </Layout>
     );
   }

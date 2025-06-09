@@ -47,7 +47,7 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ onSuccess, clas
       disabled={loading}
     >
       <img
-        src="/lovable-uploads/google/signin.png"
+        src="/lovable-uploads/google/google_logo.webp"
         alt="Google"
         className="w-5 h-5 mr-2"
       />

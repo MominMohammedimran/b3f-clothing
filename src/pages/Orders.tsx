@@ -174,16 +174,18 @@ const Orders = () => {
             <h2 className="text-xl font-bold mb-4">Order History</h2>
             
             {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-opacity-50 border-t-blue-800 rounded-full"></div>
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="text-center py-8">
-                <ShoppingBag size={40} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium mb-2">No paid orders yet</h3>
-                <p className="text-gray-500 mb-4">When you complete payments for orders, they will appear here.</p>
-                <Link to="/" className="text-blue-600 hover:underline">Browse Products</Link>
-              </div>
+               <div className="px-4 py-8">
+                    <Link to="/" className="text-blue-600 font-semibold flex items-center space-x-2 mb-4">
+                      <span className="text-xxl">←</span>
+                      <span>Back</span>
+                    </Link>
+              
+                    <Link to="/signin">
+                      <div className="text-red-600 text-xl text-center font-semibold hover:underline cursor-pointer">
+                        No order to show
+                      </div>
+                    </Link>
+                  </div>
             ) : (
               <div className="space-y-6">
                 {orders.map((order) => (

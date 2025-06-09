@@ -66,8 +66,8 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
 
         const newCanvas = new fabric.Canvas(canvasElement, {
           backgroundColor: 'black',
-          height: 350,
-          width: 300,
+          height: 300,
+          width: 250,
           preserveObjectStacking: true,
           selection: true,
           renderOnAddRemove: true,

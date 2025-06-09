@@ -114,31 +114,46 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     }
   }
   return (
-    <div className="space-y-6 bg-white p-4 md:p-6 rounded-xl shadow-md">
+    <div className="space-y-6 bg-white p-4 pt-0 md:p-6 rounded-xl shadow-md">
       {/* Product Title + Price */}
-      <div className="relative">
-        <h2 className="text-lg md:text-xl font-semibold text-gray-900 tracking-tight mb-2">
-          {product.name}
-        </h2>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <span className="text-2xl md:text-3xl font-bold text-blue-600">
-            ₹{totalPrice}
-          </span>
-          {sizeMultiplier > 1 && (
-            <span className="text-sm text-gray-600">
-              ({sizeMultiplier} sizes × {quantity} qty)
-            </span>
-          )}
-        </div>
-      </div>
+   <div className="relative  rounded-xl">
+  <div className="flex items-center justify-between">
+    <h2 className="text-lg md:text-xl font-semibold text-black-900 tracking-tight">
+      Name : <span className=" font-medium text-l text-gray-700"> {product.name}</span>
+    </h2>
+
+    <div className="relative">
+      {/* Glowing background behind price */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 rounded-full bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 opacity-30 blur-md -z-10"
+      />
+      {/* Price text */}
+      <span className="relative text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 px-6 py-1">
+        ₹{totalPrice}
+      </span>
+    </div>
+  </div>
+
+  {sizeMultiplier > 1 && (
+    <div className="text-sm text-gray-600 italic mt-1 text-right">
+      ({sizeMultiplier} sizes × {quantity} qty)
+    </div>
+  )}
+</div>
+
+
+
 
       {/* Description */}
-      {product.description && (
-        <div>
-          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">Description</h3>
-          <p className="text-gray-600 text-sm md:text-base">{product.description}</p>
-        </div>
-      )}
+     {product.description && (
+      <div className="mt-2 ">
+
+       <p className="text-base font-semibold text-l text-gray-700 leading-relaxed break-words">
+          <span className="text-lg text-gray-900">Description</span> : {product.description}
+          </p>
+       </div>
+     )}
 
       {/* Size Selector */}
       {availableSizes.length > 0 && (
@@ -156,7 +171,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       )}
 
       {/* Quantity Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="flex  sm:items-center gap-3">
         <h3 className="text-base md:text-lg font-semibold text-gray-800">Quantity</h3>
         <ProductQuantitySelector
           quantity={quantity}

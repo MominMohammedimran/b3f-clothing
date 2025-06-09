@@ -45,7 +45,7 @@ const SignIn = () => {
   return (
     <Layout>
       <SEOHelmet {...seoData} />
-      <div className="container mx-auto min-h-[70vh] flex items-center justify-center px-4">
+      <div className="container mx-auto min-h-[70vh] flex items-center justify-center  mt-5">
         <div className="w-full max-w-4xl">
           <h1 className="text-3xl font-bold text-center mb-8">Welcome</h1>
           
@@ -54,7 +54,7 @@ const SignIn = () => {
             onValueChange={(value) => setActiveTab(value as 'signin' | 'signup')}
             className="w-full"
           >
-            <TabsList className="grid grid-cols-2 w-full mb-8">
+            <TabsList className="grid grid-cols-2 w-full ">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Create Account</TabsTrigger>
             </TabsList>

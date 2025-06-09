@@ -5,9 +5,7 @@ import { toast } from 'sonner';
 
 export const setupInitialAdmin = async () => {
   try {
-    console.log('Setting up initial admin user...');
-    
-    // Check if admin user already exists
+   // Check if admin user already exists
     const { data: existingAdmin, error: checkError } = await supabase
       .from('admin_users')
       .select('email')
@@ -22,12 +20,10 @@ export const setupInitialAdmin = async () => {
     
     // Admin already exists, no need to create
     if (existingAdmin) {
-      console.log('Admin user already exists');
-      return;
+     return;
     }
     
-    console.log('Creating admin auth user...');
-    
+   
     // Create the admin user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: ADMIN_USERS[0].email,
@@ -45,8 +41,7 @@ export const setupInitialAdmin = async () => {
       return;
     }
     
-    console.log('Auth user created, creating admin record...');
-    
+   
     // Create admin record
     const { error: adminError } = await supabase
       .from('admin_users')
@@ -65,7 +60,6 @@ export const setupInitialAdmin = async () => {
       return;
     }
     
-    console.log('Admin user created successfully');
     toast.success('Admin user created successfully');
   } catch (error) {
     console.error('Error in setupInitialAdmin:', error);
@@ -96,7 +90,6 @@ export const ensureAdminExists = async () => {
     }
     
     // Create the admin record if it doesn't exist
-    console.log('Creating specific admin user...');
     
     const { error: adminError } = await supabase
       .from('admin_users')
@@ -111,8 +104,6 @@ export const ensureAdminExists = async () => {
       console.error('Error creating specific admin record:', adminError);
       return false;
     }
-    
-    console.log('Specific admin user created successfully');
     return true;
   } catch (error) {
     console.error('Error ensuring admin exists:', error);

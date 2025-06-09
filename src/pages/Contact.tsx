@@ -34,9 +34,7 @@ const Contact = () => {
       // Here you would normally send data to your backend
       // Simulating API call
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('Form submitted:', formData);
-      toast.success('Your message has been sent! We will get back to you soon.');
+     toast.success('Your message has been sent! We will get back to you soon.');
       
       // Reset form
       setFormData({

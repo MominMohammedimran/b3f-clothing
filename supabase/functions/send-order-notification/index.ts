@@ -40,12 +40,7 @@ const sendGmailEmail = async (to: string, subject: string, html: string) => {
 
     // Since Deno doesn't have a built-in SMTP client, we'll use a fetch request to an SMTP service
     // For now, we'll log the email data and simulate success
-    console.log('Email would be sent with Gmail SMTP:', {
-      ...emailData,
-      gmailConfig: GMAIL_CONFIG.host,
-      user: GMAIL_CONFIG.auth.user
-    });
-
+   
     // In a real implementation, you'd use an SMTP library like nodemailer equivalent for Deno
     // For demonstration, we'll return success
     return { success: true, messageId: `gmail-${Date.now()}` };
@@ -71,8 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
       shippingAddress
     }: OrderNotificationRequest = await req.json();
 
-    console.log('Sending order notification via Gmail:', { orderId, customerEmail, status });
-
+  
     // Validate Gmail credentials
     if (!GMAIL_CONFIG.auth.user || !GMAIL_CONFIG.auth.pass) {
       throw new Error('Gmail SMTP credentials not configured');
@@ -179,8 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
       emailHtml
     );
 
-    console.log("Order notification email sent successfully via Gmail:", emailResponse);
-
+    
     return new Response(JSON.stringify({ 
       success: true, 
       emailId: emailResponse.messageId,

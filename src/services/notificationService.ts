@@ -22,9 +22,7 @@ interface OrderNotificationData {
 // Function to send order notification email
 export const sendOrderNotificationEmail = async (orderData: OrderNotificationData): Promise<boolean> => {
   try {
-    console.log('Sending order notification email:', orderData);
-
-    const { data, error } = await supabase.functions.invoke('send-order-notification', {
+   const { data, error } = await supabase.functions.invoke('send-order-notification', {
       body: orderData
     });
 
@@ -33,8 +31,7 @@ export const sendOrderNotificationEmail = async (orderData: OrderNotificationDat
       return false;
     }
 
-    console.log('Order notification email sent successfully:', data);
-    return true;
+   return true;
   } catch (error) {
     console.error('Error in sendOrderNotificationEmail:', error);
     return false;

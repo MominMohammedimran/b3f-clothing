@@ -40,9 +40,7 @@ const AdminCustomers = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      console.log('Fetching customer profiles from Supabase...');
-      
-      // Get profiles from Supabase
+    // Get profiles from Supabase
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -52,8 +50,6 @@ const AdminCustomers = () => {
         console.error('Error fetching customer profiles:', error);
         throw error;
       }
-      
-      console.log('Fetched profiles:', data);
       
       // If we have data, map it to match the UserProfile type
       if (data && data.length > 0) {

@@ -14,8 +14,6 @@ export const updateProductInventory = async (
   quantity: number
 ): Promise<boolean> => {
   try {
-    console.log(`Updating inventory for ${productType}_${size} to ${quantity}`);
-    
     // Check if the inventory item exists
     const { data: existingItem, error: checkError } = await supabase
       .from('products')
@@ -64,7 +62,6 @@ export const updateProductInventory = async (
       }
     }
     
-    console.log(`Successfully updated inventory for ${productType}_${size}`);
     return true;
   } catch (error) {
     console.error('Error updating product inventory:', error);
@@ -137,7 +134,6 @@ export const updateProduct = async (
   productData: any
 ): Promise<boolean> => {
   try {
-    console.log('Updating product:', productId, productData);
     
     // Make sure we have a timestamp
     const dataWithTimestamp = {

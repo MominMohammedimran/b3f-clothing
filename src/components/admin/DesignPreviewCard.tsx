@@ -19,7 +19,6 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
 }) => {
   const downloadDesignAsWebP = async () => {
     try {
-      console.log('Starting download process...', { designData, previewImage });
       
       if (!designData && !previewImage) {
         console.error('No design data or preview image available');
@@ -28,8 +27,7 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
 
       // If we have design data, recreate the canvas and export
       if (designData && typeof designData === 'object') {
-        console.log('Processing design data:', designData);
-        
+       
         // Create a temporary canvas element
         const tempCanvasElement = document.createElement('canvas');
         tempCanvasElement.width = designData.width || 500;
@@ -46,16 +44,13 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
         await new Promise<void>((resolve, reject) => {
           tempCanvas.loadFromJSON(designData, () => {
             try {
-              console.log('Canvas loaded, generating export...');
-              
               // Filter out background objects for design-only export
               const designObjects = tempCanvas.getObjects().filter(obj => 
                 !obj.data?.isBackground
               );
 
               if (designObjects.length === 0) {
-                console.log('No design elements found, downloading preview image');
-                tempCanvas.dispose();
+              tempCanvas.dispose();
                 downloadPreviewImage();
                 resolve();
                 return;
@@ -92,8 +87,7 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
                 link.click();
                 document.body.removeChild(link);
                 
-                console.log('Download completed successfully');
-              }
+                 }
 
               // Clean up
               tempCanvas.dispose();
@@ -109,7 +103,6 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
         });
       } else {
         // Fall back to preview image
-        console.log('Using preview image for download');
         downloadPreviewImage();
       }
     } catch (error) {
@@ -122,8 +115,7 @@ const DesignPreviewCard: React.FC<DesignPreviewCardProps> = ({
   const downloadPreviewImage = () => {
     if (previewImage) {
       try {
-        console.log('Downloading preview image:', previewImage);
-        
+       
         // Create download link
         const link = document.createElement('a');
         link.href = previewImage;

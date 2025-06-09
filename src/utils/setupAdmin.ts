@@ -6,11 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export const initializeAdminSetup = async () => {
   try {
-    console.log('Initializing admin setup');
-    
     // Check if Supabase is available
     if (!supabase) {
-      console.log('Supabase not available, skipping admin setup');
       return;
     }
     
@@ -32,7 +29,6 @@ export const initializeAdminSetup = async () => {
       console.log('Error checking admin table:', error);
     }
     
-    console.log('Admin setup complete');
   } catch (error) {
     console.error('Error during admin setup:', error);
   }
@@ -54,7 +50,6 @@ export const createDefaultAdminIfNeeded = async () => {
     
     // If no admins exist, create a default one
     if (!error && (!data || data.length === 0)) {
-      console.log('No admin users found, creating default admin');
       
       // Create an admin user account via auth
       const { data: userData, error: authError } = await supabase.auth.signUp({
@@ -118,8 +113,7 @@ export const ensureAdminExists = async () => {
     }
     
     // Create the admin record if it doesn't exist
-    console.log('Creating specific admin user...');
-    
+   
     const { error: adminError } = await supabase
       .from('admin_users')
       .insert({ 
@@ -133,8 +127,6 @@ export const ensureAdminExists = async () => {
       console.error('Error creating specific admin record:', adminError);
       return false;
     }
-    
-    console.log('Specific admin user created successfully');
     return true;
   } catch (error) {
     console.error('Error ensuring admin exists:', error);

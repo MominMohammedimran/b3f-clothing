@@ -89,18 +89,13 @@ const getWhatsAppMessage = (type: string, orderId: string, data?: Record<string,
 // Mock function for sending email (in production would use a real email service)
 const sendEmail = async (to: string, subject: string, htmlContent: string): Promise<boolean> => {
   // In a real implementation, you would integrate with an email service like SendGrid or Resend
-  console.log(`[MOCK] Sending email to ${to}`);
-  console.log(`[MOCK] Subject: ${subject}`);
-  console.log(`[MOCK] Content: ${htmlContent}`);
   return true;
 };
 
 // Mock function for sending WhatsApp message (in production would use WhatsApp Business API)
 const sendWhatsApp = async (to: string, message: string): Promise<boolean> => {
   // In a real implementation, you would integrate with WhatsApp Business API
-  console.log(`[MOCK] Sending WhatsApp message to ${to}`);
-  console.log(`[MOCK] Message: ${message}`);
-  return true;
+ return true;
 };
 
 // Record notification in database

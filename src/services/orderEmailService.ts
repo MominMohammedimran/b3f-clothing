@@ -16,8 +16,6 @@ export interface OrderEmailData {
 
 export const sendOrderConfirmationEmail = async (orderData: OrderEmailData) => {
   try {
-    console.log('Sending order confirmation email:', orderData);
-    
     const { data, error } = await supabase.functions.invoke('send-order-notification', {
       body: {
         orderId: orderData.orderNumber,
@@ -36,8 +34,7 @@ export const sendOrderConfirmationEmail = async (orderData: OrderEmailData) => {
       throw error;
     }
     
-    console.log('Order confirmation email sent successfully:', data);
-    return { success: true, data };
+   return { success: true, data };
   } catch (error: any) {
     console.error('Failed to send order confirmation email:', error);
     return { success: false, error: error.message };
@@ -46,8 +43,6 @@ export const sendOrderConfirmationEmail = async (orderData: OrderEmailData) => {
 
 export const sendOrderStatusUpdateEmail = async (orderData: OrderEmailData) => {
   try {
-    console.log('Sending order status update email:', orderData);
-    
     const { data, error } = await supabase.functions.invoke('send-order-notification', {
       body: {
         orderId: orderData.orderNumber,
@@ -66,8 +61,7 @@ export const sendOrderStatusUpdateEmail = async (orderData: OrderEmailData) => {
       throw error;
     }
     
-    console.log('Order status update email sent successfully:', data);
-    return { success: true, data };
+     return { success: true, data };
   } catch (error: any) {
     console.error('Failed to send order status update email:', error);
     return { success: false, error: error.message };

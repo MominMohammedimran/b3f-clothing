@@ -75,14 +75,13 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   // Parse variants from JSON and build size data
   const sizeQuantities: Record<string, number> = {};
   const availableSizes: string[] = [];
- console.log('ajs',product)
+ 
   // Parse variants properly from JSON if needed
   let productVariants = product.variants;
   if (typeof productVariants === 'string') {
     try {
       productVariants = JSON.parse(productVariants);
-      console.log('variant',productVariants)
-    } catch (e) {
+       } catch (e) {
       console.error('Error parsing product variants:', e);
       productVariants = [];
     }

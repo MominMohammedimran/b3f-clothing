@@ -1,22 +1,23 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface Address {
   id: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
   name: string;
   street: string;
   city: string;
   state: string;
   zipcode: string;
   country: string;
+  phone?: string;
   is_default: boolean;
-  user_id: string;
   created_at: string;
   updated_at: string;
-  first_name?: string;
-  last_name?: string;
-  phone?: string;
 }
 
 export const useAddresses = (userId?: string) => {
@@ -31,24 +32,54 @@ export const useAddresses = (userId?: string) => {
     }
 
     try {
-      const { data, error } = await supabase
+     const { data, error } = await supabase
         .from('addresses')
         .select('*')
         .eq('user_id', userId)
-        .order('is_default', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching addresses:', error);
-        toast.error('Failed to load addresses');
+        // Don't show error toast for empty results
+        if (error.code !== 'PGRST116') {
+          toast.error('Failed to load addresses');
+        }
+        setAddresses([]);
+        setDefaultAddress(null);
+        setLoading(false);
         return;
       }
 
-      setAddresses(data || []);
-      setDefaultAddress(data?.find(addr => addr.is_default) || null);
+      if (data && data.length > 0) {
+        // Transform data to match Address interface
+        const transformedAddresses: Address[] = data.map((addr: any) => ({
+          id: addr.id,
+          user_id: addr.user_id,
+          first_name: addr.first_name || addr.name?.split(' ')[0] || '',
+          last_name: addr.last_name || addr.name?.split(' ').slice(1).join(' ') || '',
+          name: addr.name,
+          street: addr.street,
+          city: addr.city,
+          state: addr.state,
+          zipcode: addr.zipcode,
+          country: addr.country || 'India',
+          phone: addr.phone,
+          is_default: addr.is_default || false,
+          created_at: addr.created_at,
+          updated_at: addr.updated_at
+        }));
+
+        setAddresses(transformedAddresses);
+        const defaultAddr = transformedAddresses.find(addr => addr.is_default);
+        setDefaultAddress(defaultAddr || transformedAddresses[0] || null);
+      } else {
+        setAddresses([]);
+        setDefaultAddress(null);
+      }
     } catch (error) {
       console.error('Error fetching addresses:', error);
-      toast.error('Failed to load addresses');
+      setAddresses([]);
+      setDefaultAddress(null);
     } finally {
       setLoading(false);
     }
@@ -58,76 +89,10 @@ export const useAddresses = (userId?: string) => {
     fetchAddresses();
   }, [userId]);
 
-  const addAddress = async (addressData: Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    if (!userId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('addresses')
-        .insert({
-          ...addressData,
-          user_id: userId,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      await fetchAddresses();
-      toast.success('Address added successfully');
-      return data;
-    } catch (error: any) {
-      console.error('Error adding address:', error);
-      toast.error('Failed to add address');
-      throw error;
-    }
-  };
-
-  const updateAddress = async (addressId: string, updates: Partial<Address>) => {
-    try {
-      const { error } = await supabase
-        .from('addresses')
-        .update(updates)
-        .eq('id', addressId)
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      await fetchAddresses();
-      toast.success('Address updated successfully');
-    } catch (error: any) {
-      console.error('Error updating address:', error);
-      toast.error('Failed to update address');
-      throw error;
-    }
-  };
-
-  const deleteAddress = async (addressId: string) => {
-    try {
-      const { error } = await supabase
-        .from('addresses')
-        .delete()
-        .eq('id', addressId)
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      await fetchAddresses();
-      toast.success('Address deleted successfully');
-    } catch (error: any) {
-      console.error('Error deleting address:', error);
-      toast.error('Failed to delete address');
-      throw error;
-    }
-  };
-
   return {
     addresses,
     defaultAddress,
     loading,
-    addAddress,
-    updateAddress,
-    deleteAddress,
-    refetch: fetchAddresses,
+    refetch: fetchAddresses
   };
 };

@@ -46,8 +46,7 @@ export const useDesignToolInventory = () => {
       });
 
       setSizeInventory(inventory);
-      console.log('Fetched inventory:', inventory);
-    } catch (error) {
+       } catch (error) {
       console.error('Error fetching inventory:', error);
       toast.error('Failed to fetch product inventory');
     } finally {

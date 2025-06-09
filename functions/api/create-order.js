@@ -1,5 +1,4 @@
 export async function onRequestPost(context) {
-  console.log(context.env.RAZORPAY_KEY_ID);
   try {
     const { amount, currency, customerInfo, orderNumber } = await context.request.json();
 

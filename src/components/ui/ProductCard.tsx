@@ -1,9 +1,9 @@
-
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Star, ShoppingCart } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { Product } from '@/lib/types';
 
 interface ProductCardProps {
@@ -13,12 +13,26 @@ interface ProductCardProps {
   onClick?: (product: Product) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ 
-  product, 
-  onAddToCart, 
+const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  onAddToCart,
   onViewDetails,
-  onClick 
+  onClick
 }) => {
+  const navigate = useNavigate();
+
+  const isPrinted = product.name.toLowerCase().includes('printed');
+
+  const handleCardClick = () => {
+    if (isPrinted) {
+      navigate('/design-tool');
+    } else if (onClick) {
+      onClick(product);
+    } else if (onViewDetails) {
+      onViewDetails(product);
+    }
+  };
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onAddToCart) {
@@ -26,16 +40,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleClick = () => {
-    if (onClick) {
-      onClick(product);
-    } else if (onViewDetails) {
-      onViewDetails(product);
-    }
+  const handleCustomize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate('/design-tool');
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-shadow cursor-pointer" onClick={handleClick}>
+    <Card className="group hover:shadow-lg transition-shadow cursor-pointer" onClick={handleCardClick}>
       <CardContent className="p-4">
         <div className="relative mb-3">
           <img
@@ -49,26 +60,30 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </Badge>
           )}
         </div>
-        
+
         <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.name}</h3>
-        
+
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl font-bold text-blue-600">₹{product.price}</span>
           {product.originalPrice && (
             <span className="text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
           )}
         </div>
-        
-      
-        
-        <Button 
-          className="w-full mt-2" 
-          onClick={handleAddToCart}
-          disabled={product.stock <= 0}
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
-        </Button>
+
+        {isPrinted ? (
+          <Button className="w-full mt-2" onClick={handleCustomize}>
+            Customize
+          </Button>
+        ) : (
+          <Button
+            className="w-full mt-2"
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0}
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

@@ -65,8 +65,7 @@ const Index = () => {
     } else {
       navigate(`/product/details/${product.id}`);
     }
-    console.log(product
-    )
+   
   };
 
   const bannerImages = [

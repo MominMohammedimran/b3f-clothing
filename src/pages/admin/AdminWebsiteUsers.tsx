@@ -46,7 +46,6 @@ const AdminWebsiteUsers = () => {
   } = useQuery({
     queryKey: ['websiteUsers'],
     queryFn: async () => {
-      console.log('Fetching website users...');
       
       const { data, error } = await supabase
         .from('profiles')
@@ -58,8 +57,7 @@ const AdminWebsiteUsers = () => {
         throw error;
       }
 
-      console.log('Users fetched:', data);
-      return data as UserProfile[];
+     return data as UserProfile[];
     },
     staleTime: 60000
   });
@@ -84,9 +82,7 @@ const AdminWebsiteUsers = () => {
 
     try {
       setIsSaving(true);
-      console.log('Updating user:', editingUser.id, formData);
-      
-      // Ensure reward_points is properly converted to integer
+     // Ensure reward_points is properly converted to integer
       const rewardPoints = parseInt(String(formData.reward_points || 0));
       
       const updateData = {
@@ -101,9 +97,7 @@ const AdminWebsiteUsers = () => {
         updated_at: new Date().toISOString()
       };
 
-      console.log('Update data being sent:', updateData);
-
-      const { data, error } = await supabase
+     const { data, error } = await supabase
         .from('profiles')
         .update(updateData)
         .eq('id', editingUser.id)
@@ -115,8 +109,7 @@ const AdminWebsiteUsers = () => {
         throw error;
       }
 
-      console.log('User updated successfully:', data);
-      
+     
       // Invalidate and refetch the users query to get fresh data
       await queryClient.invalidateQueries({ queryKey: ['websiteUsers'] });
       await refetch();

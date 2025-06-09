@@ -17,8 +17,7 @@ async function getProducts() {
     const variants = Array.isArray(product.variants) ? product.variants : [];
 
     // ✅ Debug log to check if variants are coming from Supabase
-    console.log(`Product ${index + 1} (${product.name}) variants:`, variants);
-
+  
     return {
       id: product.id?.toString(),
       productId: product.product_id?.toString() ?? product.id?.toString(),

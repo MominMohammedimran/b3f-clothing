@@ -20,7 +20,6 @@ const AdminPublicUsers = () => {
   } = useQuery({
     queryKey: ['adminPublicUsers', searchTerm],
     queryFn: async () => {
-      console.log('Fetching public users...');
       
       let query = supabase
         .from('profiles')
@@ -63,7 +62,6 @@ const AdminPublicUsers = () => {
         }
       }));
 
-      console.log('Users fetched:', transformedUsers);
       return transformedUsers;
     }
   });

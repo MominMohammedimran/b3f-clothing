@@ -183,8 +183,7 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           props.setCanvasInitialized(true);
         }
 
-        console.log('Canvas initialized successfully with enhanced smooth animations');
-      } catch (error) {
+       } catch (error) {
         console.error('Error initializing canvas:', error);
         setTimeout(initializeCanvas, 100);
       }

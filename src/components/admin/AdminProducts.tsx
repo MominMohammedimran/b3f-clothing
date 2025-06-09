@@ -4,20 +4,54 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Edit, Trash2, Plus, Package, Search } from 'lucide-react';
-import ProductEditForm from './ProductEditForm';
-import ProductSizeManager from './ProductSizeManager';
-import { Product } from '@/lib/types';
+import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import AdminLayout from './AdminLayout';
 
-const AdminProducts: React.FC = () => {
+interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  original_price?: number;
+  discount_percentage?: number;
+  image?: string;
+  category?: string;
+  stock?: number;
+  code?: string;
+  variants?: { size: string; stock: number }[];
+  created_at: string;
+  productId?: string;
+  images?: any;
+  tags?: any;
+  colors?: any;
+  sizes?: any;
+  updated_at?: string;
+}
+
+const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [managingSizeProduct, setManagingSizeProduct] = useState<Product | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    original_price: '',
+    discount_percentage: '',
+    image: '',
+    category: '',
+    stock: '',
+    code: '',
+    variants: [] as { size: string; stock: number }[]
+  });
 
   useEffect(() => {
     fetchProducts();
@@ -31,26 +65,28 @@ const AdminProducts: React.FC = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
+      
       if (data) {
-        const transformedProducts: Product[] = data.map((product: any) => ({
-          id: product.id,
-          code: product.code || `PROD-${product.id.slice(0, 8)}`,
-          name: product.name,
-          description: product.description || '',
-          price: product.price,
-          originalPrice: product.original_price || product.price,
-          discountPercentage: product.discount_percentage || 0,
-          category: product.category || 'general',
-          stock: product.stock || 0,
-          image: product.image || '',
-          images: Array.isArray(product.images) ? product.images : [],
-          sizes: Array.isArray(product.sizes) ? product.sizes : [],
-          tags: Array.isArray(product.tags) ? product.tags : [],
-          variants: Array.isArray(product.variants) ? product.variants : []
+        const transformedProducts: Product[] = data.map((dbProduct: any) => ({
+          id: dbProduct.id,
+          name: dbProduct.name,
+          description: dbProduct.description || '',
+          price: dbProduct.price,
+          original_price: dbProduct.original_price,
+          discount_percentage: dbProduct.discount_percentage || 0,
+          image: dbProduct.image,
+          category: dbProduct.category,
+          stock: dbProduct.stock || 0,
+          code: dbProduct.code,
+          variants: Array.isArray(dbProduct.variants) ? dbProduct.variants : [],
+          created_at: dbProduct.created_at,
+          productId: dbProduct.productId || dbProduct.id,
+          images: dbProduct.images,
+          tags: dbProduct.tags,
+          colors: dbProduct.colors,
+          sizes: dbProduct.sizes,
+          updated_at: dbProduct.updated_at
         }));
         setProducts(transformedProducts);
       }
@@ -62,34 +98,32 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const handleSaveProduct = async (productData: Product) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     try {
-      const dataToSave = {
-        name: productData.name,
-        description: productData.description,
-        price: productData.price,
-        original_price: productData.originalPrice,
-        discount_percentage: productData.discountPercentage,
-        category: productData.category,
-        stock: productData.stock,
-        image: productData.image,
-        images: productData.images,
-        sizes: productData.sizes,
-        tags: productData.tags,
-        code: productData.code,
-        productId: productData.code || `PROD-${Date.now()}`,
-        updated_at: new Date().toISOString()
-      } as any; // Type assertion to allow variants
-
-      // Add variants if they exist
-      if (productData.variants) {
-        dataToSave.variants = productData.variants;
-      }
+      const productData = {
+        name: formData.name,
+        description: formData.description || null,
+        price: parseFloat(formData.price),
+        original_price: formData.original_price ? parseFloat(formData.original_price) : null,
+        discount_percentage: formData.discount_percentage ? parseFloat(formData.discount_percentage) : 0,
+        image: formData.image || null,
+        category: formData.category || null,
+        stock: formData.stock ? parseInt(formData.stock) : 0,
+        code: formData.code || null,
+        variants: formData.variants.length > 0 ? formData.variants : null,
+        productId: editingProduct?.id || `product_${Date.now()}`,
+        images: [],
+        tags: [],
+        colors: [],
+        sizes: []
+      };
 
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
-          .update(dataToSave)
+          .update(productData)
           .eq('id', editingProduct.id);
 
         if (error) throw error;
@@ -97,277 +131,404 @@ const AdminProducts: React.FC = () => {
       } else {
         const { error } = await supabase
           .from('products')
-          .insert({
-            ...dataToSave,
-            created_at: new Date().toISOString()
-          });
+          .insert([productData]);
 
         if (error) throw error;
         toast.success('Product created successfully');
       }
 
-      await fetchProducts();
+      setShowCreateDialog(false);
       setEditingProduct(null);
-      setShowAddForm(false);
-    } catch (error) {
+      resetForm();
+      fetchProducts();
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      toast.error('Failed to save product');
+      toast.error('Failed to save product: ' + error.message);
     }
   };
 
-  const handleDeleteProduct = async (productId: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', productId);
+        .eq('id', id);
 
       if (error) throw error;
-
-      await fetchProducts();
       toast.success('Product deleted successfully');
-    } catch (error) {
+      fetchProducts();
+    } catch (error: any) {
       console.error('Error deleting product:', error);
       toast.error('Failed to delete product');
     }
   };
 
-  const handleInventoryUpdate = async (productId: string, inventory: Record<string, number>) => {
-    try {
-      const variants = Object.entries(inventory).map(([size, stock]) => ({
-        size,
-        stock
-      }));
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      description: product.description || '',
+      price: product.price.toString(),
+      original_price: product.original_price?.toString() || '',
+      discount_percentage: product.discount_percentage?.toString() || '',
+      image: product.image || '',
+      category: product.category || '',
+      stock: product.stock?.toString() || '',
+      code: product.code || '',
+      variants: product.variants || []
+    });
+    setShowCreateDialog(true);
+  };
 
-      const { error } = await supabase
-        .from('products')
-        .update({
-          variants: variants,
-          updated_at: new Date().toISOString()
-        } as any) // Type assertion to allow variants
-        .eq('id', productId);
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      original_price: '',
+      discount_percentage: '',
+      image: '',
+      category: '',
+      stock: '',
+      code: '',
+      variants: []
+    });
+  };
 
-      if (error) throw error;
+  const addVariant = () => {
+    setFormData(prev => ({
+      ...prev,
+      variants: [...prev.variants, { size: '', stock: 0 }]
+    }));
+  };
 
-      await fetchProducts();
-      toast.success('Inventory updated successfully');
-    } catch (error) {
-      console.error('Error updating inventory:', error);
-      toast.error('Failed to update inventory');
-    }
+  const removeVariant = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateVariant = (index: number, field: 'size' | 'stock', value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map((variant, i) => 
+        i === index ? { ...variant, [field]: value } : variant
+      )
+    }));
   };
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    product.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatInventoryDisplay = (product: Product) => {
-    if (!product.variants || !Array.isArray(product.variants) || product.variants.length === 0) {
-      return 'No sizes configured';
-    }
-    
-    return product.variants
-      .map((variant: any) => `${variant.size?.toUpperCase()}:${variant.stock || 0}`)
-      .join(' ');
-  };
-
-  const getTotalStock = (product: Product) => {
-    if (!product.variants || !Array.isArray(product.variants)) return 0;
-    return product.variants.reduce((sum: number, variant: any) => sum + (variant.stock || 0), 0);
-  };
-
-  const getCurrentInventory = (product: Product) => {
-    if (!product.variants || !Array.isArray(product.variants)) return {};
-    
-    const inventory: Record<string, number> = {};
-    product.variants.forEach((variant: any) => {
-      if (variant.size) {
-        inventory[variant.size.toLowerCase()] = variant.stock || 0;
-      }
-    });
-    return inventory;
-  };
-
-  if (editingProduct || showAddForm) {
-    const productToEdit = editingProduct || {
-      id: '',
-      name: '',
-      code: '',
-      price: 0,
-      originalPrice: 0,
-      discountPercentage: 0,
-      image: '',
-      images: [],
-      category: '',
-      sizes: [],
-      stock: 0,
-      description: '',
-      tags: [],
-      variants: []
-    };
-
-    return (
-      <div className="p-4 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h2 className="text-xl md:text-2xl font-bold">
-            {editingProduct ? 'Edit Product' : 'Add New Product'}
-          </h2>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setEditingProduct(null);
-              setShowAddForm(false);
-            }}
-            className="w-full sm:w-auto"
-          >
-            Cancel
-          </Button>
-        </div>
-        
-        <ProductEditForm
-          product={productToEdit}
-          onSave={handleSaveProduct}
-          onCancel={() => {
-            setEditingProduct(null);
-            setShowAddForm(false);
-          }}
-        />
-      </div>
-    );
-  }
-
-  if (managingSizeProduct) {
-    return (
-      <div className="p-4 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h2 className="text-xl md:text-2xl font-bold">Manage Size Inventory</h2>
-          <Button
-            variant="outline"
-            onClick={() => setManagingSizeProduct(null)}
-            className="w-full sm:w-auto"
-          >
-            Back to Products
-          </Button>
-        </div>
-        
-        <ProductSizeManager
-          productId={managingSizeProduct.id}
-          productName={managingSizeProduct.name}
-          currentInventory={getCurrentInventory(managingSizeProduct)}
-          onInventoryUpdate={handleInventoryUpdate}
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-xl md:text-2xl font-bold">Products Management</h2>
-        <Button onClick={() => setShowAddForm(true)} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Product
-        </Button>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {filteredProducts.map((product) => (
-            <Card key={product.id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="flex items-start gap-4 flex-1">
-                    <img
-                      src={product.image || '/placeholder.svg'}
-                      alt={product.name}
-                      className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg flex-shrink-0"
+    <AdminLayout title="Products Management">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold">Products</h2>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm} className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingProduct ? 'Edit Product' : 'Create New Product'}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Product Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      required
                     />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base md:text-lg font-semibold truncate">{product.name}</h3>
-                      <p className="text-sm text-gray-600">Code: {product.code}</p>
-                      <p className="text-sm text-gray-600">Category: {product.category}</p>
-                      <div className="flex flex-wrap items-center gap-2 mt-2">
-                        <span className="text-lg font-bold">₹{product.price}</span>
-                        {product.originalPrice && product.originalPrice > product.price && (
-                          <span className="text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
-                        )}
-                        {product.discountPercentage && (
-                          <Badge variant="destructive" className="text-xs">{product.discountPercentage}% OFF</Badge>
-                        )}
-                      </div>
-                      <div className="mt-2 space-y-1">
-                        <p className="text-xs text-gray-600">
-                          <strong>Inventory:</strong> {formatInventoryDisplay(product)}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          <strong>Total Stock:</strong> {getTotalStock(product)} units
-                        </p>
-                      </div>
-                    </div>
                   </div>
-                  
-                  <div className="flex flex-row lg:flex-col gap-2 justify-end lg:justify-start">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setManagingSizeProduct(product)}
-                      className="flex-1 lg:flex-none"
-                    >
-                      <Package className="h-4 w-4 lg:mr-1" />
-                      <span className="hidden lg:inline">Sizes</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditingProduct(product)}
-                      className="flex-1 lg:flex-none"
-                    >
-                      <Edit className="h-4 w-4 lg:mr-1" />
-                      <span className="hidden lg:inline">Edit</span>
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteProduct(product.id)}
-                      className="flex-1 lg:flex-none"
-                    >
-                      <Trash2 className="h-4 w-4 lg:mr-1" />
-                      <span className="hidden lg:inline">Delete</span>
-                    </Button>
+                  <div>
+                    <Label htmlFor="code">Product Code</Label>
+                    <Input
+                      id="code"
+                      value={formData.code}
+                      onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              {searchTerm ? 'No products found matching your search.' : 'No products found. Add your first product!'}
-            </div>
-          )}
+
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="price">Price *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="original_price">Original Price</Label>
+                    <Input
+                      id="original_price"
+                      type="number"
+                      step="0.01"
+                      value={formData.original_price}
+                      onChange={(e) => setFormData(prev => ({ ...prev, original_price: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="discount_percentage">Discount %</Label>
+                    <Input
+                      id="discount_percentage"
+                      type="number"
+                      step="0.01"
+                      value={formData.discount_percentage}
+                      onChange={(e) => setFormData(prev => ({ ...prev, discount_percentage: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Input
+                      id="category"
+                      value={formData.category}
+                      onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="stock">Stock</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      value={formData.stock}
+                      onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="image">Image URL</Label>
+                  <Input
+                    id="image"
+                    value={formData.image}
+                    onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Product Variants</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addVariant}>
+                      Add Variant
+                    </Button>
+                  </div>
+                  {formData.variants.map((variant, index) => (
+                    <div key={index} className="flex gap-2 mb-2">
+                      <Input
+                        placeholder="Size"
+                        value={variant.size}
+                        onChange={(e) => updateVariant(index, 'size', e.target.value)}
+                      />
+                      <Input
+                        placeholder="Stock"
+                        type="number"
+                        value={variant.stock}
+                        onChange={(e) => updateVariant(index, 'stock', parseInt(e.target.value) || 0)}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeVariant(index)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button type="submit" className="flex-1">
+                    {editingProduct ? 'Update Product' : 'Create Product'}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowCreateDialog(false);
+                      setEditingProduct(null);
+                      resetForm();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-      )}
-    </div>
+
+        <div className="flex items-center space-x-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Stock</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {product.image && (
+                              <img 
+                                src={product.image} 
+                                alt={product.name}
+                                className="w-10 h-10 object-cover rounded"
+                              />
+                            )}
+                            <span className="font-medium">{product.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{product.code || '-'}</TableCell>
+                        <TableCell>
+                          {product.category && (
+                            <Badge variant="secondary">{product.category}</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>₹{product.price}</TableCell>
+                        <TableCell>{product.stock || 0}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(product)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(product.id)}
+                              className="text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-4 p-4">
+                {filteredProducts.map((product) => (
+                  <Card key={product.id} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          {product.image && (
+                            <img 
+                              src={product.image} 
+                              alt={product.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          )}
+                          <div>
+                            <h3 className="font-medium">{product.name}</h3>
+                            <p className="text-sm text-gray-500">{product.code || 'No code'}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {product.category && (
+                            <Badge variant="secondary" className="text-xs">{product.category}</Badge>
+                          )}
+                          <span className="text-sm font-medium">₹{product.price}</span>
+                          <span className="text-sm text-gray-500">Stock: {product.stock || 0}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 ml-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(product.id)}
+                          className="text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+              
+              {filteredProducts.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  {searchTerm ? 'No products found matching your search.' : 'No products found.'}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </AdminLayout>
   );
 };
 

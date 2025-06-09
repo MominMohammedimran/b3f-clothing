@@ -19,8 +19,7 @@ const ProductInventory = () => {
       setLoading(true);
       try {
         await fetchProductInventory();
-        console.log('Inventory loaded successfully');
-      } catch (error) {
+         } catch (error) {
         console.error('Error loading inventory:', error);
         toast.error('Failed to load inventory');
       } finally {
@@ -35,8 +34,7 @@ const ProductInventory = () => {
     if (sizeInventory && Object.keys(sizeInventory).length > 0) {
       setLocalInventory(JSON.parse(JSON.stringify(sizeInventory))); // Deep copy
       setErrors({});
-      console.log('Local inventory updated:', sizeInventory);
-    }
+     }
   }, [sizeInventory]);
   
   const handleQuantityChange = (productType: string, size: string, value: string) => {
@@ -92,8 +90,7 @@ const ProductInventory = () => {
       const currentQuantity = sizeInventory[productType]?.[size] || 0;
       const delta = newQuantity - currentQuantity;
       
-      console.log(`Updating ${productType} ${size}: current=${currentQuantity}, new=${newQuantity}, delta=${delta}`);
-      
+     
       // Validate new quantity
       if (newQuantity < 0) {
         toast.error('Quantity cannot be negative');
@@ -104,8 +101,7 @@ const ProductInventory = () => {
       
       if (success) {
         toast.success(`✅ Updated ${productType} ${size} to ${newQuantity} units`);
-        console.log(`Successfully updated ${productType} ${size} inventory to ${newQuantity}`);
-        
+       
         // Refresh inventory to get latest data
         await fetchProductInventory();
       } else {

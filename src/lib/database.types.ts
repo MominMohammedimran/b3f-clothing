@@ -153,7 +153,7 @@ export interface Database {
           total: number
           updated_at: string
           user_id: string
-          upi_input:string
+          upi_input?:string
         }
         Insert: {
           created_at?: string
@@ -168,7 +168,7 @@ export interface Database {
           total: number
           updated_at?: string
           user_id: string
-          upi_input:string
+          upi_input?:string
         }
         Update: {
           created_at?: string
@@ -183,7 +183,7 @@ export interface Database {
           total?: number
           updated_at?: string
           user_id?: string
-          upi_input:string
+          upi_input?:string
         }
         Relationships: []
       }

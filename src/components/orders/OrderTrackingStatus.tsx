@@ -37,9 +37,7 @@ const OrderTrackingStatus: React.FC<OrderTrackingStatusProps> = ({
   const normalizedStatus = currentStatus && typeof currentStatus === 'string'
     ? (statusMap[currentStatus.toLowerCase()] || 'processing')
     : 'processing';
-  
-  console.log('Order tracking status:', currentStatus, 'Normalized:', normalizedStatus);
-  
+ 
   // Handle cancelled orders differently
   if (normalizedStatus === 'cancelled') {
     return (

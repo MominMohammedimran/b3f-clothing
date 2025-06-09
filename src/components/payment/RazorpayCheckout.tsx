@@ -11,8 +11,6 @@ interface RazorpayCheckoutProps {
     email: string;
     contact: string;
   };
-  cartItems: any[];
-  shippingAddress: any;
   onSuccess: (data: any) => void;
   onError: () => void;
 }
@@ -26,8 +24,6 @@ declare global {
 const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
   amount,
   customerInfo,
-  cartItems,
-  shippingAddress,
   onSuccess,
   onError,
 }) => {
@@ -35,7 +31,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
   const navigate = useNavigate();
 
   const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
+    return new Promise<boolean>((resolve) => {
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
@@ -50,6 +46,37 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
     return `B3F${timestamp}${randomNum}`;
   };
 
+  const createRazorpayOrder = async ({
+    amount,
+    currency,
+    receipt,
+    customerInfo,
+    orderNumber,
+  }: {
+    amount: number;
+    currency: string;
+    receipt: string;
+    customerInfo: { name: string; email: string; contact: string };
+    orderNumber: string;
+  }) => {
+    const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+      method: 'POST',
+      body: {
+        amount,
+        currency,
+        receipt,
+        customerInfo,
+        orderNumber,
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  };
+
   const handlePayment = async () => {
     setLoading(true);
 
@@ -61,7 +88,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
 
       const orderNumber = generateB3FOrderNumber();
 
-      // ✅ Get the logged-in user's access token
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -70,52 +96,23 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         throw new Error('You must be logged in to proceed with payment.');
       }
 
-      // 🔁 Send request to Cloudflare function or API
-      const response = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`, // ✅ real token
-        },
-        body: JSON.stringify({
-          amount: Math.round(amount * 100),
-          currency: 'INR',
-          receipt: orderNumber,
-          cartItems,
-          shippingAddress,
-          customerInfo,
-          orderNumber,
-        }),
+      const data = await createRazorpayOrder({
+        amount: Math.round(amount * 100),
+        currency: 'INR',
+        receipt: orderNumber,
+        customerInfo,
+        orderNumber,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error: ${response.status} - ${errorText || 'Unknown error'}`);
-      }
-
-      const responseText = await response.text();
-      if (!responseText.trim()) {
-        throw new Error('Empty response from server');
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse response:', parseError);g
-        throw new Error('Invalid JSON response from server');
-      }
-
       if (!data || !data.order_id) {
-        throw new Error('Invalid response: missing order_id');
+        throw new Error('Invalid response from order function');
       }
 
-      // 🧾 Razorpay Checkout Options
       const options = {
         key: data.key_id,
         amount: data.amount,
         currency: data.currency,
-        name: 'B3F Prints & Men\'s Wear',
+        name: "B3F Prints & Men's Wear",
         description: 'Order Payment',
         order_id: data.order_id,
         prefill: {
@@ -127,42 +124,61 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
           color: '#2563eb',
         },
         handler: async function (response: any) {
-  console.log('Payment successful:', response);
-  toast.success('Payment successful!');
+          toast.success('Payment successful!');
 
-  try {
-    await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: customerInfo.email,
-        subject: `B3F Prints: Order ${data.order_number} Confirmation`,
-        text: `Dear ${customerInfo.name},
+          try {
+            // ✅ Updated: use .from().update() with required fields
+            const { error: updateError } = await supabase
+              .from('orders')
+              .update({
+                status: 'paid',
+                updated_at: new Date().toISOString(),
+                payment_details: {
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature,
+                },
+                upi_input: '', // ✅ Satisfies required field
+              })
+              .eq('id', data.db_order_id);
+
+            if (updateError) {
+              console.error('Failed to update order status:', updateError);
+              throw new Error('Failed to update order status');
+            }
+
+            await fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                to: customerInfo.email,
+                subject: `B3F Prints: Order ${data.order_number} Confirmation`,
+                text: `Dear ${customerInfo.name},
 
 We have received your payment for order ${data.order_number}.
 Thank you for shopping with B3F Prints!
 
-🧾 Order Total: ₹${(amount).toFixed(2)}
+🧾 Order Total: ₹${amount.toFixed(2)}
 🛒 Order ID: ${data.order_number}
 📦 We will notify you once it is shipped.
 
 – B3F Prints & Men's Wear`,
-      }),
-    });
+              }),
+            });
 
-    toast.success('Confirmation email sent');
-  } catch (emailError) {
-    console.warn('Email sending failed:', emailError);
-    toast.warning('Order confirmed, but email failed to send');
-  }
+            toast.success('Confirmation email sent');
+          } catch (emailError) {
+            console.warn('Email sending failed:', emailError);
+            toast.warning('Order confirmed, but email failed to send');
+          }
 
-  onSuccess(response);
-  navigate(`/order-complete?orderId=${data.db_order_id}&orderNumber=${data.order_number || orderNumber}`);
-},
-
+          onSuccess(response);
+          navigate(
+            `/order-complete?orderId=${data.db_order_id}&orderNumber=${data.order_number || orderNumber}`
+          );
+        },
         modal: {
           ondismiss: function () {
-            console.log('Payment cancelled');
             toast.error('Payment cancelled');
             onError();
           },
@@ -171,7 +187,6 @@ Thank you for shopping with B3F Prints!
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
-
     } catch (error: any) {
       console.error('Payment error:', error);
       toast.error(error.message || 'Payment failed. Please try again.');
@@ -182,12 +197,7 @@ Thank you for shopping with B3F Prints!
   };
 
   return (
-    <Button
-      onClick={handlePayment}
-      disabled={loading}
-      className="w-full"
-      size="lg"
-    >
+    <Button onClick={handlePayment} disabled={loading} className="w-full" size="lg">
       {loading ? 'Loading...' : `Pay ₹${amount.toFixed(2)} with Razorpay`}
     </Button>
   );

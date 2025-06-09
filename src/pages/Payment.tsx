@@ -1,12 +1,24 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import RazorpayCheckout from '../components/payment/RazorpayCheckout';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 // Create a simplified OrderSummary component for this page
 const OrderSummaryComponent = ({ 
@@ -53,7 +65,7 @@ const Payment = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, userProfile } = useAuth();
-  const { cartItems, totalPrice } = useCart();
+  const { cartItems, totalPrice, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [rewardPointsUsed, setRewardPointsUsed] = useState(0);
 
@@ -69,12 +81,28 @@ const Payment = () => {
   }, [currentUser, cartItems, shippingAddress, navigate]);
 
   const handlePaymentSuccess = (response: any) => {
-    console.log('Payment success:', response);
-    toast.success('Payment completed successfully!');
+   toast.success('Payment completed successfully!');
+    // Clear cart after successful payment
+    clearCart();
   };
 
   const handlePaymentError = () => {
     toast.error('Payment failed. Please try again.');
+  };
+
+  const handleCancelOrder = async () => {
+    setLoading(true);
+    try {
+      // Clear cart and navigate back to cart page
+      await clearCart();
+      toast.success('Order cancelled successfully');
+      navigate('/cart');
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      toast.error('Failed to cancel order');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!currentUser || !cartItems.length || !shippingAddress) {
@@ -96,11 +124,40 @@ const Payment = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 mt-10">
-        <div className="flex items-center mb-6">
-          <Link to="/checkout" className="mr-4">
-            <ArrowLeft size={24} className="text-green-600" />
-          </Link>
-          <h1 className="text-2xl font-bold">Payment</h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <Link to="/checkout" className="mr-4">
+              <ArrowLeft size={24} className="text-green-600" />
+            </Link>
+            <h1 className="text-2xl font-bold">Payment</h1>
+          </div>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-red-600 border-red-300 hover:bg-red-50">
+                <X size={16} className="mr-2" />
+                Cancel Order
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel Order</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to cancel this order? This action cannot be undone and you'll need to start over.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep Order</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleCancelOrder}
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {loading ? 'Cancelling...' : 'Cancel Order'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

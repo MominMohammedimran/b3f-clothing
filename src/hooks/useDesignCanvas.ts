@@ -40,8 +40,7 @@ export const useDesignCanvas = (props: UseDesignCanvasProps = {}) => {
       fabricCanvasRef.current = fabricCanvas;
       setCanvas(fabricCanvas);
       setCanvasInitialized(true);
-      console.log('Canvas initialized successfully');
-      return fabricCanvas;
+     return fabricCanvas;
     } catch (error) {
       console.error('Error initializing canvas:', error);
       return null;

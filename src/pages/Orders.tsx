@@ -47,6 +47,7 @@ const Orders = () => {
           .from('orders')
           .select('*')
           .eq('user_id', currentUser.id)
+          .in('status', ['paid', 'processing', 'shipped', 'delivered', 'completed']) // Only show orders with successful payment
           .order('created_at', { ascending: false });
         
         if (error) throw error;
@@ -94,11 +95,13 @@ const Orders = () => {
           
           setOrders(transformedOrders);
         } else {
-          toast.info({ title: 'You have no orders yet' });
+          toast.info({ title: 'You have no paid orders yet' });
           setOrders([]);
         }
       }
     } catch (error) {
+      console.error('Error loading orders:', error);
+      toast.error({ title: 'Failed to load orders' });
       setOrders([]);
     } finally {
       setLoading(false);
@@ -121,6 +124,7 @@ const Orders = () => {
       case 'delivered':
         return 'bg-green-100 text-green-800';
       case 'processing':
+      case 'paid':
         return 'bg-blue-100 text-blue-800';
       case 'shipped':
         return 'bg-purple-100 text-purple-800';
@@ -140,6 +144,7 @@ const Orders = () => {
       case 'delivered':
         return <Package2 size={16} />;
       case 'processing':
+      case 'paid':
         return <Clock size={16} />;
       case 'shipped':
         return <TruckIcon size={16} />;
@@ -175,8 +180,8 @@ const Orders = () => {
             ) : orders.length === 0 ? (
               <div className="text-center py-8">
                 <ShoppingBag size={40} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium mb-2">No orders yet</h3>
-                <p className="text-gray-500 mb-4">When you place orders, they will appear here.</p>
+                <h3 className="text-lg font-medium mb-2">No paid orders yet</h3>
+                <p className="text-gray-500 mb-4">When you complete payments for orders, they will appear here.</p>
                 <Link to="/" className="text-blue-600 hover:underline">Browse Products</Link>
               </div>
             ) : (
@@ -186,8 +191,8 @@ const Orders = () => {
                     <div className="p-4 bg-gray-50 flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <div className="text-sm text-gray-500 mb-1 break-words max-w-[200px]">
-  Order #{order.order_number}
-</div>
+                          Order #{order.order_number}
+                        </div>
                         <div className="font-semibold">{formatOrderDate(order.createdAt)}</div>
                       </div>
                       
@@ -198,8 +203,8 @@ const Orders = () => {
                         </div>
                         
                         <Link 
-                               to="/track-order" 
-                               state={{ orderId: order.id }}
+                          to="/track-order" 
+                          state={{ orderId: order.id }}
                           className="text-blue-600 text-sm hover:underline"
                         >
                           Track Order

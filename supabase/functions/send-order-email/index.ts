@@ -24,8 +24,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { orderNumber, customerEmail, customerName, orderDetails, status, emailType }: OrderEmailRequest = await req.json();
 
-    console.log(`Sending ${emailType} email for order ${orderNumber} to ${customerEmail}`);
-
+   
     // Create SMTP configuration
     const smtpConfig = {
       hostname: Deno.env.get('SMTP_HOSTNAME') || 'smtp.gmail.com',
@@ -99,8 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Here you would integrate with your actual email service
     // For now, we'll simulate sending
-    console.log('Email sent successfully');
-
+   
     return new Response(
       JSON.stringify({ success: true, message: 'Email sent successfully' }),
       {

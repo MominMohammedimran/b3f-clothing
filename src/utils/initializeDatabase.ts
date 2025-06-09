@@ -7,18 +7,16 @@ import { toast } from 'sonner';
  */
 export const initializeDatabase = async () => {
   try {
-    console.log('Initializing database tables...');
-    
+   
     // Check if tables exist by trying to query them
     const tablesStatus = await checkTablesExist();
     
     // Create tables that don't exist
     for (const tableName in tablesStatus) {
       if (!tablesStatus[tableName]) {
-        console.log(`Table '${tableName}' does not exist, creating it...`);
-        await createTable(tableName);
+         await createTable(tableName);
       } else {
-        console.log(`Table '${tableName}' exists`);
+        (`Table '${tableName}' exists`);
       }
     }
 
@@ -31,8 +29,7 @@ export const initializeDatabase = async () => {
         .eq('category', 'inventory');
       
       if (!inventoryError && (!inventoryData || inventoryData.length === 0)) {
-        console.log('No inventory items found, inserting default inventory...');
-        await insertDefaultInventory();
+         await insertDefaultInventory();
       }
     }
     
@@ -43,13 +40,10 @@ export const initializeDatabase = async () => {
         .select('*');
       
       if (!locationsError && (!locationsData || locationsData.length === 0)) {
-        console.log('No locations found, inserting default locations...');
-        await insertDefaultLocations();
+          await insertDefaultLocations();
       }
     }
-    
-    console.log('Database initialization complete');
-    return true;
+   return true;
   } catch (error: any) {
     console.error('Error initializing database:', error);
     toast.error('Database initialization failed');
@@ -169,7 +163,6 @@ const createTable = async (tableName: string) => {
       
       // For direct operations without RPC, you could try this alternative approach
       // But this likely won't work without proper permissions
-      console.log(`Attempting fallback creation method for ${tableName}...`);
       
       if (tableName === 'products') {
         await insertDefaultInventory();
@@ -177,7 +170,7 @@ const createTable = async (tableName: string) => {
         await insertDefaultLocations();
       }
     } else {
-      console.log(`${tableName} table created successfully`);
+      (`${tableName} table created successfully`);
     }
     
     return !error;
@@ -211,7 +204,6 @@ const insertDefaultInventory = async () => {
       }
     }
     
-    console.log('Default inventory inserted successfully');
     return true;
   } catch (error) {
     console.error('Error inserting default inventory:', error);
@@ -242,7 +234,6 @@ const insertDefaultLocations = async () => {
       }
     }
     
-    console.log('Default locations inserted successfully');
     return true;
   } catch (error) {
     console.error('Error inserting default locations:', error);

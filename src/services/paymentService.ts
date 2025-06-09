@@ -54,17 +54,7 @@ export class PaymentService {
       if (!this.supabase) {
         throw new Error('Supabase client not initialized');
       }
-      
-      console.log('Creating order with data:', {
-        userId,
-        userEmail,
-        orderNumber,
-        totalAmount,
-        deliveryFee,
-        itemCount: cartItems.length,
-        paymentMethod
-      });
-      
+   
       const serializedItems = serializeCartItems(cartItems);
       
       const normalizedAddress = {
@@ -78,8 +68,7 @@ export class PaymentService {
         email: shippingAddress.email || userEmail || ''
       };
       
-      console.log('Inserting order into database...');
-      
+     
       const { data, error } = await this.supabase
         .from('orders')
         .insert({
@@ -102,7 +91,6 @@ export class PaymentService {
         throw new Error(`Database error: ${error.message}`);
       }
       
-      console.log('Order created successfully:', data);
       return data;
     } catch (error) {
       console.error('Error creating order:', error);

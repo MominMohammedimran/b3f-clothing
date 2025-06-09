@@ -50,8 +50,6 @@ const ProductSizeManager: React.FC<ProductSizeManagerProps> = ({
           stock: qty
         }));
 
-      console.log('Saving variants:', variants);
-
       const { error } = await supabase
         .from('products')
         .update({

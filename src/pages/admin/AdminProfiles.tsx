@@ -26,6 +26,7 @@ interface Profile {
 const AdminProfiles = () => {
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
   const queryClient = useQueryClient();
 
   // Use React Query for better data fetching
@@ -43,7 +44,6 @@ const AdminProfiles = () => {
 
   async function fetchProfiles(): Promise<Profile[]> {
     try {
-      console.log('Fetching profiles from database...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -54,14 +54,11 @@ const AdminProfiles = () => {
         throw error;
       }
       
-      console.log('Profiles fetched:', data?.length || 0);
-      
+    
       if (!data || data.length === 0) {
-        console.log('No profiles found in database');
-        return [];
+       return [];
       } else {
-        console.log('Loaded profiles:', data.length);
-        return data as Profile[];
+       return data as Profile[];
       }
     } catch (error) {
       console.error('Error loading profiles:', error);
@@ -71,49 +68,26 @@ const AdminProfiles = () => {
   }
 
   const handleViewProfile = (profile: Profile) => {
-    console.log('Viewing profile:', profile.email);
-    setSelectedProfile(profile);
+   setSelectedProfile(profile);
+    setShowEditModal(true);
   };
 
   const handleCloseModal = () => {
     setSelectedProfile(null);
+    setShowEditModal(false);
   };
 
-  const handleSaveProfile = async (updatedProfile: Profile) => {
-    try {
-      console.log('Updating profile:', updatedProfile.id);
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: updatedProfile.first_name,
-          last_name: updatedProfile.last_name,
-          phone_number: updatedProfile.phone_number,
-          display_name: updatedProfile.display_name,
-          reward_points: updatedProfile.reward_points,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', updatedProfile.id);
-
-      if (error) {
-        console.error('Error updating profile:', error);
-        throw error;
-      }
-      
-      // Update the local profiles list
-      queryClient.invalidateQueries({ queryKey: ['adminProfiles'] });
-      refetch();
-      
-      toast.success('Profile updated successfully');
-      setSelectedProfile(null);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
-    }
+  const handleProfileUpdated = async () => {
+    // Update the local profiles list
+    queryClient.invalidateQueries({ queryKey: ['adminProfiles'] });
+    refetch();
+    toast.success('Profile updated successfully');
+    setSelectedProfile(null);
+    setShowEditModal(false);
   };
 
   const handleDeleteProfile = async (profileId: string) => {
     try {
-      console.log('Deleting profile:', profileId);
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -179,11 +153,12 @@ const AdminProfiles = () => {
           </div>
         )}
 
-        {selectedProfile && (
+        {showEditModal && selectedProfile && (
           <ProfileEditModal
             profile={selectedProfile}
-            onClose={handleCloseModal}
-            onSave={handleSaveProfile}
+            open={showEditModal}
+            onOpenChange={setShowEditModal}
+            onProfileUpdated={handleProfileUpdated}
           />
         )}
       </div>

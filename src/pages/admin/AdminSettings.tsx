@@ -191,8 +191,7 @@ const AdminSettings = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      console.log('Saving settings:', settings);
-      
+    
       const settingsData = JSON.parse(JSON.stringify(settings));
       
       const { error } = await supabase

@@ -22,9 +22,7 @@ interface OrderNotificationData {
 // Function to send order notification email via Cloudflare Function
 export const sendOrderNotificationEmail = async (orderData: OrderNotificationData): Promise<boolean> => {
   try {
-    console.log('Sending order notification email:', orderData);
-
-    const response = await fetch('/api/send-email', {
+   const response = await fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -50,9 +48,7 @@ B3F Prints Team`
       console.error('Error sending order notification email:', await response.text());
       return false;
     }
-
-    console.log('Order notification email sent successfully');
-    return true;
+return true;
   } catch (error) {
     console.error('Error in sendOrderNotificationEmail:', error);
     return false;

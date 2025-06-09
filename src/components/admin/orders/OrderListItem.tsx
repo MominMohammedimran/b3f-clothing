@@ -34,7 +34,10 @@ const OrderListItem = ({ order, onView, onStatusUpdate, onDelete }: OrderListIte
       if (supabase) {
         const { error } = await supabase
           .from('orders')
-          .update({ status: 'delivered' })
+          .update({ 
+            status: 'delivered',
+            upi_input: '' // Add required upi_input field
+          })
           .eq('id', order.id);
         
         if (error) throw error;

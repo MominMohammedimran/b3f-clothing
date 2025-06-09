@@ -72,15 +72,20 @@ const Checkout = () => {
           .eq('id', currentUser.id)
           .maybeSingle();
 
-        if (error || !data) return;
+        if (error && error.code !== 'PGRST116') {
+          console.error('Profile fetch error:', error);
+          return;
+        }
 
-        setFormData(prev => ({
-          ...prev,
-          firstName: data.first_name || '',
-          lastName: data.last_name || '',
-          email: data.email || currentUser.email || '',
-          phone: data.phone_number || '',
-        }));
+        if (data) {
+          setFormData(prev => ({
+            ...prev,
+            firstName: data.first_name || '',
+            lastName: data.last_name || '',
+            email: data.email || currentUser.email || '',
+            phone: data.phone_number || '',
+          }));
+        }
 
         if (currentLocation) {
           setFormData(prev => ({
@@ -135,7 +140,7 @@ const Checkout = () => {
         firstName: selected.first_name,
         lastName: selected.last_name,
         email: currentUser?.email || '',
-        phone: selected.phone,
+        phone: selected.phone || '',
         address: selected.street,
         city: selected.city,
         state: selected.state,
@@ -167,8 +172,7 @@ const Checkout = () => {
     setIsLoading(true);
 
     try {
-      console.log('Starting checkout form submission...');
-      
+     
       const shippingAddress = {
         fullName: `${values.firstName} ${values.lastName}`,
         firstName: values.firstName,
@@ -185,9 +189,9 @@ const Checkout = () => {
       };
 
       // Save new address if needed
-      if (useNewAddress && currentUser) {
+      if (useNewAddress && currentUser && values.address.trim()) {
         try {
-          await supabase.from('addresses').insert({
+          const addressData = {
             user_id: currentUser.id,
             first_name: values.firstName,
             last_name: values.lastName,
@@ -199,14 +203,25 @@ const Checkout = () => {
             country: values.country,
             phone: values.phone,
             is_default: addresses.length === 0,
-          });
+          };
+
+       
+          const { error: addressError } = await supabase
+            .from('addresses')
+            .insert(addressData);
+
+          if (addressError) {
+            console.error('Error saving address:', addressError);
+            toast.error('Warning: Could not save address for future use');
+          } else {
+            console.log('Address saved successfully');
+          }
         } catch (addressError) {
           console.error('Error saving address:', addressError);
-          // Continue even if address save fails
+          toast.error('Warning: Could not save address for future use');
         }
       }
 
-      console.log('Shipping address prepared:', shippingAddress);
       
       // Navigate to payment with shipping address
       navigate('/payment', { 
@@ -242,18 +257,18 @@ const Checkout = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 mt-10">
+      <div className="container mx-auto px-4 py-4 sm:py-8 mt-10">
         <div className="flex items-center mb-6">
           <Link to="/cart" className="mr-2">
             <ArrowLeft size={24} className="text-blue-600 hover:text-blue-800" />
           </Link>
-          <h1 className="text-2xl font-bold text-blue-600">Checkout</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-blue-600">Checkout</h1>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4">Shipping Details</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-4">Shipping Details</h2>
 
               {currentLocation && (
                 <div className="mb-4 p-2 bg-blue-50 rounded-md border border-blue-100">
@@ -281,7 +296,7 @@ const Checkout = () => {
             </div>
           </div>
 
-          <div className="md:col-span-1">
+          <div className="lg:col-span-1">
             <OrderSummaryComponent currentOrder={currentOrder} />
           </div>
         </div>

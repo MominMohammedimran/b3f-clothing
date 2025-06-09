@@ -27,8 +27,7 @@ export const initializeAdmin = async (userId: string, email: string): Promise<vo
       .maybeSingle();
     
     if (existingAdmin) {
-      console.log('Admin already exists', existingAdmin);
-      return;
+       return;
     }
     
     // Create a new admin user
@@ -47,8 +46,7 @@ export const initializeAdmin = async (userId: string, email: string): Promise<vo
       throw error;
     }
     
-    console.log('Admin created successfully', data);
-  } catch (error) {
+     } catch (error) {
     console.error('Error initializing admin:', error);
     throw error;
   }

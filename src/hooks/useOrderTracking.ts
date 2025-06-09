@@ -77,7 +77,8 @@ export const useOrderTracking = () => {
         .from('orders')
         .update({ 
           status: newStatus,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          upi_input: '' // Add required upi_input field
         })
         .eq('id', orderId);
 

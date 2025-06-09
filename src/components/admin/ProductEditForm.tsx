@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,9 +57,9 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, onCa
       let parsedVariants: ProductVariant[] = [];
 
       if (data?.variants && Array.isArray(data.variants)) {
-        parsedVariants = data.variants.filter(
-          (v) => typeof v?.size === 'string' && typeof v?.stock === 'number'
-        );
+        parsedVariants = data.variants
+          .filter((v: any) => v && typeof v === 'object' && typeof v.size === 'string' && typeof v.stock === 'number')
+          .map((v: any) => ({ size: v.size, stock: v.stock }));
       }
 
       setVariants(parsedVariants.length > 0 ? parsedVariants : [{ size: '', stock: 0 }]);
@@ -184,7 +185,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({ product, onSave, onCa
 
       <Card>
         <CardHeader>
-          <CardTitle>Product Variants & Stock (fetched from DB)</CardTitle>
+          <CardTitle>Product Variants & Stock</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button type="button" onClick={addVariant} variant="outline">

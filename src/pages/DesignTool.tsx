@@ -416,7 +416,7 @@ const DesignTool = () => {
     <Layout>
       <DesignContextProviders>
         <div className="container-custom px-4">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 mt-10">
             <Link
               to="/"
               className="flex items-center text-blue-600 hover:text-blue-800"

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,6 +24,9 @@ interface CustomizationSidebarProps {
   selectedSizes?: string[];
   onSizeToggle?: (size: string) => void;
   getTotalPrice?: () => number;
+  quantity: number;
+  productId: string;
+  upi_input: string;
 }
 
 const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
@@ -42,13 +46,15 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
   validateDesign,
   selectedSizes = [],
   onSizeToggle,
-  getTotalPrice
+  getTotalPrice,
+  quantity,
+  productId,
+  upi_input
 }) => {
   const product = products[activeProduct];
   const productVariants = Array.isArray(product?.variants)
   ? product.variants.filter(v => v && typeof v.size === 'string' && typeof v.stock === 'number')
   : [];
-
 
   return (
     <div className="bg-white rounded-lg border shadow-lg p-6 space-y-6">
@@ -148,9 +154,18 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
   );
 })}
 
-
         </div>
       </div>
+
+      {/* Quantity Display */}
+      {quantity && (
+        <div className="p-3 bg-gray-50 rounded">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Quantity:</span>
+            <span className="text-lg font-bold">{quantity}</span>
+          </div>
+        </div>
+      )}
 
       {/* WhatsApp Share */}
       <div className="p-4 bg-gray-50 rounded text-center">

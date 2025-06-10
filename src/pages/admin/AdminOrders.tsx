@@ -11,6 +11,7 @@ import { Search } from 'lucide-react';
 import OrderListItem from '../../components/admin/orders/OrderListItem';
 import OrderDetailsDialog from '../../components/admin/OrderDetailsDialog';
 import AdminOrderDownload from '../../components/admin/AdminOrderDownload';
+import AdminDownloadDesign from '../../components/admin/AdminDownloadDesign';
 import AdminLayout from '../../components/admin/AdminLayout';
 
 interface Order {
@@ -205,6 +206,7 @@ const AdminOrders: React.FC = () => {
                             View
                           </Button>
                           <AdminOrderDownload order={order} />
+                          <AdminDownloadDesign order={order} />
                           {order.status !== 'delivered' && (
                             <Button
                               variant="outline"

@@ -1,264 +1,122 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package2, ShoppingBag, CreditCard, TruckIcon, Clock } from 'lucide-react';
-import Layout from '../components/layout/Layout';
-import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '../context/AuthContext';
-import { format } from 'date-fns';
-import { Order, CartItem } from '@/lib/types';
 
-interface OrderItem {
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  size?: string;
-  color?: string;
-}
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import Layout from '../components/layout/Layout';
+import OrdersFilter from '../components/orders/OrdersFilter';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const Orders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    window.scrollTo(0, 0);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showOnlySuccessful, setShowOnlySuccessful] = useState(true);
+
+  const fetchOrders = async () => {
+    if (!currentUser) return;
     
-    // Check if user is logged in
-    if (!currentUser) {
-      toast.error({ title: 'Please sign in to view your orders' });
-      navigate('/signin');
-      return;
-    }
-    
-    loadOrders();
-  }, [currentUser]);
-  
-  const loadOrders = async () => {
-    setLoading(true);
     try {
-      // Get orders from database if user is logged in
-      if (currentUser && supabase) {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .in('status', ['paid', 'processing', 'shipped', 'delivered', 'completed']) // Only show orders with successful payment
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          // Transform data to match the Order type
-          const transformedOrders: Order[] = data.map((order: any) => {
-            // Parse JSON items if they're stored as a string
-            let parsedItems: CartItem[] = [];
-            
-            try {
-              parsedItems = typeof order.items === 'string' 
-                ? JSON.parse(order.items) 
-                : Array.isArray(order.items) ? order.items : [];
-            } catch (e) {
-              console.error('Failed to parse order items:', e);
-              parsedItems = [];
-            }
-            
-            // Convert to Order type with all required properties
-            return {
-              id: order.id,
-              userId: order.user_id,
-              user_id: order.user_id,
-              userEmail: order.user_email || '',
-              user_email: order.user_email || '',
-              orderNumber: order.order_number,
-              order_number: order.order_number,
-              status: order.status || 'processing',
-              total: order.total,
-              items: parsedItems,
-              date: order.date || order.created_at,
-              createdAt: order.created_at,
-              created_at: order.created_at,
-              updatedAt: order.updated_at,
-              updated_at: order.updated_at,
-              paymentMethod: order.payment_method,
-              payment_method: order.payment_method,
-              deliveryFee: order.delivery_fee,
-              delivery_fee: order.delivery_fee,
-              shippingAddress: order.shipping_address,
-              shipping_address: order.shipping_address
-            };
-          });
-          
-          setOrders(transformedOrders);
-        } else {
-          toast.info({ title: 'You have no paid orders yet' });
-          setOrders([]);
+      setLoading(true);
+      let query = supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Filter only successful Razorpay orders
+      const filteredOrders = data?.filter(order => {
+        // For Razorpay payments, check if payment is successful
+        if (order.payment_method === 'razorpay') {
+          // Check if status indicates successful payment or if payment_details exists with success
+          const hasSuccessfulPayment = ['paid', 'completed', 'shipped', 'delivered'].includes(order.status);
+          return hasSuccessfulPayment;
         }
-      }
-    } catch (error) {
-      console.error('Error loading orders:', error);
-      toast.error({ title: 'Failed to load orders' });
-      setOrders([]);
+        
+        // For other payment methods, check order status
+        return ['paid', 'completed', 'shipped', 'delivered'].includes(order.status);
+      }) || [];
+
+      setOrders(filteredOrders);
+    } catch (error: any) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load orders');
     } finally {
       setLoading(false);
     }
   };
-  
-  // Format date properly
-  const formatOrderDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'MMM dd, yyyy');
-    } catch (error) {
-      return 'Date unavailable';
-    }
-  };
-  
-  // Get status badge color
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'processing':
-      case 'paid':
-        return 'bg-blue-100 text-blue-800';
-      case 'shipped':
-        return 'bg-purple-100 text-purple-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'refunded':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-  
-  // Get status icon
-  const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-      case 'delivered':
-        return <Package2 size={16} />;
-      case 'processing':
-      case 'paid':
-        return <Clock size={16} />;
-      case 'shipped':
-        return <TruckIcon size={16} />;
-      case 'cancelled':
-        return <ShoppingBag size={16} />;
-      case 'payment pending':
-        return <CreditCard size={16} />;
-      default:
-        return <ShoppingBag size={16} />;
-    }
-  };
-  
+
+  useEffect(() => {
+    fetchOrders();
+  }, [currentUser, showOnlySuccessful]);
+
+  if (!currentUser) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <p>Please sign in to view your orders.</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="container-custom mt-10">
-        <div className="flex items-center justify-between mb-6">
-          <Link to="/" className="flex items-center text-blue-600 hover:text-blue-800">
-            <ArrowLeft size={18} className="mr-2" />
-            <span className="font-medium">Continue Shopping</span>
-          </Link>
-          <h1 className="text-2xl font-bold">Your Orders</h1>
-          <div className="w-32"></div>
-        </div>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">My Orders</h1>
         
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="p-6">
-            <h2 className="text-xl font-bold mb-4">Order History</h2>
-            
-            {loading ? (
-               <div className="px-4 py-8">
-                    <Link to="/" className="text-blue-600 font-semibold flex items-center space-x-2 mb-4">
-                      <span className="text-xxl">←</span>
-                      <span>Back</span>
-                    </Link>
-              
-                    <Link to="/signin">
-                      <div className="text-red-600 text-xl text-center font-semibold hover:underline cursor-pointer">
-                        No order to show
-                      </div>
-                    </Link>
-                  </div>
-            ) : (
-              <div className="space-y-6">
-                {orders.map((order) => (
-                  <div key={order.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="p-4 bg-gray-50 flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <div className="text-sm text-gray-500 mb-1 break-words max-w-[200px]">
-                          Order #{order.order_number}
-                        </div>
-                        <div className="font-semibold">{formatOrderDate(order.createdAt)}</div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3">
-                        <div className={`px-3 py-1 rounded-full flex items-center space-x-1 text-xs font-semibold ${getStatusColor(order.status)}`}>
-                          {getStatusIcon(order.status)}
-                          <span>{order.status ? order.status.charAt(0).toUpperCase() + order.status.slice(1) : 'Processing'}</span>
-                        </div>
-                        
-                        <Link 
-                          to="/track-order" 
-                          state={{ orderId: order.id }}
-                          className="text-blue-600 text-sm hover:underline"
-                        >
-                          Track Order
-                        </Link>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4">
-                      <div className="space-y-3">
-                        {Array.isArray(order.items) && order.items.slice(0, 2).map((item, index) => (
-                          <div key={index} className="flex items-center">
-                            <div className="w-12 h-12 border rounded-md overflow-hidden">
-                              <img 
-                                src={item.metadata?.previewImage || item.image} 
-                                alt={item.name} 
-                                className="w-full h-full object-cover" 
-                              />
-                            </div>
-                            <div className="ml-3 flex-1">
-                              <div className="font-medium text-sm">{item.name}</div>
-                              <div className="text-xs text-gray-500">
-                                {item.size && <span>Size: {item.size}</span>}
-                                {item.quantity > 1 && <span className="ml-2">Qty: {item.quantity}</span>}
-                                {item.metadata?.view && <span className="ml-2">Design: {item.metadata.view}</span>}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        
-                        {Array.isArray(order.items) && order.items.length > 2 && (
-                          <div className="text-xs text-gray-500">
-                            +{order.items.length - 2} more items
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
-                        <div className="text-sm">
-                          Total: <span className="font-bold">₹{order.total}</span>
-                        </div>
-                        
-                        <div className="text-xs text-gray-500">
-                          {order.paymentMethod ? (order.paymentMethod.charAt(0).toUpperCase() + order.paymentMethod.slice(1)) : 'Payment Method: Not specified'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        <OrdersFilter 
+          showOnlySuccessful={showOnlySuccessful}
+          onToggleFilter={setShowOnlySuccessful}
+        />
+
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        </div>
+        ) : orders.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-gray-500">
+                No successful orders found.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {orders.map((order) => (
+              <Card key={order.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">Order #{order.order_number}</CardTitle>
+                    <Badge variant={order.status === 'paid' ? 'default' : 'secondary'}>
+                      {order.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p><strong>Date:</strong> {formatDate(order.created_at)}</p>
+                      <p><strong>Total:</strong> ₹{order.total}</p>
+                      <p><strong>Payment Method:</strong> {order.payment_method}</p>
+                    </div>
+                    <div>
+                      <p><strong>Items:</strong> {order.items?.length || 0}</p>
+                      <p><strong>Status:</strong> {order.status}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
   );

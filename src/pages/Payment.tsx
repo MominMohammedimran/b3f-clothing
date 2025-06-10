@@ -169,7 +169,7 @@ const Payment = () => {
               </p>
               
               <RazorpayCheckout 
-                amount={finalTotal}
+                amount={finalTotal}s
                 customerInfo={customerInfo}
                 cartItems={cartItems}
                 shippingAddress={shippingAddress}

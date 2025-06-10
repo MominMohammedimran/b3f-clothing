@@ -173,6 +173,10 @@ CREATE POLICY "Admins can view admin_users"
   USING (
     auth.email() IN (SELECT email FROM public.admin_users)
   );
+alter table addresses
+add column phone text,
+add column first_name text,
+add column last_name text;
 
 -- =============================
 -- Seed Locations

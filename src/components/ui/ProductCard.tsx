@@ -47,12 +47,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <Card className="group hover:shadow-lg transition-shadow cursor-pointer" onClick={handleCardClick}>
-      <CardContent className="p-4">
+      <CardContent className="p-2">
         <div className="relative mb-3">
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-48 object-cover rounded-md"
+            className="w-full h-28 object-cover rounded-md"
           />
           {product.discountPercentage && (
             <Badge className="absolute top-2 left-2 bg-red-500">
@@ -61,8 +61,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.name}</h3>
-
+       <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 line-clamp-2">
+        {product.name}
+       </h3>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl font-bold text-blue-600">₹{product.price}</span>
           {product.originalPrice && (

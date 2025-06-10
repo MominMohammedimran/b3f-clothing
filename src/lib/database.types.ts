@@ -10,48 +10,50 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      addresses: {
+       addresses: {
         Row: {
-          city: string
-          country: string
-          created_at: string
-          id: string
-          is_default: boolean
-          name: string
-          state: string
-          street: string
-          updated_at: string
-          user_id: string
-          zipcode: string
-        }
+          id: string;
+          user_id: string;
+          name: string;
+          street: string;
+          city: string;
+          state: string;
+          zipcode: string;
+          country: string | null;
+          is_default: boolean | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
         Insert: {
-          city: string
-          country: string
-          created_at?: string
-          id?: string
-          is_default?: boolean
-          name: string
-          state: string
-          street: string
-          updated_at?: string
-          user_id: string
-          zipcode: string
-        }
+          id?: string;
+          user_id: string;
+          name: string;
+          street: string;
+          city: string;
+          state: string;
+          zipcode: string;
+          country?: string | null;
+          is_default?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
         Update: {
-          city?: string
-          country?: string
-          created_at?: string
-          id?: string
-          is_default?: boolean
-          name?: string
-          state?: string
-          street?: string
-          updated_at?: string
-          user_id?: string
-          zipcode?: string
-        }
-        Relationships: []
+          id?: string;
+          user_id?: string;
+          name?: string;
+          street?: string;
+          city?: string;
+          state?: string;
+          zipcode?: string;
+          country?: string | null;
+          is_default?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
       }
+    }
+   
       admin_users: {
         Row: {
           created_at: string

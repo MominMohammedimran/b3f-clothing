@@ -138,67 +138,55 @@ const Navbar = () => {
         </div>
       </div>
       
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-50 md:hidden">
-        <div className="flex items-center justify-between">
-          <Link to="/" className={`flex flex-col items-center text-xs sm:text-sm ${
-            isActive('/') 
-              ? 'text-blue-600 font-bold bg-blue-100 rounded-full px-3 py-1' 
-              : 'text-gray-500'
-          }`}>
-            <Home size={18} className={isActive('/') ? 'text-blue-600' : 'text-gray-500'} />
-            <span>Home</span>
-          </Link>
-          
-          <Link to="/design-tool" className={`flex flex-col items-center text-xs sm:text-sm ${
-            isActive('/design-tool') 
-              ? 'text-blue-600 font-bold bg-blue-100 rounded-full px-3 py-1' 
-              : 'text-gray-500'
-          }`}>
-            <PenTool size={18} className={isActive('/design-tool') ? 'text-blue-600' : 'text-gray-500'} />
-            <span>Design Tool</span>
-          </Link>
-          
-          <Link to="/search" className={`flex flex-col items-center text-xs sm:text-sm ${
-            isActive('/search') 
-              ? 'text-blue-600 font-bold bg-blue-100 rounded-full px-3 py-1' 
-              : 'text-gray-500'
-          }`}>
-            <Search size={18} className={isActive('/search') ? 'text-blue-600' : 'text-gray-500'} />
-            <span>Search</span>
-          </Link>
-          
-          <Link to="/orders" className={`flex flex-col items-center text-xs sm:text-sm ${
-            isActive('/orders') 
-              ? 'text-blue-600 font-bold bg-blue-100 rounded-full px-3 py-1' 
-              : 'text-gray-500'
-          }`}>
-            <div className="relative">
-              <PackageSearch size={18} className={isActive('/orders') ? 'text-blue-600' : 'text-gray-500'} />
-            </div>
-            <span>Orders</span>
-          </Link>
-          
-          {currentUser ? (
-            <Link to="/profile" className={`flex flex-col items-center text-xs sm:text-sm ${
-              isActive('/profile') 
-                ? 'text-blue-600 font-bold bg-blue-100 rounded-full px-3 py-1' 
-                : 'text-gray-500'
-            }`}>
-              <User size={18} className={isActive('/profile') ? 'text-blue-600' : 'text-gray-500'} />
-              <span>Profile</span>
-            </Link>
-          ) : (
-            <Link to="/signin" className={`flex flex-col items-center text-xs sm:text-sm ${
-              isActive('/signin') 
-                ? 'text-blue-600 font-bold bg-blue-100 rounded-full px-3 py-1' 
-                : 'text-gray-500'
-            }`}>
-              <User size={18} className={isActive('/signin') ? 'text-blue-600' : 'text-gray-500'} />
-              <span>Sign In</span>
-            </Link>
-          )}
-        </div>
-      </div>
+     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-50 md:hidden">
+          <div className="flex items-center justify-between">
+        <Link to="/" className={`flex flex-col items-center text-xs sm:text-sm ${
+      isActive('/') ? 'text-[#008000] font-bold' : 'text-[#6B7280]'
+    }`}>
+      <Home size={18} className={isActive('/') ? 'text-[#008000]' : 'text-[#6B7280]'} />
+      <span>Home</span>
+    </Link>
+
+    <Link to="/design-tool" className={`flex flex-col items-center text-xs sm:text-sm ${
+      isActive('/design-tool') ? 'text-[#008000] font-bold' : 'text-[#6B7280]'
+    }`}>
+      <PenTool size={18} className={isActive('/design-tool') ? 'text-[#008000]' : 'text-[#6B7280]'} />
+      <span>Design Tool</span>
+    </Link>
+
+    <Link to="/search" className={`flex flex-col items-center text-xs sm:text-sm ${
+      isActive('/search') ? 'text-[#008000] font-bold' : 'text-[#6B7280]'
+    }`}>
+      <Search size={18} className={isActive('/search') ? 'text-[#008000]' : 'text-[#6B7280]'} />
+      <span>Search</span>
+    </Link>
+
+    <Link to="/orders" className={`flex flex-col items-center text-xs sm:text-sm ${
+      isActive('/orders') ? 'text-[#008000] font-bold' : 'text-[#6B7280]'
+    }`}>
+      <PackageSearch size={18} className={isActive('/orders') ? 'text-[#008000]' : 'text-[#6B7280]'} />
+      <span>Orders</span>
+    </Link>
+
+    {currentUser ? (
+      <Link to="/profile" className={`flex flex-col items-center text-xs sm:text-sm ${
+        isActive('/profile') ? 'text-[#008000] font-bold' : 'text-[#6B7280]'
+      }`}>
+        <User size={18} className={isActive('/profile') ? 'text-[#008000]' : 'text-[#6B7280]'} />
+        <span>Profile</span>
+      </Link>
+    ) : (
+      <Link to="/signin" className={`flex flex-col items-center text-xs sm:text-sm ${
+        isActive('/signin') ? 'text-[#008000] font-bold' : 'text-[#6B7280]'
+      }`}>
+        <User size={18} className={isActive('/signin') ? 'text-[#008000]' : 'text-[#6B7280]'} />
+        <span>Sign In</span>
+      </Link>
+    )}
+  </div>
+</div>
+
+
     </div>
   );
 };

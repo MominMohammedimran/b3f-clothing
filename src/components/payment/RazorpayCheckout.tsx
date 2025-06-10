@@ -1,195 +1,201 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 interface RazorpayCheckoutProps {
+  cartItems: any[];
   amount: number;
-  customerInfo: {
-    name: string;
-    email: string;
-    contact: string;
-  };
-  onSuccess: (data: any) => void;
+  shippingAddress: any;
+  onSuccess: () => void;
   onError: () => void;
 }
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
+  cartItems,
   amount,
-  customerInfo,
+  shippingAddress,
   onSuccess,
   onError,
 }) => {
-  const [loading, setLoading] = useState(false);
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const loadRazorpayScript = () => {
-    return new Promise<boolean>((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const generateB3FOrderNumber = () => {
-    const timestamp = Date.now().toString().slice(-8);
-    const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `B3F${timestamp}${randomNum}`;
-  };
-
-  const createRazorpayOrder = async ({
-    amount,
-    currency,
-    receipt,
-    customerInfo,
-    orderNumber,
-  }: {
-    amount: number;
-    currency: string;
-    receipt: string;
-    customerInfo: { name: string; email: string; contact: string };
-    orderNumber: string;
-  }) => {
-    const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
-      method: 'POST',
-      body: {
-        amount,
-        currency,
-        receipt,
-        customerInfo,
-        orderNumber,
-      },
-    });
-
-    if (error) {
-      throw error;
+  // Create Razorpay order via Edge Function
+  const createRazorpayOrder = async () => {
+    // Ensure user is signed in and has an email
+    if (!currentUser?.email) {
+      throw new Error("User must be signed in to create order");
     }
 
-    return data;
+    // Get access token for auth header
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    if (sessionError) {
+      throw sessionError;
+    }
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      throw new Error("No access token—are you signed in?");
+    }
+
+    const payload = {
+      amount: Math.round(amount * 100),
+      currency: "INR",
+      receipt: `order_${Date.now()}`,
+      customerInfo: {
+        email: currentUser.email,
+        name: shippingAddress?.name ?? currentUser.email,
+      },
+      orderNumber: `ORD${Date.now()}`,
+      cartItems,
+      shippingAddress,
+    };
+
+    console.log("→ create-razorpay-order payload:", payload);
+
+    const response = await supabase.functions.invoke(
+      "create-razorpay-order",
+      {
+        body: payload,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    return response.data;
   };
 
   const handlePayment = async () => {
-    setLoading(true);
+    if (!currentUser?.email) {
+      toast.error("Please sign in to continue");
+      return;
+    }
 
     try {
-      const isScriptLoaded = await loadRazorpayScript();
-      if (!isScriptLoaded) {
-        throw new Error('Failed to load Razorpay script');
+      setLoading(true);
+
+      const razorpayOrder = await createRazorpayOrder();
+
+      if (!window.Razorpay) {
+        throw new Error("Razorpay SDK not loaded");
       }
 
-      const orderNumber = generateB3FOrderNumber();
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        throw new Error('You must be logged in to proceed with payment.');
-      }
-
-      const data = await createRazorpayOrder({
-        amount: Math.round(amount * 100),
-        currency: 'INR',
-        receipt: orderNumber,
-        customerInfo,
-        orderNumber,
-      });
-
-      if (!data || !data.order_id) {
-        throw new Error('Invalid response from order function');
-      }
+      const itemsDescription = cartItems
+        .map((item) => {
+          const printType = item.metadata?.designData
+            ? "Custom Printed"
+            : "Regular";
+          return `${item.name} (Size: ${item.size || "N/A"}, Qty: ${
+            item.quantity
+          }, Type: ${printType})`;
+        })
+        .join(", ");
 
       const options = {
-        key: data.key_id,
-        amount: data.amount,
-        currency: data.currency,
-        name: "B3F Prints & Men's Wear",
-        description: 'Order Payment',
-        order_id: data.order_id,
+        key: "rzp_live_FQUylFpHDtgrDj",
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: "B3F Prints",
+        description: `Order: ${itemsDescription}`,
+        order_id: razorpayOrder.id,
         prefill: {
-          name: customerInfo.name,
-          email: customerInfo.email,
-          contact: customerInfo.contact,
+          name: shippingAddress?.name || "",
+          email: currentUser.email,
+          contact: shippingAddress?.phone || "",
         },
-        theme: {
-          color: '#2563eb',
+        notes: {
+          items: itemsDescription,
+          customer_email: currentUser.email,
+          total_amount: amount,
         },
-        handler: async function (response: any) {
-          toast.success('Payment successful!');
-
+        theme: { color: "#3B82F6" },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            toast.error("Payment cancelled by user");
+            onError();
+          },
+        },
+        handler: async (response: any) => {
           try {
-            // ✅ Updated: use .from().update() with required fields
-            const { error: updateError } = await supabase
-              .from('orders')
-              .update({
-                status: 'paid',
-                updated_at: new Date().toISOString(),
+            const orderNumber = `ORD${Date.now()}`;
+
+            const { data: order, error: orderError } = await supabase
+              .from("orders")
+              .insert({
+                user_id: currentUser.id,
+                order_number: orderNumber,
+                total: amount,
+                items: cartItems,
+                status: "paid",
+                payment_method: "razorpay",
+                shipping_address: shippingAddress,
                 payment_details: {
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_signature: response.razorpay_signature,
+                  status: "success",
                 },
-                upi_input: '', // ✅ Satisfies required field
               })
-              .eq('id', data.db_order_id);
+              .select()
+              .single();
 
-            if (updateError) {
-              console.error('Failed to update order status:', updateError);
-              throw new Error('Failed to update order status');
+            if (orderError) throw orderError;
+
+            // Send confirmation email
+            try {
+              await supabase.functions.invoke("send-order-confirmation", {
+                body: {
+                  userEmail: currentUser.email,
+                  orderDetails: {
+                    order_number: orderNumber,
+                    total: amount,
+                    items: cartItems,
+                    shipping_address: shippingAddress,
+                    payment_details: {
+                      razorpay_payment_id: response.razorpay_payment_id,
+                      razorpay_order_id: response.razorpay_order_id,
+                      razorpay_signature: response.razorpay_signature,
+                    },
+                  },
+                },
+              });
+            } catch (emailError) {
+              console.error("Error sending confirmation email:", emailError);
             }
 
-            await fetch('/api/send-email', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                to: customerInfo.email,
-                subject: `B3F Prints: Order ${data.order_number} Confirmation`,
-                text: `Dear ${customerInfo.name},
+            toast.success("Payment successful! Order created.");
+            onSuccess();
 
-We have received your payment for order ${data.order_number}.
-Thank you for shopping with B3F Prints!
-
-🧾 Order Total: ₹${amount.toFixed(2)}
-🛒 Order ID: ${data.order_number}
-📦 We will notify you once it is shipped.
-
-– B3F Prints & Men's Wear`,
-              }),
+            navigate("/order-complete", {
+              state: { orderNumber, orderId: order.id },
             });
-
-            toast.success('Confirmation email sent');
-          } catch (emailError) {
-            console.warn('Email sending failed:', emailError);
-            toast.warning('Order confirmed, but email failed to send');
-          }
-
-          onSuccess(response);
-          navigate(
-            `/order-complete?orderId=${data.db_order_id}&orderNumber=${data.order_number || orderNumber}`
-          );
-        },
-        modal: {
-          ondismiss: function () {
-            toast.error('Payment cancelled');
+          } catch (error: any) {
+            console.error("Error processing payment:", error);
+            toast.error("Payment succeeded but order creation failed.");
             onError();
-          },
+          }
         },
       };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (error: any) {
-      console.error('Payment error:', error);
-      toast.error(error.message || 'Payment failed. Please try again.');
+      console.error("Payment error:", error);
+      toast.error("Failed to start payment: " + error.message);
       onError();
     } finally {
       setLoading(false);
@@ -197,9 +203,92 @@ Thank you for shopping with B3F Prints!
   };
 
   return (
-    <Button onClick={handlePayment} disabled={loading} className="w-full" size="lg">
-      {loading ? 'Loading...' : `Pay ₹${amount.toFixed(2)} with Razorpay`}
-    </Button>
+    <div className="w-full max-w-md mx-auto">
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="text-center text-xl">Complete Payment</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg">Order Summary</h3>
+            <div className="space-y-2">
+              {cartItems.map((item, index) => (
+                <div
+                  key={index}
+                  className="border-b pb-2 mb-2 last:border-b-0"
+                >
+                  <div className="flex items-start gap-3 text-sm">
+                    <img
+                      src={item.image || "/placeholder.svg"}
+                      alt={item.name}
+                      className="h-16 w-16 rounded object-cover border"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/placeholder.svg";
+                      }}
+                    />
+
+                    <div className="flex-1 pr-2">
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-gray-600">{
+                        `Size: ${item.size || "N/A"} | Qty: ${item.quantity}`
+                      }</p>
+                      {item.metadata?.designData && (
+                        <p className="text-blue-600 text-xs font-medium">
+                          ✨ Custom Printed Design
+                        </p>
+                      )}
+                      {item.color && (
+                        <p className="text-gray-500 text-xs">Color: {item.color}</p>
+                      )}
+                    </div>
+
+                    <div className="text-right whitespace-nowrap">
+                      <span className="font-medium">₹{item.price * item.quantity}</span>
+                      <p className="text-xs text-gray-500">₹{item.price} each</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t pt-3 mt-3">
+              <h4 className="font-medium mb-2">Shipping Address</h4>
+              <div className="text-sm text-gray-600">
+                <p>{shippingAddress?.street}</p>
+                <p>{`${shippingAddress?.city}, ${shippingAddress?.state}`}</p>
+                <p>{`${shippingAddress?.zipcode}, ${shippingAddress?.country}`}</p>
+              </div>
+            </div>
+
+            <div className="border-t pt-3 mt-3">
+              <div className="flex justify-between items-center text-lg font-bold">
+                <span>Total Amount</span>
+                <span className="text-green-600">₹{amount}</span>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            onClick={handlePayment}
+            disabled={loading}
+            className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Pay ₹${amount} with Razorpay`
+            )}
+          </Button>
+
+          <div className="text-center text-xs text-gray-500">
+            Secure payment via Razorpay — supports UPI, Cards, Net Banking, Wallets
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

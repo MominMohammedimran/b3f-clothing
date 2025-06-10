@@ -145,26 +145,15 @@ const Cart = () => {
                       )}
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
-                      <div className="text-sm text-gray-500 space-y-1">
-                        <p>Price: {formatPrice(item.price)}</p>
-                        {item.size && <p>Size: {item.size}</p>}
-                        {item.color && <p>Color: {item.color}</p>}
-                        {item.metadata?.view && <p>Design: {item.metadata.view}</p>}
-                        {hasCustomDesign(item) && (
-                          <p className="text-blue-600 font-medium">✨ Custom Design</p>
-                        )}
-                      </div>
-                    </div>
+                    
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center ">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="h-2 w-2" />
                       </Button>
                       <span className="w-12 text-center font-medium">{item.quantity}</span>
                       <Button
@@ -172,10 +161,10 @@ const Cart = () => {
                         variant="outline"
                         onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="h2 w-2" />
                       </Button>
                     </div>
-
+                  
                     <div className="text-right">
                       <p className="font-medium">{formatPrice(item.price * item.quantity)}</p>
                       <Button
@@ -187,7 +176,25 @@ const Cart = () => {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
+
+                    
                   </div>
+
+                  <div className="flex-1 min-w-0">
+               <h3 className="font-semibold text-gray-900 truncate mb-1">{item.name}</h3>
+
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-600">
+              <p>Price: <span className="font-medium">{formatPrice(item.price)}</span></p>
+                {item.size && <p>Size: <span className="font-medium">{item.size}</span></p>}
+              {item.color && <p>Color: <span className="font-medium">{item.color}</span></p>}
+            
+                    {hasCustomDesign(item) && (
+                 <p className="text-green-600 font-semibold">✨ Custom Design</p>
+                     )}
+                    </div>
+                     </div>
+
+
                 </div>
               ))}
             </div>
@@ -226,6 +233,9 @@ const Cart = () => {
             </div>
           </div>
         </div>
+
+
+        
       </div>
     </Layout>
   );

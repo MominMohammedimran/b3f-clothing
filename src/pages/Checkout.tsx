@@ -191,20 +191,16 @@ const Checkout = () => {
       // Save new address if needed
       if (useNewAddress && currentUser && values.address.trim()) {
         try {
-          const addressData = {
-            user_id: currentUser.id,
-            first_name: values.firstName,
-            last_name: values.lastName,
-            name: `${values.firstName} ${values.lastName}`,
-            street: values.address,
-            city: values.city,
-            state: values.state,
-            zipcode: values.zipCode,
-            country: values.country,
-            phone: values.phone,
-            is_default: addresses.length === 0,
-          };
-
+         const addressData = {
+  user_id: currentUser.id,
+  name: `${values.firstName} ${values.lastName}`,
+  street: values.address,
+  city: values.city,
+  state: values.state,
+  zipcode: values.zipCode,
+  country: values.country,
+  is_default: addresses.length === 0,
+};
        
           const { error: addressError } = await supabase
             .from('addresses')

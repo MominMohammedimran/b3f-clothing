@@ -154,7 +154,29 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
           </p>
        </div>
      )}
-
+ {/* Price breakdown and badges */}
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        {product.originalPrice && product.originalPrice > product.price && (
+          <>
+            <span className="text-gray-400 line-through">
+              ₹{product.originalPrice * sizeMultiplier * quantity}
+            </span>
+            <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
+              {product.discountPercentage}% OFF
+            </span>
+          </>
+        )}
+        {sizeMultiplier > 1 && (
+          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+            {sizeMultiplier} Sizes
+          </span>
+        )}
+        {quantity > 1 && (
+          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+            Qty: {quantity}
+          </span>
+        )}
+      </div>
       {/* Size Selector */}
       {availableSizes.length > 0 && (
         <ProductSizeSelector
@@ -189,29 +211,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         totalPrice={totalPrice}
       />
 
-      {/* Price breakdown and badges */}
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        {product.originalPrice && product.originalPrice > product.price && (
-          <>
-            <span className="text-gray-400 line-through">
-              ₹{product.originalPrice * sizeMultiplier * quantity}
-            </span>
-            <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
-              {product.discountPercentage}% OFF
-            </span>
-          </>
-        )}
-        {sizeMultiplier > 1 && (
-          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-            {sizeMultiplier} Sizes
-          </span>
-        )}
-        {quantity > 1 && (
-          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
-            Qty: {quantity}
-          </span>
-        )}
-      </div>
+     
     </div>
   );
 };

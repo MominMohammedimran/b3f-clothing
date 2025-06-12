@@ -21,7 +21,8 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({ images, produ
   return (
     <div className="space-y-4">
       {/* Wrapper for image + arrows */}
-      <div className="relative w-full sm:w-[85%] mx-auto aspect-[4/5] sm:aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+    <div className="relative w-full sm:w-[85%] mx-auto aspect-[5/3] sm:aspect-[4/6] bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+
         <img
           src={displayImages[currentImage]}
           alt={`${productName} - View ${currentImage + 1}`}

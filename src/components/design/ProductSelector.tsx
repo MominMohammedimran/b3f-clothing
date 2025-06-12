@@ -89,23 +89,30 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3">
+
+            
             {Object.entries(products).map(([id, product]) => (
-              <button
-                key={id}
-                onClick={() => handleProductSelection(id)}
-                className={`flex flex-col items-center p-3 rounded-md border ${
-                  (selectedProduct || activeProduct) === id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                }`}
-              >
-                <div className="w-14 h-12 bg-gray-100 rounded-md flex items-center justify-center mb-2">
-                  <img src={product.image} alt={product.name} className="w-12 h-12 object-contain" />
-                </div>
-                <span className="text-s font-medium">{product.name}</span>
-                <span className="text-xs text-green-600">
-                  {formatIndianRupees(isDualSided && id === 'tshirt' ? 300 : product.price)}
-                </span>
-              </button>
-            ))}
+  <button
+    key={id}
+    onClick={() => handleProductSelection(id)}
+    className={`flex flex-col items-center p-2 sm:p-3 rounded-md border transition ${
+      (selectedProduct || activeProduct) === id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+    }`}
+  >
+    <div className="w-12 h-10 sm:w-14 sm:h-12 bg-gray-100 rounded-md flex items-center justify-center mb-1 sm:mb-2">
+      <img src={product.image} alt={product.name} className="max-w-full max-h-full object-contain" />
+    </div>
+    <span className="text-xs sm:text-sm font-medium text-center leading-snug w-24 sm:w-28 break-words">
+      {product.name}
+    </span>
+    <span className="text-[14px] sm:text-s text-green-800">
+      {formatIndianRupees(isDualSided && id === 'tshirt' ? 300 : product.price)}
+    </span>
+  </button>
+))}
+
+
+
           </div>
           
           {/* Render size options if using the inventory-based approach */}

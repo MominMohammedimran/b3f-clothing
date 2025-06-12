@@ -46,7 +46,7 @@ const ProductDetailsPage = () => {
   return (
     <Layout>
       <div className="container-custom mt-10">
-        <div className="flex items-center mb-4 mt-4">
+        <div className="flex items-center mb-2 mt-4">
           <Link to="/" className="mr-2">
             <ArrowLeft size={24} className="back-arrow" />
           </Link>

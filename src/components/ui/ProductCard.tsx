@@ -35,9 +35,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onAddToCart) {
-      onAddToCart(product);
-    }
+  
+  onClick(product);
+    
   };
 
   const handleCustomize = (e: React.MouseEvent) => {
@@ -46,47 +46,58 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-shadow cursor-pointer" onClick={handleCardClick}>
-      <CardContent className="p-2">
-        <div className="relative mb-3">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-28 object-cover rounded-md"
-          />
-          {product.discountPercentage && (
-            <Badge className="absolute top-2 left-2 bg-red-500">
-              -{product.discountPercentage}%
-            </Badge>
-          )}
-        </div>
-
-       <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 line-clamp-2">
-        {product.name}
-       </h3>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xl font-bold text-blue-600">₹{product.price}</span>
-          {product.originalPrice && (
-            <span className="text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
-          )}
-        </div>
-
-        {isPrinted ? (
-          <Button className="w-full mt-2" onClick={handleCustomize}>
-            Customize
-          </Button>
-        ) : (
-          <Button
-            className="w-full mt-2"
-            onClick={handleAddToCart}
-            disabled={product.stock <= 0}
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
-          </Button>
+    
+  <Card className="group hover:shadow-lg transition-shadow cursor-pointer h-full "onClick={handleCardClick}>
+  <CardContent className="p-3 sm:p-4 flex flex-col justify-between h-full">
+    <div>
+      <div className="relative mb-3">
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-36 sm:h-40 object-cover rounded-md"
+        />
+        {product.discountPercentage && (
+          <Badge className="absolute top-2 left-2 bg-red-500">
+            -{product.discountPercentage}%
+          </Badge>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Product Name */}
+      <h3 className="font-semibold text-base sm:text-lg leading-snug line-clamp-2 min-h-[2.5rem] ">
+        {product.name}
+      </h3>
+
+      {/* Price */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-lg sm:text-xl font-bold text-blue-600">₹{product.price}</span>
+        {product.originalPrice && (
+          <span className="text-xs sm:text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
+        )}
+      </div>
+    </div>
+
+    {/* Bottom button */}
+    <div className="mt-auto">
+      {isPrinted ? (
+        <Button className="w-full" onClick={handleCustomize}>
+          Customize
+        </Button>
+      ) : (
+        <Button
+          className="w-full"
+          onClick={handleAddToCart}
+          disabled={product.stock <= 0}
+        >
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
+        </Button>
+      )}
+    </div>
+  </CardContent>
+</Card>
+
+
   );
 };
 

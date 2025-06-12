@@ -1,11 +1,7 @@
-
 import React from 'react';
-import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
-type FormData = {
+interface FormData {
   firstName: string;
   lastName: string;
   email: string;
@@ -15,153 +11,145 @@ type FormData = {
   state: string;
   zipCode: string;
   country: string;
-};
+}
 
 interface ShippingDetailsFormProps {
   formData: FormData;
-  onSubmit: (data: FormData) => void;
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  onSubmit: (values: FormData) => void;
   isLoading: boolean;
 }
 
 const ShippingDetailsForm: React.FC<ShippingDetailsFormProps> = ({
   formData,
+  setFormData,
   onSubmit,
-  isLoading
+  isLoading,
 }) => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors }
-  } = useForm<FormData>({
-    defaultValues: formData
-  });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="firstName">First Name *</Label>
-          <Input
-            id="firstName"
-            {...register('firstName', { required: 'First name is required' })}
-            className={errors.firstName ? 'border-red-500' : ''}
+          <label className="block mb-1 text-sm font-medium">First Name</label>
+          <input
+            name="firstName"
+            value={formData.firstName}
+            onChange={handleChange}
+            placeholder="First Name"
+            required
+            className="w-full border p-2 rounded"
           />
-          {errors.firstName && (
-            <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>
-          )}
         </div>
 
         <div>
-          <Label htmlFor="lastName">Last Name *</Label>
-          <Input
-            id="lastName"
-            {...register('lastName', { required: 'Last name is required' })}
-            className={errors.lastName ? 'border-red-500' : ''}
+          <label className="block mb-1 text-sm font-medium">Last Name</label>
+          <input
+            name="lastName"
+            value={formData.lastName}
+            onChange={handleChange}
+            placeholder="Last Name"
+            required
+            className="w-full border p-2 rounded"
           />
-          {errors.lastName && (
-            <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="email">Email *</Label>
-        <Input
-          id="email"
-          type="email"
-          {...register('email', { 
-            required: 'Email is required',
-            pattern: {
-              value: /^\S+@\S+$/i,
-              message: 'Invalid email address'
-            }
-          })}
-          className={errors.email ? 'border-red-500' : ''}
-        />
-        {errors.email && (
-          <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="phone">Phone Number *</Label>
-        <Input
-          id="phone"
-          {...register('phone', { required: 'Phone number is required' })}
-          className={errors.phone ? 'border-red-500' : ''}
-        />
-        {errors.phone && (
-          <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="address">Address *</Label>
-        <Input
-          id="address"
-          {...register('address', { required: 'Address is required' })}
-          className={errors.address ? 'border-red-500' : ''}
-        />
-        {errors.address && (
-          <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="city">City *</Label>
-          <Input
-            id="city"
-            {...register('city', { required: 'City is required' })}
-            className={errors.city ? 'border-red-500' : ''}
-          />
-          {errors.city && (
-            <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
-          )}
-        </div>
-
-        <div>
-          <Label htmlFor="state">State *</Label>
-          <Input
-            id="state"
-            {...register('state', { required: 'State is required' })}
-            className={errors.state ? 'border-red-500' : ''}
-          />
-          {errors.state && (
-            <p className="text-red-500 text-sm mt-1">{errors.state.message}</p>
-          )}
-        </div>
-
-        <div>
-          <Label htmlFor="zipCode">ZIP Code *</Label>
-          <Input
-            id="zipCode"
-            {...register('zipCode', { required: 'ZIP code is required' })}
-            className={errors.zipCode ? 'border-red-500' : ''}
-          />
-          {errors.zipCode && (
-            <p className="text-red-500 text-sm mt-1">{errors.zipCode.message}</p>
-          )}
         </div>
       </div>
 
       <div>
-        <Label htmlFor="country">Country</Label>
-        <Input
-          id="country"
-          {...register('country')}
-          defaultValue="India"
-          readOnly
-          className="bg-gray-100"
+        <label className="block mb-1 text-sm font-medium">Email</label>
+        <input
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          placeholder="Email"
+          required
+          className="w-full border p-2 rounded"
         />
       </div>
 
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={isLoading}
-      >
-        {isLoading ? 'Processing...' : 'Continue to Payment'}
+      <div>
+        <label className="block mb-1 text-sm font-medium">Phone</label>
+        <input
+          name="phone"
+          value={formData.phone}
+          onChange={handleChange}
+          placeholder="Phone"
+          required
+          className="w-full border p-2 rounded"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 text-sm font-medium">Address</label>
+        <input
+          name="address"
+          value={formData.address}
+          onChange={handleChange}
+          placeholder="Address"
+          required
+          className="w-full border p-2 rounded"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 text-sm font-medium">City</label>
+        <input
+          name="city"
+          value={formData.city}
+          onChange={handleChange}
+          placeholder="City"
+          required
+          className="w-full border p-2 rounded"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 text-sm font-medium">State</label>
+        <input
+          name="state"
+          value={formData.state}
+          onChange={handleChange}
+          placeholder="State"
+          required
+          className="w-full border p-2 rounded"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 text-sm font-medium">Zip Code</label>
+        <input
+          name="zipCode"
+          value={formData.zipCode}
+          onChange={handleChange}
+          placeholder="Zip Code"
+          required
+          className="w-full border p-2 rounded"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 text-sm font-medium">Country</label>
+        <input
+          name="country"
+          value={formData.country}
+          onChange={handleChange}
+          placeholder="Country"
+          required
+          className="w-full border p-2 rounded"
+        />
+      </div>
+
+      <Button type="submit" disabled={isLoading} className="w-full">
+        {isLoading ? 'Saving...' : 'Continue to Payment'}
       </Button>
     </form>
   );

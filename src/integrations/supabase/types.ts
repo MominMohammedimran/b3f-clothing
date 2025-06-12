@@ -299,8 +299,10 @@ export type Database = {
           id: string
           items: Json
           order_number: string
+          order_status: string | null
           payment_details: Json | null
           payment_method: string
+          payment_status: string | null
           shipping_address: Json | null
           status: string
           total: number
@@ -316,8 +318,10 @@ export type Database = {
           id?: string
           items: Json
           order_number: string
+          order_status?: string | null
           payment_details?: Json | null
           payment_method?: string
+          payment_status?: string | null
           shipping_address?: Json | null
           status?: string
           total: number
@@ -333,8 +337,10 @@ export type Database = {
           id?: string
           items?: Json
           order_number?: string
+          order_status?: string | null
           payment_details?: Json | null
           payment_method?: string
+          payment_status?: string | null
           shipping_address?: Json | null
           status?: string
           total?: number
@@ -881,6 +887,10 @@ export type Database = {
         Args: { user_email: string }
         Returns: boolean
       }
+      retry_payment: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       update_admin_settings: {
         Args: {
           p_site_name: string
@@ -890,6 +900,14 @@ export type Database = {
           p_business_address: string
           p_delivery_fee: number
           p_min_order_amount: number
+        }
+        Returns: undefined
+      }
+      update_payment_status: {
+        Args: {
+          p_order_id: string
+          p_payment_status: string
+          p_order_status?: string
         }
         Returns: undefined
       }

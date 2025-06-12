@@ -170,7 +170,6 @@ const Payment = () => {
                 onError={handlePaymentError}
               />
             </div>
-            
 
             {userProfile?.reward_points && userProfile.reward_points > 0 && (
               <div className="bg-white p-6 rounded-lg shadow-sm border">

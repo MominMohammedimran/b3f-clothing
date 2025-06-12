@@ -41,7 +41,7 @@ const Checkout = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
-  const [useNewAddress, setUseNewAddress] = useState(false);
+  const [useNewAddress, setUseNewAddress] = useState(true);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
 
   const { currentUser } = useAuth();
@@ -51,7 +51,6 @@ const Checkout = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-
     if (!currentUser) {
       toast.error('Please sign in to checkout');
       navigate('/signin?redirectTo=/checkout');
@@ -103,65 +102,54 @@ const Checkout = () => {
 
   useEffect(() => {
     if (addressesLoading) return;
-
-    const fillFormFromAddress = (addr: any) => {
-      setFormData(prev => ({
-        ...prev,
-        firstName: addr.first_name || '',
-        lastName: addr.last_name || '',
-        phone: addr.phone || prev.phone,
-        address: addr.street || '',
-        city: addr.city || '',
-        state: addr.state || '',
-        zipCode: addr.zipcode || '',
-        country: addr.country || 'India',
-      }));
-    };
-
-    if (defaultAddress) {
-      setSelectedAddressId(defaultAddress.id);
-      setUseNewAddress(false);
-      fillFormFromAddress(defaultAddress);
-    } else if (addresses.length > 0) {
-      setSelectedAddressId(addresses[0].id);
-      setUseNewAddress(false);
-      fillFormFromAddress(addresses[0]);
-    } else {
-      setUseNewAddress(true);
+    if (!useNewAddress && selectedAddressId) {
+      const selected = addresses.find(a => a.id === selectedAddressId);
+      if (selected) {
+        fillFormFromAddress(selected);
+      }
     }
-  }, [addresses, defaultAddress, addressesLoading, currentUser]);
+  }, [addresses, selectedAddressId, useNewAddress, addressesLoading]);
+
+  const fillFormFromAddress = (addr: any) => {
+    setFormData({
+      firstName: addr.first_name || addr.name?.split(' ')[0] || '',
+      lastName: addr.last_name || addr.name?.split(' ').slice(1).join(' ') || '',
+      email: formData.email,
+      phone: addr.phone || '',
+      address: addr.street || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      zipCode: addr.zipcode || '',
+      country: addr.country || 'India',
+    });
+  };
 
   const handleAddressSelect = (addressId: string) => {
     setSelectedAddressId(addressId);
     setUseNewAddress(false);
     const selected = addresses.find(a => a.id === addressId);
     if (selected) {
-      setFormData(prev => ({
-        ...prev,
-        firstName: selected.first_name,
-        lastName: selected.last_name,
-        phone: selected.phone || prev.phone,
-        address: selected.street,
-        city: selected.city,
-        state: selected.state,
-        zipCode: selected.zipcode,
-        country: selected.country || 'India',
-      }));
+      fillFormFromAddress(selected);
+      toast.success('Address details filled automatically');
     }
   };
 
-  const handleUseNewAddress = () => {
-    setUseNewAddress(true);
-    setSelectedAddressId(null);
-    setFormData(prev => ({
-      ...prev,
-      address: '',
-      city: currentLocation?.name || '',
-      state: '',
-      zipCode: '',
-      country: 'India',
-    }));
-  };
+const handleUseNewAddress = () => {
+  setUseNewAddress(true);
+  setSelectedAddressId(null);
+  setFormData({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: 'India',
+  });
+};
+
 
   const handleFormSubmit = async (values: FormData) => {
     if (!currentUser || !cartItems || cartItems.length === 0) {
@@ -175,7 +163,7 @@ const Checkout = () => {
       const shippingAddress = {
         fullName: `${values.firstName} ${values.lastName}`,
         firstName: values.firstName,
-        lastName: values.lastName,
+        lastLine: values.lastName,
         addressLine1: values.address,
         street: values.address,
         city: values.city,
@@ -188,44 +176,36 @@ const Checkout = () => {
       };
 
       if (useNewAddress && currentUser && values.address.trim()) {
-        try {
-          const addressData = {
-            user_id: currentUser.id,
-            name: `${values.firstName} ${values.lastName}`,
-            street: values.address,
-            city: values.city,
-            state: values.state,
-            zipcode: values.zipCode,
-            country: values.country,
-            is_default: addresses.length === 0,
-          };
-       
-          const { error: addressError } = await supabase
-            .from('addresses')
-            .insert(addressData);
+        const addressData = {
+          user_id: currentUser.id,
+          name: `${values.firstName} ${values.lastName}`,
+          first_name: values.firstName,
+          last_name: values.lastName,
+          street: values.address,
+          city: values.city,
+          state: values.state,
+          zipcode: values.zipCode,
+          country: values.country,
+          phone: values.phone,
+          is_default: addresses.length === 0,
+        };
 
-          if (addressError) {
-            console.error('Error saving address:', addressError);
-            toast.error('Warning: Could not save address for future use');
-          } else {
-            console.log('Address saved successfully');
-          }
-        } catch (addressError) {
+        const { error: addressError } = await supabase.from('addresses').insert(addressData);
+        if (addressError) {
           console.error('Error saving address:', addressError);
           toast.error('Warning: Could not save address for future use');
         }
       }
 
-      navigate('/payment', { 
-        state: { 
+      navigate('/payment', {
+        state: {
           shippingAddress,
           cartItems,
-          totalPrice
-        } 
+          totalPrice,
+        },
       });
-      
+
       toast.success('Shipping details saved');
-      
     } catch (error) {
       console.error('Error in checkout:', error);
       toast.error('Failed to process checkout');
@@ -237,7 +217,7 @@ const Checkout = () => {
   const DELIVERY_FEE = 80;
   const subtotal = totalPrice;
   const total = subtotal + DELIVERY_FEE;
-  
+
   const orderSummary = {
     orderNumber: `B3F-${Date.now().toString().slice(-6)}`,
     subtotal,
@@ -269,18 +249,35 @@ const Checkout = () => {
                 </div>
               )}
 
-              {!addressesLoading && addresses.length > 0 && (
-                <SavedAddresses
-                  addresses={addresses}
-                  selectedAddressId={selectedAddressId}
-                  onAddressSelect={handleAddressSelect}
-                  onUseNewAddress={handleUseNewAddress}
-                  useNewAddress={useNewAddress}
-                />
-              )}
+              <div className="mb-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <input
+                    type="radio"
+                    id="new-address"
+                    name="address-option"
+                    checked={useNewAddress}
+                    onChange={handleUseNewAddress}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <label htmlFor="new-address" className="text-sm font-medium">
+                    Use new address
+                  </label>
+                </div>
+
+                {!addressesLoading && addresses.length > 0 && (
+                  <SavedAddresses
+                    addresses={addresses}
+                    selectedAddressId={selectedAddressId}
+                    onAddressSelect={handleAddressSelect}
+                    onUseNewAddress={handleUseNewAddress}
+                    useNewAddress={useNewAddress}
+                  />
+                )}
+              </div>
 
               <ShippingDetailsForm
                 formData={formData}
+                setFormData={setFormData}
                 onSubmit={handleFormSubmit}
                 isLoading={isLoading}
               />

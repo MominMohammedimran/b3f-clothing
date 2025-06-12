@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
@@ -9,6 +8,7 @@ import SignUp from './pages/SignUp';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Payment from './pages/Payment';
+import PaymentRetry from './pages/PaymentRetry';
 import ProductDetails from './pages/ProductDetails';
 import ProductsPage from './pages/ProductsPage';
 import NotFound from './pages/NotFound';
@@ -58,7 +58,8 @@ const AppRoutes = () => {
         <Route path="/search" element={<Search />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/payment" element={<Payment />} />
-     
+        <Route path="/payment-retry/:orderId" element={<PaymentRetry />} />
+ 
         <Route path="/product/details/:productId" element={< ProductDetailsPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:id" element={<ProductsPage />} />

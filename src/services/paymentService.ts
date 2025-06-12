@@ -68,14 +68,16 @@ export class PaymentService {
         email: shippingAddress.email || userEmail || ''
       };
       
-     
+      // Create order with separate payment and order status
       const { data, error } = await this.supabase
         .from('orders')
         .insert({
           user_id: userId,
+          user_email: userEmail,
           order_number: orderNumber,
           total: totalAmount,
-          status: 'order_placed',
+          payment_status: 'pending',
+          order_status: 'payment_pending',
           payment_method: paymentMethod,
           shipping_address: normalizedAddress,
           delivery_fee: deliveryFee,
@@ -94,6 +96,43 @@ export class PaymentService {
       return data;
     } catch (error) {
       console.error('Error creating order:', error);
+      throw error;
+    }
+  }
+
+  async updatePaymentStatus(orderId: string, paymentStatus: 'paid' | 'failed', orderStatus?: string) {
+    try {
+      if (!this.supabase) {
+        throw new Error('Supabase client not initialized');
+      }
+
+      const updateData: any = {
+        payment_status: paymentStatus,
+        updated_at: new Date().toISOString()
+      };
+
+      // Set order status based on payment status
+      if (paymentStatus === 'paid') {
+        updateData.order_status = orderStatus || 'pending';
+      } else if (paymentStatus === 'failed') {
+        updateData.order_status = 'payment_pending';
+      }
+
+      const { data, error } = await this.supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId)
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error('Error updating payment status:', error);
+        throw new Error(`Failed to update payment status: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error updating payment status:', error);
       throw error;
     }
   }

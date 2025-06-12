@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -154,6 +153,9 @@ export interface Database {
           updated_at: string
           user_id: string
           upi_input?: string
+          payment_status?: string
+          order_status?: string
+          user_email?: string
         }
         Insert: {
           created_at?: string
@@ -169,6 +171,9 @@ export interface Database {
           updated_at?: string
           user_id: string
           upi_input?: string
+          payment_status?: string
+          order_status?: string
+          user_email?: string
         }
         Update: {
           created_at?: string
@@ -184,6 +189,9 @@ export interface Database {
           updated_at?: string
           user_id?: string
           upi_input?: string
+          payment_status?: string
+          order_status?: string
+          user_email?: string
         }
         Relationships: []
       }
@@ -456,6 +464,20 @@ export interface Database {
       confirm_payment: {
         Args: {
           payment_id: string;
+        };
+        Returns: Json;
+      };
+      update_payment_status: {
+        Args: {
+          p_order_id: string;
+          p_payment_status: string;
+          p_order_status?: string;
+        };
+        Returns: void;
+      };
+      retry_payment: {
+        Args: {
+          p_order_id: string;
         };
         Returns: Json;
       };

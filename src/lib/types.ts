@@ -1,4 +1,3 @@
-
 export interface Order {
   id: string;
   orderNumber: string;
@@ -24,6 +23,8 @@ export interface Order {
   cancellationReason?: string;
   cancellation_reason?: string;
   payment_details?: any;
+  payment_status?: string;
+  order_status?: string;
 }
 
 export interface TrackingInfo {

@@ -24,6 +24,8 @@ interface Order {
   items: any[];
   shipping_address: any;
   payment_method: string;
+  payment_status?: string;
+  order_status?: string;
 }
 
 const AdminOrders: React.FC = () => {
@@ -57,7 +59,9 @@ const AdminOrders: React.FC = () => {
           created_at: order.created_at,
           items: order.items || [],
           shipping_address: order.shipping_address,
-          payment_method: order.payment_method
+          payment_method: order.payment_method,
+          payment_status: order.payment_status,
+          order_status: order.order_status
         }));
         
         setOrders(transformedOrders);
@@ -74,7 +78,7 @@ const AdminOrders: React.FC = () => {
     if (!order.user_email || order.user_email === 'N/A') return;
 
     try {
-      await supabase.functions.invoke('send-order-notification', {
+      const { data, error } = await supabase.functions.invoke('send-order-notification', {
         body: {
           orderId: order.order_number,
           customerEmail: order.user_email,
@@ -86,20 +90,24 @@ const AdminOrders: React.FC = () => {
           businessEmail: 'b3f.prints.pages.dev@gmail.com'
         }
       });
+
+      if (error) throw error;
       console.log('Status update email sent successfully');
+      toast.success('Status update email sent to customer');
     } catch (emailError) {
       console.error('Failed to send status update email:', emailError);
-      // Don't show error to admin - this is optional functionality
+      toast.error('Failed to send email notification');
     }
   };
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
+      // Update order_status instead of status
       const { error } = await supabase
         .from('orders')
         .update({ 
-          status: newStatus,
-          upi_input: ''
+          order_status: newStatus,
+          updated_at: new Date().toISOString()
         })
         .eq('id', orderId);
 
@@ -113,7 +121,7 @@ const AdminOrders: React.FC = () => {
       }
 
       setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order.id === orderId ? { ...order, order_status: newStatus } : order
       ));
 
       toast.success('Order status updated successfully');
@@ -154,7 +162,7 @@ const AdminOrders: React.FC = () => {
         order.order_number,
         new Date(order.created_at).toLocaleDateString(),
         order.user_email,
-        order.status,
+        order.order_status || order.status,
         order.total.toString()
       ])
     ].map(row => row.join(',')).join('\n');
@@ -173,14 +181,15 @@ const AdminOrders: React.FC = () => {
       item.name?.toLowerCase().includes('custom printed') ||
       item.name?.toLowerCase().includes('custom') ||
       item.metadata?.designData ||
-      item.metadata?.printType === 'custom'
+      item.metadata?.printType === 'custom' ||
+      item.metadata?.previewImage
     );
   };
 
   const filteredOrders = orders.filter(order =>
     order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.user_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.status.toLowerCase().includes(searchTerm.toLowerCase())
+    (order.order_status || order.status).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -218,7 +227,8 @@ const AdminOrders: React.FC = () => {
                     <TableHead>Order Number</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Payment Status</TableHead>
+                    <TableHead>Order Status</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -230,8 +240,13 @@ const AdminOrders: React.FC = () => {
                       <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>{order.user_email}</TableCell>
                       <TableCell>
-                        <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
-                          {order.status}
+                        <Badge variant={order.payment_status === 'paid' ? 'default' : 'destructive'}>
+                          {order.payment_status || 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={order.order_status === 'delivered' ? 'default' : 'secondary'}>
+                          {order.order_status || order.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">₹{order.total}</TableCell>
@@ -248,7 +263,7 @@ const AdminOrders: React.FC = () => {
                           {hasCustomPrinted(order) && (
                             <AdminDownloadDesign order={order} />
                           )}
-                          {order.status !== 'delivered' && (
+                          {(order.order_status || order.status) !== 'delivered' && (
                             <Button
                               variant="outline"
                               size="sm"

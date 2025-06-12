@@ -60,8 +60,7 @@ const AdminSettings = () => {
 
       if (error) {
         console.error('Error loading settings from database:', error);
-        // Fall back to localStorage
-        loadFromLocalStorage();
+        toast.error('Failed to load settings from database');
       } else if (data && Array.isArray(data) && data.length > 0) {
         const settingsData = data[0];
         setSettings({
@@ -73,47 +72,22 @@ const AdminSettings = () => {
           delivery_fee: Number(settingsData.delivery_fee) || 80,
           min_order_amount: Number(settingsData.min_order_amount) || 100
         });
+        toast.success('Settings loaded from database');
       } else {
-        // No data found, load from localStorage as fallback
-        loadFromLocalStorage();
+        toast.info('No settings found in database, using defaults');
       }
     } catch (error: any) {
       console.error('Error loading settings:', error);
-      toast.error('Error loading settings: ' + (error?.message || 'Unknown error'));
-      loadFromLocalStorage();
+      toast.error('Failed to load settings: ' + (error?.message || 'Unknown error'));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadFromLocalStorage = () => {
-    const savedSettings = localStorage.getItem('adminSettings');
-    if (savedSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedSettings);
-        setSettings({
-          site_name: parsedSettings.site_name || 'B3F Prints',
-          site_description: parsedSettings.site_description || 'Custom printing services',
-          contact_email: parsedSettings.contact_email || 'contact@b3fprints.com',
-          contact_phone: parsedSettings.contact_phone || '+91 9999999999',
-          business_address: parsedSettings.business_address || 'India',
-          delivery_fee: Number(parsedSettings.delivery_fee) || 80,
-          min_order_amount: Number(parsedSettings.min_order_amount) || 100
-        });
-        toast.info('Settings loaded from local storage');
-      } catch (parseError) {
-        console.error('Error parsing localStorage settings:', parseError);
-      }
     }
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Save to localStorage first
-      localStorage.setItem('adminSettings', JSON.stringify(settings));
-      
-      // Try to save to database using the update function with type assertion
+      // Save to database using the update function with type assertion
       const { error } = await (supabase.rpc as any)('update_admin_settings', {
         p_site_name: settings.site_name,
         p_site_description: settings.site_description,
@@ -126,17 +100,15 @@ const AdminSettings = () => {
 
       if (error) {
         console.error('Database save error:', error);
-        toast.success('Settings saved locally (database unavailable)');
+        toast.error('Failed to save settings to database: ' + (error?.message || 'Unknown error'));
       } else {
-        toast.success('Settings saved successfully');
+        toast.success('Settings saved successfully to database');
+        // Reload settings to ensure they're properly updated across the website
+        await loadSettings();
       }
     } catch (error: any) {
       console.error('Error saving settings:', error);
       toast.error('Error saving settings: ' + (error?.message || 'Unknown error'));
-      
-      // Still save locally even if database fails
-      localStorage.setItem('adminSettings', JSON.stringify(settings));
-      toast.success('Settings saved locally');
     } finally {
       setSaving(false);
     }

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -215,9 +216,9 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
               {cartItems.map((item, index) => (
                 <div
                   key={index}
-                  className="border-b pb-2 mb-2 last:border-b-0"
+                  className="border-b pb-2 mb-2 items-center last:border-b-0"
                 >
-                  <div className="flex items-start gap-3 text-sm">
+                  <div className="flex items-center gap-3 text-sm">
                     <img
                       src={item.image || "/placeholder.svg"}
                       alt={item.name}
@@ -242,8 +243,8 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                       )}
                     </div>
 
-                    <div className="text-right whitespace-nowrap">
-                      <span className="font-medium">₹{item.price * item.quantity}</span>
+                    <div className="text-end whitespace-nowrap">
+                      <span className="font-medium text-lg">₹{item.price * item.quantity}</span>
                       <p className="text-xs text-gray-500">₹{item.price} each</p>
                     </div>
                   </div>
@@ -252,11 +253,20 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
             </div>
 
             <div className="border-t pt-3 mt-3">
+              <h4 className="font-medium mb-2">Customer Details</h4>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p><strong>Name:</strong> {shippingAddress?.name}</p>
+                <p><strong>Email:</strong> {currentUser?.email}</p>
+                <p><strong>Phone:</strong> {shippingAddress?.phone || 'Not provided'}</p>
+              </div>
+            </div>
+            
+            <div className="border-t pt-3 mt-3">
               <h4 className="font-medium mb-2">Shipping Address</h4>
               <div className="text-sm text-gray-600">
                 <p>{shippingAddress?.street}</p>
-                <p>{`${shippingAddress?.city}, ${shippingAddress?.state}`}</p>
-                <p>{`${shippingAddress?.zipcode}, ${shippingAddress?.country}`}</p>
+                <p>{shippingAddress?.city}, {shippingAddress?.state}</p>
+                <p>{shippingAddress?.zipcode}, {shippingAddress?.country}</p>
               </div>
             </div>
 
@@ -272,19 +282,25 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
             onClick={handlePayment}
             disabled={loading}
             className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+            size="lg"
           >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Processing...
+                Processing Payment...
               </>
             ) : (
               `Pay ₹${amount} with Razorpay`
             )}
           </Button>
-
-          <div className="text-center text-xs text-gray-500">
-            Secure payment via Razorpay — supports UPI, Cards, Net Banking, Wallets
+          
+          <div className="text-center space-y-2">
+            <p className="text-xs text-gray-500">
+              Secure payment powered by Razorpay
+            </p>
+            <p className="text-xs text-gray-400">
+              Supports UPI, Cards, Net Banking, and Wallets
+            </p>
           </div>
         </CardContent>
       </Card>

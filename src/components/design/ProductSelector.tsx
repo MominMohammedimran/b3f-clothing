@@ -100,7 +100,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                 <div className="w-14 h-12 bg-gray-100 rounded-md flex items-center justify-center mb-2">
                   <img src={product.image} alt={product.name} className="w-12 h-12 object-contain" />
                 </div>
-                <span className="text-sm font-medium">{product.name}</span>
+                <span className="text-s font-medium">{product.name}</span>
                 <span className="text-xs text-green-600">
                   {formatIndianRupees(isDualSided && id === 'tshirt' ? 300 : product.price)}
                 </span>

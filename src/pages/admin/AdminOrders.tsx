@@ -70,6 +70,29 @@ const AdminOrders: React.FC = () => {
     }
   };
 
+  const sendStatusUpdateEmail = async (order: Order, newStatus: string) => {
+    if (!order.user_email || order.user_email === 'N/A') return;
+
+    try {
+      await supabase.functions.invoke('send-order-notification', {
+        body: {
+          orderId: order.order_number,
+          customerEmail: order.user_email,
+          customerName: 'Customer',
+          status: newStatus,
+          orderItems: order.items,
+          totalAmount: order.total,
+          shippingAddress: order.shipping_address,
+          businessEmail: 'b3f.prints.pages.dev@gmail.com'
+        }
+      });
+      console.log('Status update email sent successfully');
+    } catch (emailError) {
+      console.error('Failed to send status update email:', emailError);
+      // Don't show error to admin - this is optional functionality
+    }
+  };
+
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
       const { error } = await supabase
@@ -81,6 +104,13 @@ const AdminOrders: React.FC = () => {
         .eq('id', orderId);
 
       if (error) throw error;
+
+      const updatedOrder = orders.find(order => order.id === orderId);
+      
+      // Send status update email to user
+      if (updatedOrder) {
+        await sendStatusUpdateEmail(updatedOrder, newStatus);
+      }
 
       setOrders(prev => prev.map(order => 
         order.id === orderId ? { ...order, status: newStatus } : order
@@ -136,6 +166,15 @@ const AdminOrders: React.FC = () => {
     a.download = `orders-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const hasCustomPrinted = (order: Order) => {
+    return order.items?.some((item: any) => 
+      item.name?.toLowerCase().includes('custom printed') ||
+      item.name?.toLowerCase().includes('custom') ||
+      item.metadata?.designData ||
+      item.metadata?.printType === 'custom'
+    );
   };
 
   const filteredOrders = orders.filter(order =>
@@ -206,7 +245,9 @@ const AdminOrders: React.FC = () => {
                             View
                           </Button>
                           <AdminOrderDownload order={order} />
-                          <AdminDownloadDesign order={order} />
+                          {hasCustomPrinted(order) && (
+                            <AdminDownloadDesign order={order} />
+                          )}
                           {order.status !== 'delivered' && (
                             <Button
                               variant="outline"

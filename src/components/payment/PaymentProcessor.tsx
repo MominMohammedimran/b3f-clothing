@@ -5,7 +5,7 @@ import RazorpayCheckout from './RazorpayCheckout';
 interface PaymentProcessorProps {
   paymentMethod: string;
   orderData: any;
-  onSuccess?: (data: any) => void;
+  onSuccess?: () => void;
   onFailure?: () => void;
 }
 
@@ -23,11 +23,6 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
       return (
         <RazorpayCheckout
           amount={orderData.total || 0}
-          customerInfo={{
-            name: orderData.customerInfo?.name || '',
-            email: orderData.customerInfo?.email || '',
-            contact: orderData.customerInfo?.contact || ''
-          }}
           cartItems={orderData.cartItems || []}
           shippingAddress={orderData.shippingAddress || {}}
           onSuccess={onSuccess}

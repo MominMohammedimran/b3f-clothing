@@ -59,7 +59,7 @@ const SignIn = () => {
               <TabsTrigger value="signup">Create Account</TabsTrigger>
             </TabsList>
             
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md ">
               <TabsContent value="signin">
                 <AuthForm initialMode="signin" redirectTo="/" />
               </TabsContent>

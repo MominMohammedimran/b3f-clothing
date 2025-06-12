@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
-import { Product } from '@/lib/types';
+import { Product, ProductVariant } from '@/lib/types';
 import { toast } from 'sonner';
 import ProductImage from '@/components/products/ProductImage';
 import ProductDetails from '@/components/products/ProductDetails';
@@ -33,7 +33,6 @@ const ProductPage = () => {
         if (data) {
           // Parse JSONB fields with proper type casting
           const parsedProduct: Product = {
-            ...data,
             id: data.id,
             code: data.code,
             name: data.name,
@@ -52,7 +51,18 @@ const ProductPage = () => {
             // Fix the images type issue
             images: Array.isArray(data.images) ? data.images : 
                    (typeof data.images === 'string' ? JSON.parse(data.images) : []),
-            stock: data.stock || 0
+            stock: data.stock || 0,
+            // Handle variants properly
+            variants: Array.isArray(data.variants) 
+              ? data.variants.filter((v: any) => 
+                  typeof v === 'object' && v && 
+                  typeof v.size === 'string' && 
+                  typeof v.stock === 'number'
+                ).map((v: any) => ({
+                  size: v.size as string,
+                  stock: v.stock as number
+                } as ProductVariant))
+              : []
           };
           
           setProduct(parsedProduct);

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
@@ -5,7 +6,7 @@ import SEOHelmet from '../components/seo/SEOHelmet';
 import { useSEO } from '../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Product } from '@/lib/types';
+import { Product, ProductVariant } from '@/lib/types';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
@@ -34,7 +35,34 @@ const ProductDetails = () => {
           throw error;
         }
 
-        setProduct(data as Product);
+        // Transform database product to match Product interface
+        const transformedProduct: Product = {
+          id: data.id,
+          code: data.code || '',
+          name: data.name,
+          description: data.description || '',
+          price: data.price,
+          originalPrice: data.original_price || data.price,
+          discountPercentage: data.discount_percentage || 0,
+          image: data.image || '',
+          images: Array.isArray(data.images) ? data.images.filter(img => typeof img === 'string') : [],
+          category: data.category || '',
+          stock: data.stock || 0,
+          sizes: Array.isArray(data.sizes) ? data.sizes.filter(size => typeof size === 'string') : [],
+          tags: Array.isArray(data.tags) ? data.tags.filter(tag => typeof tag === 'string') : [],
+          variants: Array.isArray(data.variants) 
+            ? data.variants.filter((v: any) => 
+                typeof v === 'object' && v && 
+                typeof v.size === 'string' && 
+                typeof v.stock === 'number'
+              ).map((v: any) => ({
+                size: v.size as string,
+                stock: v.stock as number
+              } as ProductVariant))
+            : []
+        };
+
+        setProduct(transformedProduct);
       } catch (error: any) {
         console.error('Error fetching product:', error);
         toast.error('Failed to load product details');

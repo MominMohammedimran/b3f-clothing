@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import ProductDetails from '../components/products/ProductDetails';
 import { supabase } from '../integrations/supabase/client';
-import { Product } from '../lib/types';
+import { Product, ProductVariant } from '../lib/types';
 import { ArrowLeft } from 'lucide-react';
 import ProductDetailsContent from '../components/products/details/ProductDetailsContent';
 import RelatedProducts from '../components/products/RelatedProducts';
@@ -46,10 +46,16 @@ const ProductDetailsPage = () => {
             stock: data.stock || 0,
             sizes: Array.isArray(data.sizes) ? data.sizes.filter(size => typeof size === 'string') : [],
             tags: Array.isArray(data.tags) ? data.tags.filter(tag => typeof tag === 'string') : [],
-            // ✅ Add variants check
-           variants: Array.isArray(data.variants)
-      ? data.variants.filter(v => typeof v === 'object' && v.size && v.stock !== undefined)
-      : []
+            variants: Array.isArray(data.variants)
+              ? data.variants.filter((v: any) => 
+                  typeof v === 'object' && v && 
+                  typeof v.size === 'string' && 
+                  typeof v.stock === 'number'
+                ).map((v: any) => ({
+                  size: v.size as string,
+                  stock: v.stock as number
+                } as ProductVariant))
+              : []
           };
 
           setProduct(transformedProduct);

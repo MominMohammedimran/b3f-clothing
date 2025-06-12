@@ -105,17 +105,17 @@ const Checkout = () => {
     if (addressesLoading) return;
 
     const fillFormFromAddress = (addr: any) => {
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         firstName: addr.first_name || '',
         lastName: addr.last_name || '',
-        email: currentUser?.email || '',
-        phone: addr.phone || '',
+        phone: addr.phone || prev.phone,
         address: addr.street || '',
         city: addr.city || '',
         state: addr.state || '',
         zipCode: addr.zipcode || '',
         country: addr.country || 'India',
-      });
+      }));
     };
 
     if (defaultAddress) {
@@ -136,17 +136,17 @@ const Checkout = () => {
     setUseNewAddress(false);
     const selected = addresses.find(a => a.id === addressId);
     if (selected) {
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         firstName: selected.first_name,
         lastName: selected.last_name,
-        email: currentUser?.email || '',
-        phone: selected.phone || '',
+        phone: selected.phone || prev.phone,
         address: selected.street,
         city: selected.city,
         state: selected.state,
         zipCode: selected.zipcode,
         country: selected.country || 'India',
-      });
+      }));
     }
   };
 
@@ -172,7 +172,6 @@ const Checkout = () => {
     setIsLoading(true);
 
     try {
-     
       const shippingAddress = {
         fullName: `${values.firstName} ${values.lastName}`,
         firstName: values.firstName,
@@ -188,19 +187,18 @@ const Checkout = () => {
         email: values.email,
       };
 
-      // Save new address if needed
       if (useNewAddress && currentUser && values.address.trim()) {
         try {
-         const addressData = {
-  user_id: currentUser.id,
-  name: `${values.firstName} ${values.lastName}`,
-  street: values.address,
-  city: values.city,
-  state: values.state,
-  zipcode: values.zipCode,
-  country: values.country,
-  is_default: addresses.length === 0,
-};
+          const addressData = {
+            user_id: currentUser.id,
+            name: `${values.firstName} ${values.lastName}`,
+            street: values.address,
+            city: values.city,
+            state: values.state,
+            zipcode: values.zipCode,
+            country: values.country,
+            is_default: addresses.length === 0,
+          };
        
           const { error: addressError } = await supabase
             .from('addresses')
@@ -218,8 +216,6 @@ const Checkout = () => {
         }
       }
 
-      
-      // Navigate to payment with shipping address
       navigate('/payment', { 
         state: { 
           shippingAddress,
@@ -238,7 +234,6 @@ const Checkout = () => {
     }
   };
 
-  // Calculate order summary
   const DELIVERY_FEE = 80;
   const subtotal = totalPrice;
   const total = subtotal + DELIVERY_FEE;
@@ -274,7 +269,7 @@ const Checkout = () => {
                 </div>
               )}
 
-              {!addressesLoading && (
+              {!addressesLoading && addresses.length > 0 && (
                 <SavedAddresses
                   addresses={addresses}
                   selectedAddressId={selectedAddressId}

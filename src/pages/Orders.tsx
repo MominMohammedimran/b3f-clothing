@@ -20,27 +20,21 @@ const Orders = () => {
     
     try {
       setLoading(true);
-      let query = supabase
+      const { data, error } = await supabase
         .from('orders')
         .select('*')
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
-
       if (error) throw error;
 
-      // Filter only successful Razorpay orders
+      // Filter only orders with successful Razorpay payments
       const filteredOrders = data?.filter(order => {
-        // For Razorpay payments, check if payment is successful
-        if (order.payment_method === 'razorpay') {
-          // Check if status indicates successful payment or if payment_details exists with success
-          const hasSuccessfulPayment = ['paid', 'completed', 'shipped', 'delivered'].includes(order.status);
-          return hasSuccessfulPayment;
-        }
+        // Only show orders that have been successfully paid via Razorpay
+        const isRazorpayPayment = order.payment_method === 'razorpay';
+        const isSuccessfullyPaid = ['paid', 'completed', 'shipped', 'delivered', 'confirmed'].includes(order.status);
         
-        // For other payment methods, check order status
-        return ['paid', 'completed', 'shipped', 'delivered'].includes(order.status);
+        return isRazorpayPayment && isSuccessfullyPaid;
       }) || [];
 
       setOrders(filteredOrders);
@@ -84,7 +78,7 @@ const Orders = () => {
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-gray-500">
-                No successful orders found.
+                No successfully paid orders found.
               </p>
             </CardContent>
           </Card>
@@ -95,7 +89,7 @@ const Orders = () => {
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-lg">Order #{order.order_number}</CardTitle>
-                    <Badge variant={order.status === 'paid' ? 'default' : 'secondary'}>
+                    <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
                       {order.status}
                     </Badge>
                   </div>
@@ -105,11 +99,12 @@ const Orders = () => {
                     <div>
                       <p><strong>Date:</strong> {formatDate(order.created_at)}</p>
                       <p><strong>Total:</strong> ₹{order.total}</p>
-                      <p><strong>Payment Method:</strong> {order.payment_method}</p>
+                      <p><strong>Payment Method:</strong> Razorpay</p>
                     </div>
                     <div>
                       <p><strong>Items:</strong> {order.items?.length || 0}</p>
                       <p><strong>Status:</strong> {order.status}</p>
+                      <p><strong>Payment:</strong> <span className="text-green-600">Successfully Paid</span></p>
                     </div>
                   </div>
                 </CardContent>

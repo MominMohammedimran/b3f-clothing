@@ -51,6 +51,45 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_settings: {
+        Row: {
+          business_address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          delivery_fee: number | null
+          id: number
+          min_order_amount: number | null
+          site_description: string | null
+          site_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          business_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          delivery_fee?: number | null
+          id?: number
+          min_order_amount?: number | null
+          site_description?: string | null
+          site_name?: string
+          updated_at?: string | null
+        }
+        Update: {
+          business_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          delivery_fee?: number | null
+          id?: number
+          min_order_amount?: number | null
+          site_description?: string | null
+          site_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           created_at: string | null
@@ -815,6 +854,21 @@ export type Database = {
             }
         Returns: Json
       }
+      get_admin_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: number
+          site_name: string
+          site_description: string
+          contact_email: string
+          contact_phone: string
+          business_address: string
+          delivery_fee: number
+          min_order_amount: number
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_order_by_id: {
         Args: { order_id: string }
         Returns: Json
@@ -826,6 +880,18 @@ export type Database = {
       is_admin: {
         Args: { user_email: string }
         Returns: boolean
+      }
+      update_admin_settings: {
+        Args: {
+          p_site_name: string
+          p_site_description: string
+          p_contact_email: string
+          p_contact_phone: string
+          p_business_address: string
+          p_delivery_fee: number
+          p_min_order_amount: number
+        }
+        Returns: undefined
       }
       verify_admin_login: {
         Args: { input_email: string; input_password: string }

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -402,7 +403,6 @@ const DesignTool = () => {
   if (productsLoading) {
     return (
       <Layout>
-        
         <div className="container-custom px-4">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -488,6 +488,9 @@ const DesignTool = () => {
                 selectedSizes={selectedSizes}
                 onSizeToggle={handleSizeToggle}
                 getTotalPrice={getTotalPrice}
+                quantity={1}
+                productId={activeProduct}
+                upi_input=""
               />
             </div>
           </div>

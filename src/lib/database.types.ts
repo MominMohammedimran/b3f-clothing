@@ -10,7 +10,7 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-       addresses: {
+      addresses: {
         Row: {
           id: string;
           user_id: string;
@@ -51,9 +51,7 @@ export interface Database {
           updated_at?: string | null;
         };
         Relationships: [];
-      }
-    }
-   
+      };
       admin_users: {
         Row: {
           created_at: string
@@ -155,7 +153,7 @@ export interface Database {
           total: number
           updated_at: string
           user_id: string
-          upi_input?:string
+          upi_input?: string
         }
         Insert: {
           created_at?: string
@@ -170,7 +168,7 @@ export interface Database {
           total: number
           updated_at?: string
           user_id: string
-          upi_input?:string
+          upi_input?: string
         }
         Update: {
           created_at?: string
@@ -185,7 +183,7 @@ export interface Database {
           total?: number
           updated_at?: string
           user_id?: string
-          upi_input?:string
+          upi_input?: string
         }
         Relationships: []
       }
@@ -276,69 +274,68 @@ export interface Database {
         ]
       }
       products: {
-  Row: {
-    id: string
-    code: string
-    name: string
-    description: string | null
-    price: number
-    original_price: number
-    discount_percentage: number
-    image: string | null
-    images: Json | null
-    rating: number
-    productId: string
-    category: string
-    tags: Json | null
-    sizes: Json | null
-    variants: Json | null // ✅ NEW FIELD
-    stock: number | null
-    created_at: string
-    updated_at: string
-  }
-  Insert: {
-    id?: string
-    code: string
-    name: string
-    description?: string | null
-    price: number
-    original_price: number
-    discount_percentage?: number
-    image?: string | null
-    images?: Json | null
-    rating?: number
-    category: string
-    productId: string
-    tags?: Json | null
-    sizes?: Json | null
-    variants?: Json | null // ✅ NEW FIELD
-    stock?: number | null
-    created_at?: string
-    updated_at?: string
-  }
-  Update: {
-    id?: string
-    code?: string
-    name?: string
-    description?: string | null
-    price?: number
-    original_price?: number
-    discount_percentage?: number
-    image?: string | null
-    images?: Json | null
-    rating?: number
-    category?: string
-    productId: string
-    tags?: Json | null
-    sizes?: Json | null
-    variants?: Json | null // ✅ NEW FIELD
-    stock?: number | null
-    created_at?: string
-    updated_at?: string
-  }
-  Relationships: []
-}
-
+        Row: {
+          id: string
+          code: string
+          name: string
+          description: string | null
+          price: number
+          original_price: number
+          discount_percentage: number
+          image: string | null
+          images: Json | null
+          rating: number
+          productId: string
+          category: string
+          tags: Json | null
+          sizes: Json | null
+          variants: Json | null
+          stock: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          description?: string | null
+          price: number
+          original_price: number
+          discount_percentage?: number
+          image?: string | null
+          images?: Json | null
+          rating?: number
+          category: string
+          productId: string
+          tags?: Json | null
+          sizes?: Json | null
+          variants?: Json | null
+          stock?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          name?: string
+          description?: string | null
+          price?: number
+          original_price?: number
+          discount_percentage?: number
+          image?: string | null
+          images?: Json | null
+          rating?: number
+          category?: string
+          productId: string
+          tags?: Json | null
+          sizes?: Json | null
+          variants?: Json | null
+          stock?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -1,152 +1,48 @@
+
 import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, Loader2, Download, Upload, Trash2, Plus, Globe, Mail, CreditCard, Shield, Bell, Settings, Database } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '../../components/admin/AdminLayout';
 
 interface Settings {
   site_name: string;
   site_description: string;
-  site_logo_url: string;
   contact_email: string;
   contact_phone: string;
   business_address: string;
   delivery_fee: number;
-  currency: string;
-  tax_rate: number;
-  enable_email_notifications: boolean;
-  enable_sms_notifications: boolean;
-  low_stock_threshold: number;
-  order_auto_confirm: boolean;
-  maintenance_mode: boolean;
-  max_order_items: number;
   min_order_amount: number;
-  enable_cod: boolean;
-  enable_online_payment: boolean;
-  razorpay_key_id: string;
-  enable_reviews: boolean;
-  enable_wishlist: boolean;
-  enable_reward_points: boolean;
-  reward_points_ratio: number;
-  shipping_zones: string[];
-  payment_methods: string[];
-  smtp_host: string;
-  smtp_port: number;
-  smtp_username: string;
-  smtp_password: string;
-  backup_frequency: string;
-  backup_location: string;
-  enable_analytics: boolean;
-  google_analytics_id: string;
-  facebook_pixel_id: string;
-  enable_chat_support: boolean;
-  support_email: string;
-  support_phone: string;
-  working_hours: string;
-  enable_multi_currency: boolean;
-  default_language: string;
-  enable_guest_checkout: boolean;
-  enable_product_reviews: boolean;
-  enable_order_tracking: boolean;
-  enable_inventory_alerts: boolean;
-  social_media_links: {
-    facebook: string;
-    instagram: string;
-    twitter: string;
-    youtube: string;
-    linkedin: string;
-    whatsapp: string;
-  };
-  seo_settings: {
-    meta_title: string;
-    meta_description: string;
-    keywords: string;
-    robots_txt: string;
-  };
-  security_settings: {
-    enable_2fa: boolean;
-    session_timeout: number;
-    max_login_attempts: number;
-    password_min_length: number;
-    enable_captcha: boolean;
-  };
-  [key: string]: string | number | boolean | string[] | object;
+}
+
+interface AdminSettingsRow {
+  id: number;
+  site_name: string;
+  site_description: string;
+  contact_email: string;
+  contact_phone: string;
+  business_address: string;
+  delivery_fee: number;
+  min_order_amount: number;
+  created_at: string;
+  updated_at: string;
 }
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState<Settings>({
-    site_name: 'B3F Fashion',
-    site_description: 'Your fashion destination',
-    site_logo_url: '',
-    contact_email: 'b3f.prints.pages.dev@gmail.com',
-    contact_phone: '+91 9876543210',
+    site_name: 'B3F Prints',
+    site_description: 'Custom printing services',
+    contact_email: 'contact@b3fprints.com',
+    contact_phone: '+91 9999999999',
     business_address: 'India',
-    delivery_fee: 40,
-    currency: 'INR',
-    tax_rate: 18,
-    enable_email_notifications: true,
-    enable_sms_notifications: false,
-    low_stock_threshold: 5,
-    order_auto_confirm: false,
-    maintenance_mode: false,
-    max_order_items: 10,
-    min_order_amount: 100,
-    enable_cod: true,
-    enable_online_payment: true,
-    razorpay_key_id: '',
-    enable_reviews: true,
-    enable_wishlist: true,
-    enable_reward_points: true,
-    reward_points_ratio: 1,
-    shipping_zones: ['All India'],
-    payment_methods: ['Razorpay', 'COD'],
-    smtp_host: '',
-    smtp_port: 587,
-    smtp_username: '',
-    smtp_password: '',
-    backup_frequency: 'daily',
-    backup_location: 'cloud',
-    enable_analytics: false,
-    google_analytics_id: '',
-    facebook_pixel_id: '',
-    enable_chat_support: false,
-    support_email: 'support@b3ffashion.com',
-    support_phone: '+91 9876543210',
-    working_hours: '9:00 AM - 6:00 PM',
-    enable_multi_currency: false,
-    default_language: 'en',
-    enable_guest_checkout: true,
-    enable_product_reviews: true,
-    enable_order_tracking: true,
-    enable_inventory_alerts: true,
-    social_media_links: {
-      facebook: '',
-      instagram: '',
-      twitter: '',
-      youtube: '',
-      linkedin: '',
-      whatsapp: ''
-    },
-    seo_settings: {
-      meta_title: 'B3F Fashion - Your Style Destination',
-      meta_description: 'Discover the latest fashion trends at B3F Fashion',
-      keywords: 'fashion, clothing, style, trends',
-      robots_txt: 'User-agent: *\nAllow: /'
-    },
-    security_settings: {
-      enable_2fa: false,
-      session_timeout: 30,
-      max_login_attempts: 5,
-      password_min_length: 8,
-      enable_captcha: false
-    }
+    delivery_fee: 80,
+    min_order_amount: 100
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -154,686 +50,209 @@ const AdminSettings = () => {
   }, []);
 
   const loadSettings = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('type', 'admin_settings')
-        .single();
+      // Use the database function to get admin settings with type assertion
+      const { data, error } = await (supabase.rpc as any)('get_admin_settings') as { 
+        data: AdminSettingsRow[] | null, 
+        error: any 
+      };
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (error) {
+        console.error('Error loading settings from database:', error);
+        // Fall back to localStorage
+        loadFromLocalStorage();
+      } else if (data && Array.isArray(data) && data.length > 0) {
+        const settingsData = data[0];
+        setSettings({
+          site_name: settingsData.site_name || 'B3F Prints',
+          site_description: settingsData.site_description || 'Custom printing services',
+          contact_email: settingsData.contact_email || 'contact@b3fprints.com',
+          contact_phone: settingsData.contact_phone || '+91 9999999999',
+          business_address: settingsData.business_address || 'India',
+          delivery_fee: Number(settingsData.delivery_fee) || 80,
+          min_order_amount: Number(settingsData.min_order_amount) || 100
+        });
+      } else {
+        // No data found, load from localStorage as fallback
+        loadFromLocalStorage();
       }
-
-      if (data?.settings) {
-        const parsedSettings = typeof data.settings === 'string' 
-          ? JSON.parse(data.settings) 
-          : data.settings;
-        setSettings(prev => ({ ...prev, ...parsedSettings }));
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading settings:', error);
-      const savedSettings = localStorage.getItem('admin_settings');
-      if (savedSettings) {
-        try {
-          const parsed = JSON.parse(savedSettings);
-          setSettings(prev => ({ ...prev, ...parsed }));
-        } catch (error) {
-          console.error('Error parsing saved settings:', error);
-        }
-      }
+      toast.error('Error loading settings: ' + (error?.message || 'Unknown error'));
+      loadFromLocalStorage();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-    
-      const settingsData = JSON.parse(JSON.stringify(settings));
-      
-      const { error } = await supabase
-        .from('settings')
-        .upsert({
-          type: 'admin_settings',
-          settings: settingsData
+  const loadFromLocalStorage = () => {
+    const savedSettings = localStorage.getItem('adminSettings');
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings({
+          site_name: parsedSettings.site_name || 'B3F Prints',
+          site_description: parsedSettings.site_description || 'Custom printing services',
+          contact_email: parsedSettings.contact_email || 'contact@b3fprints.com',
+          contact_phone: parsedSettings.contact_phone || '+91 9999999999',
+          business_address: parsedSettings.business_address || 'India',
+          delivery_fee: Number(parsedSettings.delivery_fee) || 80,
+          min_order_amount: Number(parsedSettings.min_order_amount) || 100
         });
+        toast.info('Settings loaded from local storage');
+      } catch (parseError) {
+        console.error('Error parsing localStorage settings:', parseError);
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // Save to localStorage first
+      localStorage.setItem('adminSettings', JSON.stringify(settings));
+      
+      // Try to save to database using the update function with type assertion
+      const { error } = await (supabase.rpc as any)('update_admin_settings', {
+        p_site_name: settings.site_name,
+        p_site_description: settings.site_description,
+        p_contact_email: settings.contact_email,
+        p_contact_phone: settings.contact_phone,
+        p_business_address: settings.business_address,
+        p_delivery_fee: settings.delivery_fee,
+        p_min_order_amount: settings.min_order_amount
+      }) as { error: any };
 
       if (error) {
-        throw error;
+        console.error('Database save error:', error);
+        toast.success('Settings saved locally (database unavailable)');
+      } else {
+        toast.success('Settings saved successfully');
       }
-
-      localStorage.setItem('admin_settings', JSON.stringify(settings));
-      toast.success('Settings saved successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving settings:', error);
-      localStorage.setItem('admin_settings', JSON.stringify(settings));
+      toast.error('Error saving settings: ' + (error?.message || 'Unknown error'));
+      
+      // Still save locally even if database fails
+      localStorage.setItem('adminSettings', JSON.stringify(settings));
       toast.success('Settings saved locally');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleInputChange = (field: keyof Settings, value: string | number | boolean) => {
+  const handleInputChange = (field: keyof Settings, value: string | number) => {
     setSettings(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleNestedChange = (parent: string, field: string, value: string | number | boolean) => {
-    setSettings(prev => ({
-      ...prev,
-      [parent]: {
-        ...prev[parent] as object,
-        [field]: value
-      }
-    }));
-  };
-
-  const handleSocialMediaChange = (platform: string, value: string) => {
-    setSettings(prev => ({
-      ...prev,
-      social_media_links: {
-        ...prev.social_media_links,
-        [platform]: value
-      }
-    }));
-  };
-
-  const addShippingZone = () => {
-    const zone = prompt('Enter new shipping zone:');
-    if (zone) {
-      setSettings(prev => ({
-        ...prev,
-        shipping_zones: [...prev.shipping_zones, zone]
-      }));
-    }
-  };
-
-  const removeShippingZone = (index: number) => {
-    setSettings(prev => ({
-      ...prev,
-      shipping_zones: prev.shipping_zones.filter((_, i) => i !== index)
-    }));
-  };
-
-  const clearCache = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    toast.success('Cache cleared successfully');
-  };
-
-  const exportSettings = () => {
-    const dataStr = JSON.stringify(settings, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'admin-settings.json';
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success('Settings exported successfully');
-  };
-
-  const importSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const importedSettings = JSON.parse(e.target?.result as string);
-          setSettings(prev => ({ ...prev, ...importedSettings }));
-          toast.success('Settings imported successfully');
-        } catch (error) {
-          toast.error('Failed to import settings');
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  if (loading) {
-    return (
-      <AdminLayout title="Admin Settings">
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </AdminLayout>
-    );
-  }
-
   return (
-    <AdminLayout title="Admin Settings">
-      <div className="p-2 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h1 className="text-xl md:text-2xl font-bold">Settings</h1>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Save Settings
-            </Button>
-          </div>
+    <AdminLayout title="Settings">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Admin Settings</h2>
+          <Button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {saving ? 'Saving...' : 'Save Settings'}
+          </Button>
         </div>
 
-        <Tabs defaultValue="general" className="space-y-4 md:space-y-6">
-          <div className="overflow-x-auto">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1">
-              <TabsTrigger value="general" className="text-xs md:text-sm">
-                <Globe className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                <span className="hidden sm:inline">General</span>
-              </TabsTrigger>
-              <TabsTrigger value="business" className="text-xs md:text-sm">
-                <Mail className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                <span className="hidden sm:inline">Business</span>
-              </TabsTrigger>
-              <TabsTrigger value="ecommerce" className="text-xs md:text-sm">
-                <CreditCard className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                <span className="hidden sm:inline">E-commerce</span>
-              </TabsTrigger>
-              <TabsTrigger value="notifications" className="text-xs md:text-sm">
-                <Bell className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                <span className="hidden sm:inline">Notifications</span>
-              </TabsTrigger>
-              <TabsTrigger value="security" className="text-xs md:text-sm">
-                <Shield className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                <span className="hidden sm:inline">Security</span>
-              </TabsTrigger>
-              <TabsTrigger value="advanced" className="text-xs md:text-sm">
-                <Database className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                <span className="hidden sm:inline">Advanced</span>
-              </TabsTrigger>
-            </TabsList>
+        {loading ? (
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-
-          <TabsContent value="general">
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg md:text-xl">General Settings</CardTitle>
+                <CardTitle>Site Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Site Name</label>
-                    <Input
-                      value={settings.site_name}
-                      onChange={(e) => handleInputChange('site_name', e.target.value)}
-                      placeholder="Site name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Currency</label>
-                    <Input
-                      value={settings.currency}
-                      onChange={(e) => handleInputChange('currency', e.target.value)}
-                      placeholder="INR"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Site Logo URL</label>
-                    <Input
-                      value={settings.site_logo_url}
-                      onChange={(e) => handleInputChange('site_logo_url', e.target.value)}
-                      placeholder="https://example.com/logo.png"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Tax Rate (%)</label>
-                    <Input
-                      type="number"
-                      value={settings.tax_rate}
-                      onChange={(e) => handleInputChange('tax_rate', Number(e.target.value))}
-                      placeholder="18"
-                      min="0"
-                      max="100"
-                    />
-                  </div>
-                </div>
-                
                 <div>
-                  <label className="block text-sm font-medium mb-1">Site Description</label>
-                  <textarea
-                    className="w-full p-2 border rounded-md text-sm"
-                    rows={3}
+                  <Label htmlFor="site_name">Site Name</Label>
+                  <Input
+                    id="site_name"
+                    value={settings.site_name}
+                    onChange={(e) => handleInputChange('site_name', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="site_description">Site Description</Label>
+                  <Textarea
+                    id="site_description"
                     value={settings.site_description}
                     onChange={(e) => handleInputChange('site_description', e.target.value)}
-                    placeholder="Site description"
                   />
-                </div>
-
-                {/* SEO Settings */}
-                <div className="border-t pt-4">
-                  <h3 className="text-lg font-medium mb-4">SEO Settings</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Meta Title</label>
-                      <Input
-                        value={settings.seo_settings.meta_title}
-                        onChange={(e) => handleNestedChange('seo_settings', 'meta_title', e.target.value)}
-                        placeholder="Meta title"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Keywords</label>
-                      <Input
-                        value={settings.seo_settings.keywords}
-                        onChange={(e) => handleNestedChange('seo_settings', 'keywords', e.target.value)}
-                        placeholder="keyword1, keyword2, keyword3"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium mb-1">Meta Description</label>
-                    <textarea
-                      className="w-full p-2 border rounded-md text-sm"
-                      rows={3}
-                      value={settings.seo_settings.meta_description}
-                      onChange={(e) => handleNestedChange('seo_settings', 'meta_description', e.target.value)}
-                      placeholder="Meta description"
-                    />
-                  </div>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="business">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Business Information</CardTitle>
+                <CardTitle>Contact Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Contact Email</label>
-                    <Input
-                      type="email"
-                      value={settings.contact_email}
-                      onChange={(e) => handleInputChange('contact_email', e.target.value)}
-                      placeholder="contact@example.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Contact Phone</label>
-                    <Input
-                      value={settings.contact_phone}
-                      onChange={(e) => handleInputChange('contact_phone', e.target.value)}
-                      placeholder="+91 9876543210"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Support Email</label>
-                    <Input
-                      type="email"
-                      value={settings.support_email}
-                      onChange={(e) => handleInputChange('support_email', e.target.value)}
-                      placeholder="support@example.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Working Hours</label>
-                    <Input
-                      value={settings.working_hours}
-                      onChange={(e) => handleInputChange('working_hours', e.target.value)}
-                      placeholder="9:00 AM - 6:00 PM"
-                    />
-                  </div>
-                </div>
-
                 <div>
-                  <label className="block text-sm font-medium mb-1">Business Address</label>
-                  <textarea
-                    className="w-full p-2 border rounded-md text-sm"
-                    rows={3}
+                  <Label htmlFor="contact_email">Contact Email</Label>
+                  <Input
+                    id="contact_email"
+                    type="email"
+                    value={settings.contact_email}
+                    onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contact_phone">Contact Phone</Label>
+                  <Input
+                    id="contact_phone"
+                    value={settings.contact_phone}
+                    onChange={(e) => handleInputChange('contact_phone', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="business_address">Business Address</Label>
+                  <Textarea
+                    id="business_address"
                     value={settings.business_address}
                     onChange={(e) => handleInputChange('business_address', e.target.value)}
-                    placeholder="Business address"
                   />
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Social Media Links</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(settings.social_media_links).map(([platform, url]) => (
-                      <div key={platform}>
-                        <label className="block text-sm font-medium mb-1 capitalize">{platform}</label>
-                        <Input
-                          value={url}
-                          onChange={(e) => handleNestedChange('social_media_links', platform, e.target.value)}
-                          placeholder={`https://${platform}.com/yourpage`}
-                        />
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="ecommerce">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg md:text-xl">E-commerce Features</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium">Enable Reviews</h3>
-                        <p className="text-sm text-gray-600">Allow customers to review products</p>
-                      </div>
-                      <Switch
-                        checked={settings.enable_reviews}
-                        onCheckedChange={(checked) => handleInputChange('enable_reviews', checked)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium">Enable Wishlist</h3>
-                        <p className="text-sm text-gray-600">Allow customers to save products</p>
-                      </div>
-                      <Switch
-                        checked={settings.enable_wishlist}
-                        onCheckedChange={(checked) => handleInputChange('enable_wishlist', checked)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium">Enable Reward Points</h3>
-                        <p className="text-sm text-gray-600">Reward customers with points</p>
-                      </div>
-                      <Switch
-                        checked={settings.enable_reward_points}
-                        onCheckedChange={(checked) => handleInputChange('enable_reward_points', checked)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium">Enable COD</h3>
-                        <p className="text-sm text-gray-600">Cash on delivery payments</p>
-                      </div>
-                      <Switch
-                        checked={settings.enable_cod}
-                        onCheckedChange={(checked) => handleInputChange('enable_cod', checked)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Default Delivery Fee (₹)</label>
-                      <Input
-                        type="number"
-                        value={settings.delivery_fee}
-                        onChange={(e) => handleInputChange('delivery_fee', Number(e.target.value))}
-                        placeholder="40"
-                        min="0"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Max Order Items</label>
-                      <Input
-                        type="number"
-                        value={settings.max_order_items}
-                        onChange={(e) => handleInputChange('max_order_items', Number(e.target.value))}
-                        placeholder="10"
-                        min="1"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Min Order Amount (₹)</label>
-                      <Input
-                        type="number"
-                        value={settings.min_order_amount}
-                        onChange={(e) => handleInputChange('min_order_amount', Number(e.target.value))}
-                        placeholder="100"
-                        min="0"
-                      />
-                    </div>
-                  </div>
-
-                  {settings.enable_reward_points && (
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Reward Points Ratio (Points per ₹)</label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={settings.reward_points_ratio}
-                        onChange={(e) => handleInputChange('reward_points_ratio', Number(e.target.value))}
-                        placeholder="1"
-                        min="0"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">How many points customers earn per rupee spent</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg md:text-xl">Shipping Zones</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {settings.shipping_zones.map((zone, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 border rounded">
-                        <span>{zone}</span>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => removeShippingZone(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button onClick={addShippingZone} variant="outline" className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Shipping Zone
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="notifications">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Notification Settings</CardTitle>
+                <CardTitle>Order Settings</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Email Notifications</h3>
-                    <p className="text-sm text-gray-600">Send email notifications for orders and updates</p>
-                  </div>
-                  <Switch
-                    checked={settings.enable_email_notifications}
-                    onCheckedChange={(checked) => handleInputChange('enable_email_notifications', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">SMS Notifications</h3>
-                    <p className="text-sm text-gray-600">Send SMS notifications for order updates</p>
-                  </div>
-                  <Switch
-                    checked={settings.enable_sms_notifications}
-                    onCheckedChange={(checked) => handleInputChange('enable_sms_notifications', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Auto-confirm Orders</h3>
-                    <p className="text-sm text-gray-600">Automatically confirm orders after payment</p>
-                  </div>
-                  <Switch
-                    checked={settings.order_auto_confirm}
-                    onCheckedChange={(checked) => handleInputChange('order_auto_confirm', checked)}
-                  />
-                </div>
-
+              <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Low Stock Threshold</label>
+                  <Label htmlFor="delivery_fee">Delivery Fee (₹)</Label>
                   <Input
+                    id="delivery_fee"
                     type="number"
-                    value={settings.low_stock_threshold}
-                    onChange={(e) => handleInputChange('low_stock_threshold', Number(e.target.value))}
-                    placeholder="5"
-                    min="0"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Get notified when product stock falls below this number</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="security">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Security & Maintenance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Maintenance Mode</h3>
-                    <p className="text-sm text-gray-600">Put the site in maintenance mode</p>
-                  </div>
-                  <Switch
-                    checked={settings.maintenance_mode}
-                    onCheckedChange={(checked) => handleInputChange('maintenance_mode', checked)}
+                    value={settings.delivery_fee}
+                    onChange={(e) => handleInputChange('delivery_fee', Number(e.target.value))}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium mb-1">Razorpay Key ID</label>
+                  <Label htmlFor="min_order_amount">Minimum Order Amount (₹)</Label>
                   <Input
-                    value={settings.razorpay_key_id}
-                    onChange={(e) => handleInputChange('razorpay_key_id', e.target.value)}
-                    placeholder="rzp_test_xxxxxxxxx"
+                    id="min_order_amount"
+                    type="number"
+                    value={settings.min_order_amount}
+                    onChange={(e) => handleInputChange('min_order_amount', Number(e.target.value))}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Your Razorpay public key for online payments</p>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h3 className="font-medium mb-4">System Actions</h3>
-                  <div className="space-y-3">
-                    <Button onClick={clearCache} variant="outline" className="w-full">
-                      Clear Cache
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-blue-900 mb-2">System Information</h3>
-                  <div className="text-sm text-blue-700 space-y-1">
-                    <p>Database Status: <span className="font-medium text-green-600">Connected</span></p>
-                    <p>Email Service: <span className="font-medium text-green-600">Active</span></p>
-                    <p>Last Updated: {new Date().toLocaleString()}</p>
-                    <p>Admin Panel Version: 2.0.0</p>
-                  </div>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="advanced">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg md:text-xl">Analytics & Tracking</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">Enable Analytics</h3>
-                      <p className="text-sm text-gray-600">Track website performance</p>
-                    </div>
-                    <Switch
-                      checked={settings.enable_analytics}
-                      onCheckedChange={(checked) => handleInputChange('enable_analytics', checked)}
-                    />
-                  </div>
-                  
-                  {settings.enable_analytics && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Google Analytics ID</label>
-                        <Input
-                          value={settings.google_analytics_id}
-                          onChange={(e) => handleInputChange('google_analytics_id', e.target.value)}
-                          placeholder="GA-XXXXXXXXX"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Facebook Pixel ID</label>
-                        <Input
-                          value={settings.facebook_pixel_id}
-                          onChange={(e) => handleInputChange('facebook_pixel_id', e.target.value)}
-                          placeholder="XXXXXXXXXXXXXXX"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg md:text-xl">Backup & Maintenance</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Backup Frequency</label>
-                      <select
-                        className="w-full p-2 border rounded-md text-sm"
-                        value={settings.backup_frequency}
-                        onChange={(e) => handleInputChange('backup_frequency', e.target.value)}
-                      >
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Backup Location</label>
-                      <select
-                        className="w-full p-2 border rounded-md text-sm"
-                        value={settings.backup_location}
-                        onChange={(e) => handleInputChange('backup_location', e.target.value)}
-                      >
-                        <option value="cloud">Cloud Storage</option>
-                        <option value="local">Local Storage</option>
-                        <option value="both">Both</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">Maintenance Mode</h3>
-                      <p className="text-sm text-gray-600">Put site in maintenance mode</p>
-                    </div>
-                    <Switch
-                      checked={settings.maintenance_mode}
-                      onCheckedChange={(checked) => handleInputChange('maintenance_mode', checked)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

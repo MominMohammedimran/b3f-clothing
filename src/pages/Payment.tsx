@@ -80,8 +80,8 @@ const Payment = () => {
     }
   }, [currentUser, cartItems, shippingAddress, navigate]);
 
-  const handlePaymentSuccess = (response: any) => {
-   toast.success('Payment completed successfully!');
+  const handlePaymentSuccess = () => {
+    toast.success('Payment completed successfully!');
     // Clear cart after successful payment
     clearCart();
   };
@@ -114,12 +114,6 @@ const Payment = () => {
       </Layout>
     );
   }
-
-  const customerInfo = {
-    name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim() || 'Guest',
-    email: shippingAddress.email || currentUser?.email || '',
-    contact: shippingAddress.phone || ''
-  };
 
   return (
     <Layout>
@@ -169,14 +163,14 @@ const Payment = () => {
               </p>
               
               <RazorpayCheckout 
-                amount={finalTotal}s
-                customerInfo={customerInfo}
+                amount={finalTotal}
                 cartItems={cartItems}
                 shippingAddress={shippingAddress}
                 onSuccess={handlePaymentSuccess}
                 onError={handlePaymentError}
               />
             </div>
+            
 
             {userProfile?.reward_points && userProfile.reward_points > 0 && (
               <div className="bg-white p-6 rounded-lg shadow-sm border">

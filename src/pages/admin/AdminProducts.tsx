@@ -1,77 +1,93 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Edit, Trash2, Plus, Package } from 'lucide-react';
-import ProductEditForm from '../../components//admin/ProductEditForm';
-import ProductSizeManager from '../../components/admin/ProductSizeManager';
-import { Product } from '@/lib/types';
+import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
-const AdminProducts: React.FC = () => {
+
+interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  original_price?: number;
+  discount_percentage?: number;
+  image?: string;
+  category?: string;
+  stock?: number;
+  code?: string;
+  variants?: { size: string; stock: number }[];
+  created_at: string;
+  productId?: string;
+  images?: any;
+  tags?: any;
+  colors?: any;
+  sizes?: any;
+  updated_at?: string;
+}
+
+const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sizeInventories, setSizeInventories] = useState<Record<string, Record<string, number>>>({});
-  const [managingSizeProduct, setManagingSizeProduct] = useState<Product | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    original_price: '',
+    discount_percentage: '',
+    image: '',
+    category: '',
+    stock: '',
+    code: '',
+    variants: [] as { size: string; stock: number }[]
+  });
 
   useEffect(() => {
     fetchProducts();
-    fetchSizeInventories();
   }, []);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      // First try to get products from a products table
-      const { data: productsData, error: productsError } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (productsError && !productsError.message.includes('does not exist')) {
-        throw productsError;
-      }
-
-      if (productsData && productsData.length > 0) {
-        // Transform the data to match Product interface
-        const transformedProducts: Product[] = productsData.map((product: any) => ({
-          id: product.id,
-          code: product.code || `PROD-${product.id.slice(0, 8)}`,
-          name: product.name,
-          description: product.description || '',
-          price: product.price,
-          originalPrice: product.original_price || product.price,
-          discountPercentage: product.discount_percentage || 0,
-          category: product.category || 'general',
-          stock: product.stock || 0,
-          image: product.image || '',
-          images: Array.isArray(product.images) ? product.images : [],
-          sizes: Array.isArray(product.sizes) ? product.sizes : [],
-          tags: Array.isArray(product.tags) ? product.tags : []
+      if (error) throw error;
+      
+      if (data) {
+        const transformedProducts: Product[] = data.map((dbProduct: any) => ({
+          id: dbProduct.id,
+          name: dbProduct.name,
+          description: dbProduct.description || '',
+          price: dbProduct.price,
+          original_price: dbProduct.original_price,
+          discount_percentage: dbProduct.discount_percentage || 0,
+          image: dbProduct.image,
+          category: dbProduct.category,
+          stock: dbProduct.stock || 0,
+          code: dbProduct.code,
+          variants: Array.isArray(dbProduct.variants) ? dbProduct.variants : [],
+          created_at: dbProduct.created_at,
+          productId: dbProduct.productId || dbProduct.id,
+          images: dbProduct.images,
+          tags: dbProduct.tags,
+          colors: dbProduct.colors,
+          sizes: dbProduct.sizes,
+          updated_at: dbProduct.updated_at
         }));
         setProducts(transformedProducts);
-      } else {
-        // Fallback to settings table
-        const { data: settingsData, error: settingsError } = await supabase
-          .from('settings')
-          .select('*')
-          .eq('type', 'products');
-
-        if (settingsError) throw settingsError;
-
-        if (settingsData && settingsData.length > 0) {
-          const settingsValue = settingsData[0].settings;
-          if (typeof settingsValue === 'object' && settingsValue !== null && 'products' in settingsValue) {
-            const productsFromSettings = (settingsValue as { products: any[] }).products || [];
-            setProducts(productsFromSettings);
-          }
-        }
       }
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -81,305 +97,379 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const fetchSizeInventories = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     try {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('type', 'products');
+      const productData = {
+        name: formData.name,
+        description: formData.description || null,
+        price: parseFloat(formData.price),
+        original_price: formData.original_price ? parseFloat(formData.original_price) : null,
+        discount_percentage: formData.discount_percentage ? parseFloat(formData.discount_percentage) : 0,
+        image: formData.image || null,
+        category: formData.category || null,
+        stock: formData.stock ? parseInt(formData.stock) : 0,
+        code: formData.code || null,
+        variants: formData.variants.length > 0 ? formData.variants : null,
+        productId: editingProduct?.productId || `product_${Date.now()}`,
+        images: [],
+        tags: [],
+        colors: [],
+        sizes: [],
+        rating: 0
+      };
 
-      if (error && !error.message.includes('does not exist')) {
-        throw error;
-      }
-
-      if (data && data.length > 0) {
-        const inventoryData = data[0].settings;
-        const parsedInventories: Record<string, Record<string, number>> = {};
-        
-        if (typeof inventoryData === 'object' && inventoryData !== null) {
-          Object.entries(inventoryData).forEach(([productId, inventoryString]) => {
-            if (typeof inventoryString === 'string') {
-              const sizes: Record<string, number> = {};
-              inventoryString.split(' ').forEach(sizeEntry => {
-                if (sizeEntry.includes(':')) {
-                  const [size, qty] = sizeEntry.split(':');
-                  sizes[size.toLowerCase()] = parseInt(qty) || 0;
-                }
-              });
-              parsedInventories[productId] = sizes;
-            }
-          });
-        }
-        
-        setSizeInventories(parsedInventories);
-      }
-    } catch (error) {
-      console.error('Error fetching size inventories:', error);
-    }
-  };
-
-  const handleSaveProduct = async (productData: Product) => {
-    try {
-      let updatedProducts;
-      
       if (editingProduct) {
-        // Update existing product
-        updatedProducts = products.map(p => 
-          p.id === editingProduct.id ? { ...productData, id: editingProduct.id } : p
-        );
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', editingProduct.id);
+
+        if (error) {
+          console.error('Update error:', error);
+          throw new Error(error.message || 'Failed to update product');
+        }
+        toast.success('Product updated successfully');
       } else {
-        // Add new product
-        const newProduct = {
-          ...productData,
-          id: `product_${Date.now()}`,
-        };
-        updatedProducts = [newProduct, ...products];
+        const { error } = await supabase
+          .from('products')
+          .insert([productData]);
+
+        if (error) {
+          console.error('Insert error:', error);
+          throw new Error(error.message || 'Failed to create product');
+        }
+        toast.success('Product created successfully');
       }
 
-      // Save to settings table as fallback
-      const { error } = await supabase
-        .from('settings')
-        .upsert({
-          type: 'products',
-          settings: { products: updatedProducts } as any
-        });
-
-      if (error) throw error;
-
-      setProducts(updatedProducts);
+      setShowCreateDialog(false);
       setEditingProduct(null);
-      setShowAddForm(false);
-      toast.success(editingProduct ? 'Product updated successfully' : 'Product created successfully');
-    } catch (error) {
+      resetForm();
+      fetchProducts();
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      toast.error('Failed to save product');
+      const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
+      toast.error('Failed to save product: ' + errorMessage);
     }
   };
 
-  const handleDeleteProduct = async (productId: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      const updatedProducts = products.filter(p => p.id !== productId);
-      
       const { error } = await supabase
-        .from('settings')
-        .upsert({
-          type: 'products',
-          settings: { products: updatedProducts } as any
-        });
+        .from('products')
+        .delete()
+        .eq('id', id);
 
       if (error) throw error;
-
-      setProducts(updatedProducts);
       toast.success('Product deleted successfully');
-    } catch (error) {
+      fetchProducts();
+    } catch (error: any) {
       console.error('Error deleting product:', error);
       toast.error('Failed to delete product');
     }
   };
 
-  const handleInventoryUpdate = (productId: string, inventory: Record<string, number>) => {
-    setSizeInventories(prev => ({
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      description: product.description || '',
+      price: product.price.toString(),
+      original_price: product.original_price?.toString() || '',
+      discount_percentage: product.discount_percentage?.toString() || '',
+      image: product.image || '',
+      category: product.category || '',
+      stock: product.stock?.toString() || '',
+      code: product.code || '',
+      variants: product.variants || []
+    });
+    setShowCreateDialog(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      original_price: '',
+      discount_percentage: '',
+      image: '',
+      category: '',
+      stock: '',
+      code: '',
+      variants: []
+    });
+  };
+
+  const addVariant = () => {
+    setFormData(prev => ({
       ...prev,
-      [productId]: inventory
+      variants: [...prev.variants, { size: '', stock: 0 }]
     }));
-    
-    // Update the display immediately
-    toast.success('Inventory updated successfully');
+  };
+
+  const removeVariant = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateVariant = (index: number, field: 'size' | 'stock', value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map((variant, i) => 
+        i === index ? { ...variant, [field]: value } : variant
+      )
+    }));
   };
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    product.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatInventoryDisplay = (productId: string) => {
-    const inventory = sizeInventories[productId];
-    if (!inventory || Object.keys(inventory).length === 0) {
-      return 'No sizes configured';
-    }
-    
-    return Object.entries(inventory)
-      .map(([size, qty]) => `${size.toUpperCase()}:${qty}`)
-      .join(' ');
-  };
-
-  const getTotalStock = (productId: string) => {
-    const inventory = sizeInventories[productId];
-    if (!inventory) return 0;
-    return Object.values(inventory).reduce((sum, qty) => sum + qty, 0);
-  };
-
-  if (editingProduct || showAddForm) {
-    const productToEdit = editingProduct || {
-      id: '',
-      name: '',
-      code: '',
-      price: 0,
-      originalPrice: 0,
-      discountPercentage: 0,
-      image: '',
-      images: [],
-      category: '',
-      sizes: [],
-      stock: 0,
-      description: '',
-      tags: [],
-      variants: []
-    };
-
-    return (
-       <AdminLayout title="Products">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setEditingProduct(null);
-              setShowAddForm(false);
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
-        
-        <ProductEditForm
-          product={productToEdit}
-          onSave={handleSaveProduct}
-          onCancel={() => {
-            setEditingProduct(null);
-            setShowAddForm(false);
-          }}
-        />
-      </div>
-      </AdminLayout>
-    );
-  }
-
-  if (managingSizeProduct) {
-    return (
-        <AdminLayout title="Products">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Manage Size Inventory</h2>
-          <Button
-            variant="outline"
-            onClick={() => setManagingSizeProduct(null)}
-          >
-            Back to Products
-          </Button>
-        </div>
-        
-        <ProductSizeManager
-          productId={managingSizeProduct.id}
-          productName={managingSizeProduct.name}
-          currentInventory={sizeInventories[managingSizeProduct.id] || {}}
-          onInventoryUpdate={handleInventoryUpdate}
-        />
-      </div>
-      </AdminLayout>
-    );
-  }
-
   return (
-      <AdminLayout title="Products">
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Products Management</h2>
-        <Button onClick={() => setShowAddForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Product
-        </Button>
-      </div>
-
-      <div className="flex items-center space-x-4">
-        <Input
-          placeholder="Search products..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {filteredProducts.map((product) => (
-            <Card key={product.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4">
-                    <img
-                      src={product.image || '/placeholder.svg'}
-                      alt={product.name}
-                      className="w-16 h-16 object-cover rounded-lg"
-                    />
-                    <div>
-                      <h3 className="text-lg font-semibold">{product.name}</h3>
-                      <p className="text-sm text-gray-600">Code: {product.code}</p>
-                      <p className="text-sm text-gray-600">Category: {product.category}</p>
-                      <div className="flex items-center space-x-2 mt-2">
-                        <span className="text-lg font-bold">₹{product.price}</span>
-                        {product.originalPrice && product.originalPrice > product.price && (
-                          <span className="text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
-                        )}
-                        {product.discountPercentage && (
-                          <Badge variant="destructive">{product.discountPercentage}% OFF</Badge>
-                        )}
+    <AdminLayout title="Products Management">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold">Products</h2>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm} className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingProduct ? 'Edit Product' : 'Create New Product'}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="price">Price</Label>
+                  <Input
+                    id="price"
+                    name="price"
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="original_price">Original Price</Label>
+                  <Input
+                    id="original_price"
+                    name="original_price"
+                    type="number"
+                    value={formData.original_price}
+                    onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="discount_percentage">Discount Percentage</Label>
+                  <Input
+                    id="discount_percentage"
+                    name="discount_percentage"
+                    type="number"
+                    value={formData.discount_percentage}
+                    onChange={(e) => setFormData({ ...formData, discount_percentage: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="image">Image</Label>
+                  <Input
+                    id="image"
+                    name="image"
+                    type="text"
+                    value={formData.image}
+                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    name="category"
+                    type="text"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="stock">Stock</Label>
+                  <Input
+                    id="stock"
+                    name="stock"
+                    type="number"
+                    value={formData.stock}
+                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="code">Code</Label>
+                  <Input
+                    id="code"
+                    name="code"
+                    type="text"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="variants">Variants</Label>
+                  <div className="space-y-2">
+                    {formData.variants.map((variant, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <Input
+                          type="text"
+                          value={variant.size}
+                          onChange={(e) => updateVariant(index, 'size', e.target.value)}
+                        />
+                        <Input
+                          type="number"
+                          value={variant.stock}
+                          onChange={(e) => updateVariant(index, 'stock', e.target.value)}
+                        />
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeVariant(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-600">
-                          <strong>Size Inventory:</strong> {formatInventoryDisplay(product.id)}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          <strong>Total Stock:</strong> {getTotalStock(product.id)} units
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
+                    ))}
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setManagingSizeProduct(product)}
+                      onClick={addVariant}
                     >
-                      <Package className="h-4 w-4 mr-1" />
-                      Sizes
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditingProduct(product)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteProduct(product.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              {searchTerm ? 'No products found matching your search.' : 'No products found. Add your first product!'}
-            </div>
-          )}
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowCreateDialog(false);
+                      setEditingProduct(null);
+                      resetForm();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingProduct ? 'Update Product' : 'Create Product'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-      )}
-    </div>
+
+        <div className="flex items-center space-x-4">
+          <Input
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm"
+          />
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {filteredProducts.map((product) => (
+              <Card key={product.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4">
+                      <img
+                        src={product.image || '/placeholder.svg'}
+                        alt={product.name}
+                        className="w-16 h-16 object-cover rounded-lg"
+                      />
+                      <div>
+                        <h3 className="text-lg font-semibold">{product.name}</h3>
+                        <p className="text-sm text-gray-600">Code: {product.code}</p>
+                        <p className="text-sm text-gray-600">Category: {product.category}</p>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <span className="text-lg font-bold">₹{product.price}</span>
+                          {product.original_price && product.original_price > product.price && (
+                            <span className="text-sm text-gray-500 line-through">₹{product.original_price}</span>
+                          )}
+                          {product.discount_percentage && (
+                            <Badge variant="destructive">{product.discount_percentage}% OFF</Badge>
+                          )}
+                        </div>
+                        <div className="mt-2">
+                          <p className="text-sm text-gray-600">
+                            <strong>Stock:</strong> {product.stock} units
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(product)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(product.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                {searchTerm ? 'No products found matching your search.' : 'No products found. Add your first product!'}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </AdminLayout>
   );
 };

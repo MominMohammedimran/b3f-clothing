@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -292,7 +293,6 @@ export interface Database {
           discount_percentage: number
           image: string | null
           images: Json | null
-          rating: number
           productId: string
           category: string
           tags: Json | null
@@ -312,7 +312,6 @@ export interface Database {
           discount_percentage?: number
           image?: string | null
           images?: Json | null
-          rating?: number
           category: string
           productId: string
           tags?: Json | null
@@ -332,9 +331,8 @@ export interface Database {
           discount_percentage?: number
           image?: string | null
           images?: Json | null
-          rating?: number
           category?: string
-          productId: string
+          productId?: string
           tags?: Json | null
           sizes?: Json | null
           variants?: Json | null
@@ -478,6 +476,42 @@ export interface Database {
       retry_payment: {
         Args: {
           p_order_id: string;
+        };
+        Returns: Json;
+      };
+      get_admin_settings: {
+        Args: {};
+        Returns: Json;
+      };
+      update_admin_settings: {
+        Args: {
+          p_site_name: string;
+          p_site_description: string;
+          p_contact_email: string;
+          p_contact_phone: string;
+          p_business_address: string;
+          p_delivery_fee: number;
+          p_min_order_amount: number;
+        };
+        Returns: void;
+      };
+      get_delivery_settings: {
+        Args: {};
+        Returns: Json;
+      };
+      update_product_stock: {
+        Args: {
+          p_product_id: string;
+          p_size: string;
+          p_quantity: number;
+        };
+        Returns: void;
+      };
+      create_razorpay_retry_order: {
+        Args: {
+          p_order_id: string;
+          p_amount: number;
+          p_currency?: string;
         };
         Returns: Json;
       };

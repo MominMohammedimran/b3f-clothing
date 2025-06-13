@@ -860,6 +860,10 @@ export type Database = {
             }
         Returns: Json
       }
+      create_razorpay_retry_order: {
+        Args: { p_order_id: string; p_amount: number; p_currency?: string }
+        Returns: Json
+      }
       get_admin_settings: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -873,6 +877,13 @@ export type Database = {
           min_order_amount: number
           created_at: string
           updated_at: string
+        }[]
+      }
+      get_delivery_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          delivery_fee: number
+          min_order_amount: number
         }[]
       }
       get_order_by_id: {
@@ -909,6 +920,10 @@ export type Database = {
           p_payment_status: string
           p_order_status?: string
         }
+        Returns: undefined
+      }
+      update_product_stock: {
+        Args: { p_product_id: string; p_size: string; p_quantity: number }
         Returns: undefined
       }
       verify_admin_login: {

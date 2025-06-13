@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, X } from 'lucide-react';
@@ -8,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import RazorpayCheckout from '../components/payment/RazorpayCheckout';
 import { Button } from '@/components/ui/button';
+import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,28 @@ const OrderSummaryComponent = ({
 }) => (
   <div className="bg-white p-6 rounded-lg shadow-sm border">
     <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
+    
+    {/* Product Details */}
+    <div className="space-y-3 mb-4 border-b pb-4">
+      <h3 className="font-medium text-gray-700">Items ({cartItems.length})</h3>
+      {cartItems.map((item, index) => (
+        <div key={index} className="flex items-center space-x-3">
+          <img 
+            src={item.image || '/placeholder.svg'} 
+            alt={item.name}
+            className="w-12 h-12 object-cover rounded"
+          />
+          <div className="flex-1">
+            <p className="text-sm font-medium">{item.name}</p>
+            <p className="text-xs text-gray-500">
+              Size: {item.size || 'N/A'} | Qty: {item.quantity}
+            </p>
+            <p className="text-sm font-semibold">₹{item.price}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
     <div className="space-y-3">
       <div className="flex justify-between">
         <span>Subtotal ({cartItems.length} items)</span>
@@ -68,9 +90,10 @@ const Payment = () => {
   const { cartItems, totalPrice, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [rewardPointsUsed, setRewardPointsUsed] = useState(0);
+  const { settings: deliverySettings, loading: settingsLoading, refetch: refetchSettings } = useDeliverySettings();
 
   const shippingAddress = location.state?.shippingAddress;
-  const deliveryFee = 50;
+  const deliveryFee = deliverySettings.delivery_fee;
   const rewardPointsDiscount = rewardPointsUsed * 1;
   const finalTotal = Math.max(0, totalPrice + deliveryFee - rewardPointsDiscount);
 
@@ -79,6 +102,11 @@ const Payment = () => {
       navigate('/cart');
     }
   }, [currentUser, cartItems, shippingAddress, navigate]);
+
+  useEffect(() => {
+    // Refetch settings when component mounts to get latest delivery fees
+    refetchSettings();
+  }, [refetchSettings]);
 
   const handlePaymentSuccess = () => {
     toast.success('Payment completed successfully!');
@@ -105,7 +133,7 @@ const Payment = () => {
     }
   };
 
-  if (!currentUser || !cartItems.length || !shippingAddress) {
+  if (!currentUser || !cartItems.length || !shippingAddress || settingsLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 text-center">
@@ -156,6 +184,63 @@ const Payment = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
+            {/* Product Summary Card */}
+                  
+
+            {/*<div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h2 className="text-lg font-semibold mb-4">Your Order</h2>
+              <div className="space-y-3">
+                {cartItems.map((item, index) => (
+                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
+                    <img 
+                      src={item.image || '/placeholder.svg'} 
+                      alt={item.name}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                    <div className="flex-1">
+                      <h3 className="font-medium">{item.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        Size: {item.size || 'N/A'} | Quantity: {item.quantity}
+                      </p>
+                      <p className="text-lg font-semibold text-green-600">₹{item.price}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>*/}
+
+            {/*reward points */}
+          {userProfile?.reward_points && userProfile.reward_points > 0 && (
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                    <h3 className="text-lg font-semibold mb-4">Use Reward Points</h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                     Available: {userProfile.reward_points} points (₹{userProfile.reward_points})
+                </p>
+            <div className="flex items-center gap-2">
+               <input
+                 type="number"
+                   min="0"
+                 max={Math.min(userProfile.reward_points, finalTotal)}
+                    value={rewardPointsUsed}
+                   onChange={(e) => {
+                     const inputValue = Number(e.target.value);
+                      const maxPoints = Math.min(userProfile.reward_points, finalTotal);
+                  if (isNaN(inputValue)) {
+                      setRewardPointsUsed(0);
+                   } else {
+                    setRewardPointsUsed(Math.max(0, Math.min(inputValue, maxPoints)));
+                }
+               }}
+                className="border rounded px-3 py-2 w-24"
+                 placeholder="0"
+              />
+                <span className="text-sm text-gray-600">points to use</span>
+               </div>
+           </div> 
+         )}
+
+
+          {/* razorpay payment */}
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <h2 className="text-lg font-semibold mb-4">Razorpay Payment</h2>
               <p className="text-gray-600 mb-4">
@@ -171,36 +256,17 @@ const Payment = () => {
               />
             </div>
 
-            {userProfile?.reward_points && userProfile.reward_points > 0 && (
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h3 className="text-lg font-semibold mb-4">Use Reward Points</h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  Available: {userProfile.reward_points} points (₹{userProfile.reward_points})
-                </p>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max={Math.min(userProfile.reward_points, finalTotal)}
-                    value={rewardPointsUsed}
-                    onChange={(e) => setRewardPointsUsed(Number(e.target.value))}
-                    className="border rounded px-3 py-2 w-24"
-                    placeholder="0"
-                  />
-                  <span className="text-sm text-gray-600">points to use</span>
-                </div>
-              </div>
-            )}
+            
           </div>
 
           <div className="space-y-6">
-            <OrderSummaryComponent
+           {/* <OrderSummaryComponent
               cartItems={cartItems}
               totalPrice={totalPrice}
               deliveryFee={deliveryFee}
               rewardPointsDiscount={rewardPointsDiscount}
               finalTotal={finalTotal}
-            />
+            /> */}
 
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="font-medium text-blue-800 mb-2">Secure Payment with Razorpay:</h3>

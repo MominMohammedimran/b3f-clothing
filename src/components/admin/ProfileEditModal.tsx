@@ -54,24 +54,42 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
     setLoading(true);
     try {
-      // Ensure reward_points is a valid number
+      // Convert reward_points to number and ensure it's valid
       const rewardPoints = parseInt(formData.reward_points.toString()) || 0;
       
-      const updateData = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        phone_number: formData.phone_number,
-        reward_points: rewardPoints
-      };
+      console.log('Updating profile with ID:', profile.id);
+      console.log('New reward points value:', rewardPoints);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .update(updateData)
-        .eq('id', profile.id);
+        .update({
+          first_name: formData.first_name || null,
+          last_name: formData.last_name || null,
+          phone_number: formData.phone_number || null,
+          reward_points: rewardPoints,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', profile.id)
+        .select('*');
 
       if (error) {
         console.error('Profile update error:', error);
         throw error;
+      }
+
+      console.log('Profile update successful:', data);
+
+      // Verify the update by fetching the profile again
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('profiles')
+        .select('reward_points')
+        .eq('id', profile.id)
+        .single();
+
+      if (verifyError) {
+        console.error('Verification error:', verifyError);
+      } else {
+        console.log('Verified reward points in database:', verifyData.reward_points);
       }
 
       toast.success('Profile updated successfully');
@@ -125,6 +143,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               id="reward_points"
               type="number"
               min="0"
+              step="1"
               value={formData.reward_points}
               onChange={(e) => setFormData(prev => ({ 
                 ...prev, 

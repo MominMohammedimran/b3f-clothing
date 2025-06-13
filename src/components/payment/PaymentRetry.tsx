@@ -1,123 +1,120 @@
 
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
-import RazorpayCheckout from './RazorpayCheckout';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
-const PaymentRetry = () => {
-  const [searchParams] = useSearchParams();
+interface PaymentRetryProps {
+  orderId: string;
+  amount: number;
+  orderNumber: string;
+}
+
+const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumber }) => {
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const [order, setOrder] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
-  const orderId = searchParams.get('orderId');
-  const isRetry = searchParams.get('retry') === 'true';
-
-  useEffect(() => {
-    if (!orderId || !isRetry || !currentUser) {
-      navigate('/orders');
-      return;
-    }
-
-    fetchOrderDetails();
-  }, [orderId, isRetry, currentUser]);
-
-  const fetchOrderDetails = async () => {
+  const handleRetryPayment = async () => {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .eq('user_id', currentUser?.id)
-        .single();
+      setLoading(true);
 
-      if (error) throw error;
+      // Call the retry edge function
+      const response = await fetch(`https://cmpggiyuiattqjmddcac.supabase.co/functions/v1/retry-razorpay-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtcGdnaXl1aWF0dHFqbWRkY2FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzkwNDksImV4cCI6MjA2Mjk1NTA0OX0.-8ae0vFjxM6FR8RgssFduVaBjfERURWQL8Wj3i5TujE'
+        },
+        body: JSON.stringify({ orderId, amount })
+      });
 
-      setOrder(data);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Retry order error:', errorText);
+        throw new Error(`Failed to retry payment: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (!window.Razorpay) {
+        throw new Error('Razorpay SDK not loaded');
+      }
+
+      const options = {
+        key: "rzp_live_FQUylFpHDtgrDj",
+        amount: data.amount,
+        currency: 'INR',
+        name: "B3F Prints",
+        description: `Retry Payment - Order: ${orderNumber}`,
+        order_id: data.orderId,
+        theme: { color: "#3B82F6" },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            toast.error("Payment cancelled");
+          },
+        },
+        handler: async (response: any) => {
+          try {
+            // Update payment status to paid
+            const { error: updateError } = await supabase.rpc('update_payment_status', {
+              p_order_id: orderId,
+              p_payment_status: 'paid',
+              p_order_status: 'pending'
+            });
+
+            if (updateError) throw updateError;
+
+            toast.success("Payment successful!");
+            navigate(`/track-order/${orderId}`);
+          } catch (error: any) {
+            console.error("Error processing payment:", error);
+            toast.error("Payment succeeded but order processing failed.");
+          }
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (error: any) {
-      console.error('Error fetching order:', error);
-      toast.error('Order not found');
-      navigate('/orders');
+      console.error('Payment retry error:', error);
+      toast.error('Failed to retry payment: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePaymentSuccess = async () => {
-    try {
-      // Update payment status to paid
-      await supabase.rpc('update_payment_status', {
-        p_order_id: orderId,
-        p_payment_status: 'paid',
-        p_order_status: 'pending'
-      });
-
-      toast.success('Payment successful!');
-      navigate('/orders');
-    } catch (error: any) {
-      console.error('Error updating payment status:', error);
-      toast.error('Payment completed but failed to update status');
-    }
-  };
-
-  const handlePaymentError = () => {
-    toast.error('Payment failed. Please try again.');
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!order) {
-    return (
-      <div className="text-center py-8">
-        <p>Order not found</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Retry Payment</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p><strong>Order Number:</strong> {order.order_number}</p>
-              <p><strong>Total Amount:</strong> ₹{order.total}</p>
-              <p><strong>Items:</strong> {order.items?.length || 0}</p>
-              <p><strong>Status:</strong> Payment Pending</p>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="max-w-md mx-auto p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-center">Retry Payment</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center">
+            <p className="text-sm text-gray-600">Order: {orderNumber}</p>
+            <p className="text-2xl font-bold text-green-600">₹{amount}</p>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Complete Payment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RazorpayCheckout
-              amount={order.total}
-              cartItems={order.items || []}
-              shippingAddress={order.shipping_address}
-              onSuccess={handlePaymentSuccess}
-              onError={handlePaymentError}
-            />
-          </CardContent>
-        </Card>
-      </div>
+          <Button
+            onClick={handleRetryPayment}
+            disabled={loading}
+            className="w-full h-12 text-lg font-semibold"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Retry Payment ₹${amount}`
+            )}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };

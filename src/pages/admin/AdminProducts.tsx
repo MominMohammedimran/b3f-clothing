@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -116,8 +117,8 @@ const AdminProducts = () => {
         images: [],
         tags: [],
         colors: [],
-        sizes: [],
-        rating: 0
+        sizes: []
+        // Removed rating field as it doesn't exist in the database
       };
 
       if (editingProduct) {

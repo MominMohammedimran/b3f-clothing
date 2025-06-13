@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ interface RazorpayCheckoutProps {
   shippingAddress: any;
   onSuccess: () => void;
   onError: () => void;
-  OrderId?: string; // NEW PROP for retry support
+  OrderId?: string;
 }
 
 const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
@@ -42,27 +43,49 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
     }
 
     const payload = {
-      amount: Math.round(amount * 100),
+      amount: Math.round(amount * 100), // Convert to paise
       currency: "INR",
-      receipt: `order_${Date.now()}`,
+      cartItems,
+      shippingAddress,
       customerInfo: {
         email: currentUser.email,
         name: shippingAddress?.name ?? currentUser.email,
       },
       orderNumber: `ORD${Date.now()}`,
-      cartItems,
-      shippingAddress,
-      OrderId: OrderId || null,  // Pass existing orderId to backend if retry
+      OrderId: OrderId || null,
     };
 
-    const response = await supabase.functions.invoke("create-razorpay-order", {
-      body: payload,
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    console.log("Sending payment request with payload:", payload);
 
-    if (response.error) throw response.error;
+    try {
+      const response = await fetch(`https://cmpggiyuiattqjmddcac.supabase.co/functions/v1/create-razorpay-order`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtcGdnaXl1aWF0dHFqbWRkY2FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzkwNDksImV4cCI6MjA2Mjk1NTA0OX0.-8ae0vFjxM6FR8RgssFduVaBjfERURWQL8Wj3i5TujE'
+        },
+        body: JSON.stringify(payload)
+      });
 
-    return response.data;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Edge function error response:', errorText);
+        throw new Error(`Edge function error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("Edge function response:", data);
+
+      if (!data) {
+        throw new Error('No data received from payment service');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error calling create-razorpay-order:', error);
+      throw error;
+    }
   };
 
   const handlePayment = async () => {
@@ -73,7 +96,34 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
 
     try {
       setLoading(true);
-      const razorpayOrder = await createRazorpayOrder();
+      
+      let razorpayOrder;
+      
+      if (OrderId) {
+        console.log("Retry payment for order:", OrderId);
+        // Retry flow
+        const response = await fetch(`https://cmpggiyuiattqjmddcac.supabase.co/functions/v1/retry-razorpay-order`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtcGdnaXl1aWF0dHFqbWRkY2FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzkwNDksImV4cCI6MjA2Mjk1NTA0OX0.-8ae0vFjxM6FR8RgssFduVaBjfERURWQL8Wj3i5TujE'
+          },
+          body: JSON.stringify({ orderId: OrderId, amount })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Retry order error:', errorText);
+          throw new Error(`Failed to retry payment: ${response.status} ${response.statusText}`);
+        }
+        
+        razorpayOrder = await response.json();
+      } else {
+        // Normal flow
+        razorpayOrder = await createRazorpayOrder();
+      }
+
+      console.log("Razorpay order received:", razorpayOrder);
 
       if (!window.Razorpay) {
         throw new Error("Razorpay SDK not loaded");
@@ -86,10 +136,10 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
       const options = {
         key: "rzp_live_FQUylFpHDtgrDj",
         amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
+        currency: razorpayOrder.currency || "INR",
         name: "B3F Prints",
-        description: `Order: ${itemsDescription}`,
-        order_id: razorpayOrder.id,
+        description: OrderId ? `Retry Payment - ${itemsDescription}` : `Order: ${itemsDescription}`,
+        order_id: razorpayOrder.razorpayOrderId || razorpayOrder.orderId || razorpayOrder.id,
         prefill: {
           name: shippingAddress?.name || "",
           email: currentUser.email,
@@ -111,7 +161,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         handler: async (response: any) => {
           try {
             if (OrderId) {
-              // ✅ Retry flow — update existing order
+              // Retry flow — update existing order
               const { error: updateError } = await supabase.rpc('update_payment_status', {
                 p_order_id: OrderId,
                 p_payment_status: 'paid',
@@ -124,8 +174,20 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
               onSuccess();
               navigate(`/track-order/${OrderId}`);
             } else {
-              // ✅ Normal payment flow — create new order
+              // Normal payment flow — create new order
               const orderNumber = `ORD${Date.now()}`;
+              
+              // Update stock for each item
+              for (const item of cartItems) {
+                if (item.size) {
+                  await supabase.rpc('update_product_stock', {
+                    p_product_id: item.product_id,
+                    p_size: item.size,
+                    p_quantity: item.quantity
+                  });
+                }
+              }
+              
               const { data: order, error: orderError } = await supabase
                 .from("orders")
                 .insert({
@@ -172,14 +234,38 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
       setLoading(false);
     }
   };
+  
 
   return (
     <div className="w-full max-w-md mx-auto">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-center text-xl">Complete Payment</CardTitle>
+          <CardTitle className="text-center text-xl">
+            {OrderId ? "Retry Payment" : "Complete Payment"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Product Details */}
+          <div className="space-y-3 mb-4 border-b pb-4">
+            <h3 className="font-medium text-gray-700">Order Items</h3>
+            {cartItems.map((item, index) => (
+              <div key={index} className="flex items-center space-x-3">
+                <img 
+                  src={item.image || '/placeholder.svg'} 
+                  alt={item.name}
+                  className="w-12 h-12 object-cover rounded"
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{item.name}</p>
+                  <p className="text-xs text-gray-500">
+                    Size: {item.size || 'N/A'} | Qty: {item.quantity}
+                  </p>
+                  <p className="text-sm font-semibold">₹{item.price}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="flex justify-between text-lg font-bold">
             <span>Total Amount</span>
             <span className="text-green-600">₹{amount}</span>
@@ -196,7 +282,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                 Processing Payment...
               </>
             ) : (
-              `Pay ₹${amount} with Razorpay`
+              `${OrderId ? 'Retry' : 'Pay'} ₹ ${amount} with Razorpay`
             )}
           </Button>
         </CardContent>

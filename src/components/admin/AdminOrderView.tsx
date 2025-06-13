@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatOrderStatus, formatOrderDate, formatAddress } from '@/utils/orderUtils';
 import OrderDesignDownload from '@/components/admin/orders/OrderDesignDownload';
@@ -76,7 +77,7 @@ const AdminOrderView = () => {
           ? data.items 
           : (typeof data.items === 'string' ? JSON.parse(data.items) : []),
         delivery_fee: data.delivery_fee || 0,
-        payment_details: {} // Set default empty object since this field doesn't exist in the table
+        payment_details: {}
       };
 
       setOrder(transformedOrder);
@@ -85,6 +86,47 @@ const AdminOrderView = () => {
       toast.error('Failed to load order: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const downloadCustomDesign = async (item: any) => {
+    try {
+      if (!item.metadata?.previewImage && !item.metadata?.customDesign) {
+        toast.error('No custom design found for this item');
+        return;
+      }
+
+      const designData = {
+        elements: item.metadata?.elements || [],
+        previewImage: item.metadata?.previewImage,
+        customDesign: item.metadata?.customDesign
+      };
+
+      const { data, error } = await supabase.functions.invoke('download-design', {
+        body: {
+          designData,
+          orderNumber: order?.order_number,
+          itemName: item.name
+        }
+      });
+
+      if (error) throw error;
+
+      // Create a blob and download
+      const blob = new Blob([data], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `design_${order?.order_number}_${item.name}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('Design downloaded successfully');
+    } catch (error: any) {
+      console.error('Error downloading design:', error);
+      toast.error('Failed to download design: ' + error.message);
     }
   };
 
@@ -200,10 +242,23 @@ const AdminOrderView = () => {
                   </div>
                 </div>
                 
-                <div className="text-right">
+                <div className="text-right space-y-2">
                   <p className="font-medium">₹{item.price * item.quantity}</p>
                   {item.metadata?.previewImage && (
-                    <p className="text-xs text-green-600 mt-1">Custom Design</p>
+                    <p className="text-xs text-green-600">Custom Design</p>
+                  )}
+                  
+                  {/* Download button for custom designs */}
+                  {(item.metadata?.previewImage || item.metadata?.customDesign) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadCustomDesign(item)}
+                      className="w-full"
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      Download Design
+                    </Button>
                   )}
                 </div>
               </div>

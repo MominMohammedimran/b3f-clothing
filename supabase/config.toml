@@ -1,71 +1,45 @@
+
 project_id = "cmpggiyuiattqjmddcac"
 
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage", "graphql_public"]
+schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
+[auth]
+enabled = true
+port = 54324
+
+[edge-functions]
+enabled = true
+port = 54323
+
+[functions.retry-razorpay-order]
+verify_jwt = true
+
+[functions.download-design]
+verify_jwt = true
+
+[functions.create-razorpay-order]
+verify_jwt = true
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-order-email]
+verify_jwt = false
+
+[functions.send-order-notification]
+verify_jwt = false
+
 [db]
+enabled = true
 port = 54322
 shadow_port = 54320
 major_version = 15
 
-[db.pooler]
-enabled = false
-port = 54329
-pool_mode = "transaction"
-default_pool_size = 20
-max_client_conn = 100
-
-[realtime]
-enabled = true
-
 [studio]
 enabled = true
 port = 54323
-api_url = "https://api.supabase.com"
-
-[inbucket]
-enabled = true
-port = 54324
-
-[auth]
-enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://localhost:3000"]
-jwt_expiry = 3600
-enable_signup = true
-
-[auth.email]
-enable_signup = true
-double_confirm_changes = true
-enable_confirmations = false
-
-[analytics]
-enabled = false
-port = 54327
-vector_port = 54328
-backend = "postgres"
-
-[storage]
-enabled = true
-
-[[storage.buckets]]
-name = "public"
-public = true
-file_size_limit = "50MB"
-
-[[storage.buckets]]
-name = "products"
-public = true
-file_size_limit = "10MB"
-
-[functions]
-environment = { 
-  RAZORPAY_KEY_ID = "rzp_live_FQUylFpHDtgrDj",
-  RAZORPAY_KEY_SECRET = "hICwlPjUOy0YGydGJDEsW00m",
-  SUPABASE_URL = "https://cmpggiyuiattqjmddcac.supabase.co",
-  SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}

@@ -1,10 +1,56 @@
-import { serve } from "https://deno.land/x/sift@0.5.0/mod.ts";
+
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Razorpay from "https://esm.sh/razorpay@2";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    const { order_id, amount, currency, cartItems, shippingAddress, customerInfo, retry } = await req.json();
+    console.log("Request method:", req.method);
+    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+    
+    let requestBody;
+    try {
+      const text = await req.text();
+      console.log("Raw request body:", text);
+      
+      if (!text || text.trim() === '') {
+        throw new Error("Request body is empty");
+      }
+      
+      requestBody = JSON.parse(text);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400 
+        }
+      );
+    }
+
+    const { amount, currency = "INR", cartItems, shippingAddress, customerInfo, orderNumber, OrderId } = requestBody;
+
+    console.log("Parsed request data:", { amount, currency, cartItems, shippingAddress, customerInfo, orderNumber, OrderId });
+
+    if (!amount || !cartItems || !customerInfo) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: amount, cartItems, customerInfo" }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400 
+        }
+      );
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -15,55 +61,61 @@ serve(async (req) => {
       key_secret: Deno.env.get("RAZORPAY_KEY_SECRET")!,
     });
 
-    // Always generate new Razorpay order
+    // Create Razorpay order
     const razorpayOrder = await razorpay.orders.create({
-      amount: amount,
+      amount: Math.round(amount), // Amount should already be in paise
       currency: currency,
-      receipt: `retry-${Date.now()}`,
+      receipt: `order_${Date.now()}`,
     });
 
-    if (retry && order_id) {
-      console.log("Retry payment — skip DB insert");
-      // Skip DB insert for retry flow
-    } else {
-      // Handle new order creation
-      const { user, error: userError } = await supabase.auth.getUser();
+    console.log("Razorpay order created:", razorpayOrder);
 
-      if (userError || !user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-      }
+    // If this is not a retry, create order in database
+    if (!OrderId) {
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
-      const orderNumber = `ORD${Date.now()}`;
+        if (!userError && user) {
+          const { error: orderError } = await supabase.from("orders").insert({
+            user_id: user.id,
+            order_number: orderNumber || `ORD${Date.now()}`,
+            total: amount / 100, // Convert back to rupees
+            items: cartItems,
+            status: "pending",
+            payment_method: "razorpay",
+            shipping_address: shippingAddress,
+            payment_status: "pending",
+          });
 
-      const { error: orderError } = await supabase.from("orders").insert({
-        id: order_id || undefined,
-        user_id: user.id,
-        order_number: orderNumber,
-        total: amount / 100,
-        items: cartItems,
-        status: "pending",
-        payment_method: "razorpay",
-        shipping_address: shippingAddress,
-        payment_status: "pending",
-        created_at: new Date(),
-      });
-
-      if (orderError) {
-        console.error("DB insert error:", orderError);
-        return new Response(JSON.stringify({ error: "DB insert failed" }), { status: 500 });
+          if (orderError) {
+            console.error("Order creation error:", orderError);
+          }
+        }
       }
     }
 
     return new Response(
       JSON.stringify({
         razorpayOrderId: razorpayOrder.id,
+        orderId: razorpayOrder.id,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
       }),
-      { status: 200 }
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200 
+      }
     );
   } catch (error) {
-    console.error("Edge Function Error:", error);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    console.error("Create order error:", error);
+    return new Response(
+      JSON.stringify({ error: "Failed to create order: " + error.message }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500 
+      }
+    );
   }
 });

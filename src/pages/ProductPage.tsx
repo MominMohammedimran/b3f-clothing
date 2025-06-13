@@ -41,7 +41,6 @@ const ProductPage = () => {
             originalPrice: data.original_price,
             discountPercentage: data.discount_percentage,
             image: data.image || '',
-            rating: data.rating || 0,
             category: data.category,
             // Parse JSON arrays properly ensuring they're string arrays
             sizes: Array.isArray(data.sizes) ? data.sizes : 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,29 +5,51 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface PaymentRetryProps {
   orderId: string;
   amount: number;
   orderNumber: string;
+  data: any; // full order object passed as prop
 }
 
-const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumber }) => {
+const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumber, data }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+
+  const orderItems = data.items || []; // extract items array from full order object
 
   const handleRetryPayment = async () => {
     try {
       setLoading(true);
 
-      // Call the retry edge function
+      if (!currentUser?.email) {
+        toast.error("Please sign in to continue");
+        return;
+      }
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        toast.error("Unable to fetch access token. Please login again.");
+        navigate("/login");
+        return;
+      }
+
+      const amountInPaise = Math.round(amount * 100);
+
       const response = await fetch(`https://cmpggiyuiattqjmddcac.supabase.co/functions/v1/retry-razorpay-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtcGdnaXl1aWF0dHFqbWRkY2FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzkwNDksImV4cCI6MjA2Mjk1NTA0OX0.-8ae0vFjxM6FR8RgssFduVaBjfERURWQL8Wj3i5TujE'
         },
-        body: JSON.stringify({ orderId, amount })
+        body: JSON.stringify({ orderId, amount: amountInPaise })
       });
 
       if (!response.ok) {
@@ -59,7 +80,6 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
         },
         handler: async (response: any) => {
           try {
-            // Update payment status to paid
             const { error: updateError } = await supabase.rpc('update_payment_status', {
               p_order_id: orderId,
               p_payment_status: 'paid',
@@ -94,10 +114,31 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
           <CardTitle className="text-center">Retry Payment</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-center">
-            <p className="text-sm text-gray-600">Order: {orderNumber}</p>
-            <p className="text-2xl font-bold text-green-600">₹{amount}</p>
+          <p className="text-sm text-gray-600 text-center">Order: {orderNumber}</p>
+
+          <div className="space-y-3 border-b pb-4">
+            {orderItems.length === 0 ? (
+              <p className="text-center text-gray-400 text-sm">No items found.</p>
+            ) : (
+              orderItems.map((item: any, index: number) => (
+                <div key={index} className="flex items-center space-x-3">
+                  <img
+                    src={item.image || '/placeholder.svg'}
+                    alt={item.name}
+                    className="w-12 h-12 object-cover rounded"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{item.name}</p>
+                    <p className="text-xs text-gray-500">
+                      Size: {item.size || 'N/A'} | Qty: {item.quantity}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
+
+          <p className="text-2xl font-bold text-green-600 text-center">₹{amount}</p>
 
           <Button
             onClick={handleRetryPayment}

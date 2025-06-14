@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '@/lib/utils';
-
+import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 const Cart = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -59,6 +59,9 @@ const Cart = () => {
   const hasCustomDesign = (item: any) => {
     return item.metadata?.previewImage || item.metadata?.designData;
   };
+   const { settings: deliverySettings, loading: settingsLoading, refetch: refetchSettings } = useDeliverySettings();
+  
+   const deliveryFee = deliverySettings.delivery_fee;
 
   if (loading) {
     return (
@@ -211,12 +214,12 @@ const Cart = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>₹50</span>
+                  <span>₹{deliveryFee}</span>
                 </div>
                 <div className="border-t pt-2">
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>{formatPrice(totalPrice + 50)}</span>
+                    <span>{formatPrice(totalPrice +deliveryFee)}</span>
                   </div>
                 </div>
               </div>

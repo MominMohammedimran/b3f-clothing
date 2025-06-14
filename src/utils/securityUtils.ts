@@ -35,24 +35,6 @@ export const setContentSecurityPolicy = (): void => {
       document.head.appendChild(hstsMeta);
     }
 
-    // X-Frame-Options
-    const existingFrameOptions = document.querySelector('meta[http-equiv="X-Frame-Options"]');
-    if (!existingFrameOptions) {
-      const frameOptionsMeta = document.createElement('meta');
-      frameOptionsMeta.setAttribute('http-equiv', 'X-Frame-Options');
-      frameOptionsMeta.setAttribute('content', 'DENY');
-      document.head.appendChild(frameOptionsMeta);
-    }
-
-    // Permissions Policy
-    const existingPermissionsPolicy = document.querySelector('meta[http-equiv="Permissions-Policy"]');
-    if (!existingPermissionsPolicy) {
-      const permissionsMeta = document.createElement('meta');
-      permissionsMeta.setAttribute('http-equiv', 'Permissions-Policy');
-      permissionsMeta.setAttribute('content', 'geolocation=(), microphone=(), camera=(), payment=(self), usb=()');
-      document.head.appendChild(permissionsMeta);
-    }
-
     // X-Content-Type-Options
     const existingContentTypeOptions = document.querySelector('meta[http-equiv="X-Content-Type-Options"]');
     if (!existingContentTypeOptions) {

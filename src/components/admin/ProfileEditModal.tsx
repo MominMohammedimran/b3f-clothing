@@ -54,12 +54,12 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
     setLoading(true);
     try {
-      // Convert reward_points to number and ensure it's valid
       const rewardPoints = parseInt(formData.reward_points.toString()) || 0;
       
       console.log('Updating profile with ID:', profile.id);
       console.log('New reward points value:', rewardPoints);
 
+      // Update the profile directly using Supabase client
       const { data, error } = await supabase
         .from('profiles')
         .update({

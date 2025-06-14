@@ -11,7 +11,7 @@ const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view }) => {
     let style = {
       position: 'absolute' as const,
       border: '2px dashed #3b82f6',
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    //  backgroundColor: 'white',
       pointerEvents: 'none' as const,
       zIndex: 10,
     };

@@ -73,93 +73,97 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           renderOnAddRemove: true,
           allowTouchScrolling: false,
           imageSmoothingEnabled: true,
+          enableRetinaScaling: true,
+          devicePixelRatio: window.devicePixelRatio || 1,
         });
 
-        // Configure smooth animations and enhanced object styling
+        // Enhanced desktop-friendly object styling with better cursors
         fabric.Object.prototype.set({
           cornerStyle: 'circle',
-          cornerSize: 12,
+          cornerSize: 14,
           transparentCorners: false,
           borderScaleFactor: 2,
           borderColor: '#4169E1',
           cornerColor: '#4169E1',
           cornerStrokeColor: '#ffffff',
           borderDashArray: [5, 5],
+          hasControls: true,
+          hasBorders: true,
+          lockMovementX: false,
+          lockMovementY: false,
+          lockScalingX: false,
+          lockScalingY: false,
+          lockRotation: false,
+          selectable: true,
+          evented: true,
+          hoverCursor: 'move',
+          moveCursor: 'move',
+          rotatingPointOffset: 40,
+          centeredScaling: false,
+          centeredRotation: true,
         });
 
-        // Enhanced smooth object movement with easing
+        // Set custom cursors for different interactions
+        newCanvas.hoverCursor = 'move';
+        newCanvas.defaultCursor = 'default';
+        newCanvas.freeDrawingCursor = 'crosshair';
+        newCanvas.rotationCursor = 'grabbing';
+
+        // Enhanced object movement with smooth cursor feedback
         newCanvas.on('object:moving', function(e) {
           const obj = e.target;
           if (obj) {
+            newCanvas.setCursor('grabbing');
             obj.animate('left', obj.left, {
-              duration: 100,
-              easing: fabric.util.ease.easeOutCubic,
+              duration: 50,
+              easing: fabric.util.ease.easeOutQuad,
               onChange: () => newCanvas.renderAll()
             });
             obj.animate('top', obj.top, {
-              duration: 100,
-              easing: fabric.util.ease.easeOutCubic,
+              duration: 50,
+              easing: fabric.util.ease.easeOutQuad,
               onChange: () => newCanvas.renderAll()
             });
           }
         });
 
-        // Enhanced smooth scaling with bounce effect
+        // Enhanced scaling with proper cursor management
         newCanvas.on('object:scaling', function(e) {
           const obj = e.target;
           if (obj) {
+            newCanvas.setCursor('nw-resize');
             obj.animate('scaleX', obj.scaleX, {
-              duration: 150,
-              easing: fabric.util.ease.easeOutBounce,
+              duration: 100,
+              easing: fabric.util.ease.easeOutQuart,
               onChange: () => newCanvas.renderAll()
             });
             obj.animate('scaleY', obj.scaleY, {
-              duration: 150,
-              easing: fabric.util.ease.easeOutBounce,
+              duration: 100,
+              easing: fabric.util.ease.easeOutQuart,
               onChange: () => newCanvas.renderAll()
             });
           }
         });
 
-        // Enhanced smooth rotation with elastic effect
+        // Enhanced rotation with cursor feedback
         newCanvas.on('object:rotating', function(e) {
           const obj = e.target;
           if (obj) {
+            newCanvas.setCursor('grabbing');
             obj.animate('angle', obj.angle, {
-              duration: 200,
-              easing: fabric.util.ease.easeOutElastic,
+              duration: 150,
+              easing: fabric.util.ease.easeOutCirc,
               onChange: () => newCanvas.renderAll()
             });
           }
         });
 
-        // Add selection effects
-        newCanvas.on('selection:created', function(e) {
-          const obj = e.target;
-          if (obj) {
-            obj.animate('opacity', 0.9, {
-              duration: 200,
-              easing: fabric.util.ease.easeInOut,
-              onChange: () => newCanvas.renderAll()
-            });
-          }
-        });
-
-        newCanvas.on('selection:cleared', function(e) {
-          newCanvas.getObjects().forEach(obj => {
-            obj.animate('opacity', 1, {
-              duration: 200,
-              easing: fabric.util.ease.easeInOut,
-              onChange: () => newCanvas.renderAll()
-            });
-          });
-        });
-
-        // Enhanced hover effects
+        // Mouse hover effects for better desktop UX
         newCanvas.on('mouse:over', function(e) {
           if (e.target) {
-            e.target.animate('opacity', 0.8, {
-              duration: 150,
+            newCanvas.setCursor('move');
+            e.target.animate('opacity', 0.9, {
+              duration: 100,
               easing: fabric.util.ease.easeInOut,
               onChange: () => newCanvas.renderAll()
             });
@@ -168,11 +172,60 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
 
         newCanvas.on('mouse:out', function(e) {
           if (e.target && !newCanvas.getActiveObject()) {
+            newCanvas.setCursor('default');
             e.target.animate('opacity', 1, {
+              duration: 100,
+              easing: fabric.util.ease.easeInOut,
+              onChange: () => newCanvas.renderAll()
+            });
+          }
+        });
+
+        // Selection events with cursor management
+        newCanvas.on('selection:created', function(e) {
+          const obj = e.target;
+          if (obj) {
+            newCanvas.setCursor('move');
+            obj.animate('opacity', 0.95, {
               duration: 150,
               easing: fabric.util.ease.easeInOut,
               onChange: () => newCanvas.renderAll()
             });
+          }
+        });
+
+        newCanvas.on('selection:cleared', function(e) {
+          newCanvas.setCursor('default');
+          newCanvas.getObjects().forEach(obj => {
+            obj.animate('opacity', 1, {
+              duration: 150,
+              easing: fabric.util.ease.easeInOut,
+              onChange: () => newCanvas.renderAll()
+            });
+          });
+        });
+
+        // Handle mouse down for better interaction feedback
+        newCanvas.on('mouse:down', function(e) {
+          if (e.target) {
+            newCanvas.setCursor('grabbing');
+          }
+        });
+
+        // Handle mouse up to reset cursor
+        newCanvas.on('mouse:up', function(e) {
+          if (e.target) {
+            newCanvas.setCursor('move');
+          } else {
+            newCanvas.setCursor('default');
+          }
+        });
+
+        // Double-click to enter edit mode for text objects
+        newCanvas.on('mouse:dblclick', function(e) {
+          if (e.target && e.target.type === 'i-text') {
+            e.target.enterEditing();
+            e.target.selectAll();
           }
         });
 
@@ -206,8 +259,8 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
       if (!text.trim()) return;
 
       const textObject = new fabric.IText(text, {
-        left: 250,
-        top: 300,
+        left: 125,
+        top: 150,
         fontSize: 24,
         fontFamily: selectedFont,
         fill: selectedColor,
@@ -223,9 +276,14 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         lockRotation: false,
         borderColor: '#4169E1',
         cornerColor: '#4169E1',
-        cornerSize: 12,
+        cornerSize: 14,
         transparentCorners: false,
         borderScaleFactor: 2,
+        hoverCursor: 'move',
+        moveCursor: 'move',
+        textAlign: 'center',
+        originX: 'center',
+        originY: 'center',
         data: {
           type: 'text',
         },
@@ -270,8 +328,8 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
     const addImageToCanvas = (url: string) => {
       fabric.Image.fromURL(url, (img) => {
         img.set({
-          left: 250,
-          top: 300,
+          left: 125,
+          top: 150,
           scaleX: 0.3,
           scaleY: 0.3,
           selectable: true,
@@ -286,16 +344,20 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           lockRotation: false,
           borderColor: '#4169E1',
           cornerColor: '#4169E1',
-          cornerSize: 12,
+          cornerSize: 14,
           transparentCorners: false,
           borderScaleFactor: 2,
+          hoverCursor: 'move',
+          moveCursor: 'move',
+          originX: 'center',
+          originY: 'center',
           data: {
             type: 'image',
           },
         });
         
         // Add entrance animation
-        img.set({ opacity: 0, angle: -180 });
+        img.set({ opacity: 0, angle: -90 });
         canvas.add(img);
         
         img.animate('opacity', 1, {
@@ -303,7 +365,7 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           easing: fabric.util.ease.easeOutQuart
         });
         img.animate('angle', 0, {
-          duration: 800,
+          duration: 600,
           easing: fabric.util.ease.easeOutBounce,
           onChange: () => canvas.renderAll()
         });
@@ -328,8 +390,8 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
 
     const addEmojiToCanvas = (emoji: string) => {
       const emojiObject = new fabric.IText(emoji, {
-        left: 250,
-        top: 300,
+        left: 125,
+        top: 150,
         fontSize: 48,
         selectable: true,
         evented: true,
@@ -343,9 +405,14 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         lockRotation: false,
         borderColor: '#4169E1',
         cornerColor: '#4169E1',
-        cornerSize: 12,
+        cornerSize: 14,
         transparentCorners: false,
         borderScaleFactor: 2,
+        hoverCursor: 'move',
+        moveCursor: 'move',
+        textAlign: 'center',
+        originX: 'center',
+        originY: 'center',
         data: {
           type: 'emoji',
         },
@@ -413,8 +480,14 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
       <div className="relative justify-items-center">
         <canvas
           ref={canvasRef}
-          className="border border-gray-300 rounded-lg shadow-lg"
-          style={{ touchAction: 'none' }}
+          className="border border-gray-300 rounded-lg shadow-lg cursor-default"
+          style={{ 
+            touchAction: 'none',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            MozUserSelect: 'none',
+            msUserSelect: 'none'
+          }}
         />
         {!canvasReady && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">

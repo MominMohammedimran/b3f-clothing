@@ -24,7 +24,7 @@ const Header = () => {
             <Link to="/" className="text-gray-600 hover:text-brand-navy transition-colors">
               Home
             </Link>
-            <Link to="/products" className="text-gray-600 hover:text-brand-navy transition-colors">
+            <Link to="/" className="text-gray-600 hover:text-brand-navy transition-colors">
               All Products
             </Link>
             {categories.slice(0, 3).map((category) => (
@@ -81,7 +81,7 @@ const Header = () => {
               Home
             </Link>
             <Link 
-              to="/products" 
+              to="/" 
               className="text-lg font-medium text-gray-600 hover:text-brand-navy transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >

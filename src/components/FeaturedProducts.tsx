@@ -26,7 +26,7 @@ const FeaturedProducts = () => {
       
       <div className="mt-12 text-center">
         <Button asChild className="btn-primary">
-          <Link to="/products">
+          <Link to="">
             View All Products
           </Link>
         </Button>

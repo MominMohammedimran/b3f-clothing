@@ -19,7 +19,7 @@ const HeroSection = () => {
             </p>
             <div className="flex flex-wrap gap-4">
               <Button asChild size="lg" className="bg-brand-coral hover:bg-opacity-90">
-                <Link to="/products">
+                <Link to="/">
                   Start Shopping
                 </Link>
               </Button>

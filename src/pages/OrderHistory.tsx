@@ -98,7 +98,7 @@ const OrderHistory = () => {
         {orders.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-600 mb-4">No orders found</p>
-            <Link to="/products">
+            <Link to="/">
               <Button>Start Shopping</Button>
             </Link>
           </div>

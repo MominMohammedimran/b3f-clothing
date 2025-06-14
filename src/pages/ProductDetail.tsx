@@ -17,7 +17,7 @@ const ProductDetail = () => {
   useEffect(() => {
     if (!product) {
       // If product doesn't exist, redirect to products page
-      navigate('/products');
+      navigate('/');
     }
   }, [product, navigate]);
   

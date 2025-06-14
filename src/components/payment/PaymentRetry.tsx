@@ -66,7 +66,7 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
 
       const options = {
         key: "rzp_live_FQUylFpHDtgrDj",
-        amount: data.amount,
+        amount: amount,
         currency: 'INR',
         name: "B3F Prints",
         description: `Retry Payment - Order: ${orderNumber}`,

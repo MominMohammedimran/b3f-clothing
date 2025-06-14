@@ -83,7 +83,7 @@ const Cart = () => {
             <ShoppingBag className="h-24 w-24 text-gray-300 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Your cart is empty</h2>
             <p className="text-gray-600 mb-6">Add some items to get started!</p>
-            <Link to="/products">
+            <Link to="">
               <Button>Continue Shopping</Button>
             </Link>
           </div>
@@ -228,7 +228,7 @@ const Cart = () => {
                 Proceed to Checkout
               </Button>
               
-              <Link to="/products">
+              <Link to="/">
                 <Button variant="outline" className="w-full">
                   Continue Shopping
                 </Button>

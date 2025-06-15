@@ -124,23 +124,39 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
                     alt={item.name}
                     className="w-12 h-12 object-cover rounded"
                   />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      <span className="text-gray-900">{item.name}</span>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Size: <span className="text-gray-900">{item.size || 'N/A'}</span> | Qty: <span className="text-gray-900">{item.quantity}</span>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Item Price: ₹<span className="text-gray-900">{item.price}</span>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Delivery Fee: ₹<span className="text-gray-900">{deliveryFee}</span>
-                    </p>
-                    <p className="text-sm font-semibold text-red-600">
-                      Total Price: ₹<span className="text-green-900">{item.price + deliveryFee}</span>
-                    </p>
-                  </div>
+
+
+                  <div className="flex-1 flex justify-between items-start">
+  {/* LEFT: Item info */}
+  <div>
+    <p className="text-sm font-medium">
+      <span className="text-gray-900">{item.name}</span>
+    </p>
+
+    <p className="text-xs text-gray-500">
+      Size: <span className="text-gray-900">{item.size || 'N/A'}</span> | 
+      Qty: <span className="text-gray-900">{item.quantity}</span>
+    </p>
+  </div>
+
+  {/* RIGHT: Prices info */}
+  <div className="text-right space-y-1">
+    <p className="text-xs text-gray-500">
+      Item Price: ₹<span className="text-gray-900">{item.price}</span>
+    </p>
+
+    <p className="text-xs text-gray-500">
+      Delivery Fee: ₹<span className="text-gray-900">{deliveryFee}</span>
+    </p>
+
+    <p className="text-sm font-semibold text-red-600">
+      Total: ₹<span className="text-green-900">{item.price + deliveryFee}</span>
+    </p>
+  </div>
+</div>
+
+
+
                 </div>
               ))
             )}

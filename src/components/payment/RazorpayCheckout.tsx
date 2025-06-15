@@ -53,7 +53,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
           email: currentUser.email,
           name: shippingAddress?.name ?? currentUser.email,
         },
-        orderNumber: `ORD${Date.now()}`,
+        orderNumber: `B3F${Date.now()}`,
         OrderId: OrderId || null,
       };
 

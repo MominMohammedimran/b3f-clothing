@@ -6,20 +6,23 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 
 interface PaymentRetryProps {
   orderId: string;
   amount: number;
   orderNumber: string;
-  data: any; // full order object passed as prop
+  data: any;
 }
 
 const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumber, data }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { settings: deliverySettings } = useDeliverySettings();
+  const deliveryFee = deliverySettings.delivery_fee || 0;
 
-  const orderItems = data.items || []; // extract items array from full order object
+  const orderItems = data.items || [];
 
   const handleRetryPayment = async () => {
     try {
@@ -40,43 +43,38 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
         return;
       }
 
-      const amountInPaise = Math.round(amount * 100);
-
+      const amountInPaise = amount;
+         console.log(amountInPaise)
       const response = await fetch(`https://cmpggiyuiattqjmddcac.supabase.co/functions/v1/retry-razorpay-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtcGdnaXl1aWF0dHFqbWRkY2FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzkwNDksImV4cCI6MjA2Mjk1NTA0OX0.-8ae0vFjxM6FR8RgssFduVaBjfERURWQL8Wj3i5TujE'
+          'apikey': 'your-public-api-key-here'
         },
         body: JSON.stringify({ orderId, amount: amountInPaise })
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Retry order error:', errorText);
         throw new Error(`Failed to retry payment: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
 
-      if (!window.Razorpay) {
-        throw new Error('Razorpay SDK not loaded');
-      }
-
       const options = {
-        key: "rzp_live_FQUylFpHDtgrDj",
-        amount: amount,
+        key: 'rzp_live_FQUylFpHDtgrDj',
+        amount: amountInPaise,
         currency: 'INR',
-        name: "B3F Prints",
+        name: 'B3F Prints',
         description: `Retry Payment - Order: ${orderNumber}`,
         order_id: data.orderId,
-        theme: { color: "#3B82F6" },
+        theme: { color: '#3B82F6' },
         modal: {
           ondismiss: () => {
             setLoading(false);
             toast.error("Payment cancelled");
-          },
+          }
         },
         handler: async (response: any) => {
           try {
@@ -91,17 +89,16 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
             toast.success("Payment successful!");
             navigate(`/track-order/${orderId}`);
           } catch (error: any) {
-            console.error("Error processing payment:", error);
             toast.error("Payment succeeded but order processing failed.");
           }
-        },
+        }
       };
 
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error: any) {
-      console.error('Payment retry error:', error);
-      toast.error('Failed to retry payment: ' + error.message);
+      console.error('Retry payment error:', error);
+      toast.error('Error: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -128,9 +125,20 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
                     className="w-12 h-12 object-cover rounded"
                   />
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{item.name}</p>
+                    <p className="text-sm font-medium">
+                      <span className="text-gray-900">{item.name}</span>
+                    </p>
                     <p className="text-xs text-gray-500">
-                      Size: {item.size || 'N/A'} | Qty: {item.quantity}
+                      Size: <span className="text-gray-900">{item.size || 'N/A'}</span> | Qty: <span className="text-gray-900">{item.quantity}</span>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Item Price: ₹<span className="text-gray-900">{item.price}</span>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Delivery Fee: ₹<span className="text-gray-900">{deliveryFee}</span>
+                    </p>
+                    <p className="text-sm font-semibold text-red-600">
+                      Total Price: ₹<span className="text-green-900">{item.price + deliveryFee}</span>
                     </p>
                   </div>
                 </div>
@@ -138,7 +146,7 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
             )}
           </div>
 
-          <p className="text-2xl font-bold text-green-600 text-center">₹{amount}</p>
+          <p className="text-2xl font-bold text-green-600 text-center">₹{amount }</p>
 
           <Button
             onClick={handleRetryPayment}
@@ -151,7 +159,7 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
                 Processing...
               </>
             ) : (
-              `Retry Payment ₹${amount}`
+              `Retry Payment ₹${amount }`
             )}
           </Button>
         </CardContent>

@@ -84,13 +84,22 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                   )}
                   <div>
                     <h3 className="font-medium">{item.name}</h3>
-                    {item.size && <p className="text-sm text-gray-600">Size: {item.size}</p>}
+                    {item.sizes && item.sizes.length > 0 && (
+                      <div className="text-sm text-gray-600">
+                        {item.sizes.map((sizeItem, idx) => (
+                          <div key={idx}>
+                            Size: {sizeItem.size}, Qty: {sizeItem.quantity}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {item.color && <p className="text-sm text-gray-600">Color: {item.color}</p>}
-                    <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">{formatCurrency(item.price * item.quantity)}</p>
+                  <p className="font-medium">
+                    {formatCurrency(item.price * (item.sizes?.reduce((sum, s) => sum + s.quantity, 0) || 1))}
+                  </p>
                   <p className="text-sm text-gray-600">{formatCurrency(item.price)} each</p>
                 </div>
               </div>

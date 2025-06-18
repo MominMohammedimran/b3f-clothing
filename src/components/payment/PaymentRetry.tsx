@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 
@@ -22,7 +22,7 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
   const { settings: deliverySettings } = useDeliverySettings();
   const deliveryFee = deliverySettings.delivery_fee || 0;
 
-  const orderItems = data.items || [];
+  const [orderItems, setOrderItems] = useState<any[]>(data.items || []);
 
   const handleRetryPayment = async () => {
     try {
@@ -44,7 +44,7 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
       }
 
       const amountInPaise = amount;
-         console.log(amountInPaise)
+
       const response = await fetch(`https://cmpggiyuiattqjmddcac.supabase.co/functions/v1/retry-razorpay-order`, {
         method: 'POST',
         headers: {
@@ -104,6 +104,13 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
     }
   };
 
+  const handleRemoveItem = (index: number) => {
+    const updatedItems = [...orderItems];
+    updatedItems.splice(index, 1);
+    setOrderItems(updatedItems);
+    toast.success('Item removed from order');
+  };
+
   return (
     <div className="max-w-md mx-auto p-6">
       <Card>
@@ -118,54 +125,60 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
               <p className="text-center text-gray-400 text-sm">No items found.</p>
             ) : (
               orderItems.map((item: any, index: number) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <img
-                    src={item.image || '/placeholder.svg'}
-                    alt={item.name}
-                    className="w-12 h-12 object-cover rounded"
-                  />
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={item.image || '/placeholder.svg'}
+                        alt={item.name}
+                        className="w-12 h-12 object-cover rounded border"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveItem(index)}
+                      className="text-red-600 bg-blue hover:text-red-800"
+                    >
+                       Remove
+                    </Button>
+                  </div>
 
-
-
-  <div>
-    <p className="text-sm font-medium">
-      <span className="text-gray-900">{item.name}</span>
-    </p>
-
-    <p className="text-xs text-gray-500">
-      Size: <span className="text-gray-900">{item.size || 'N/A'}</span> | 
-      Qty: <span className="text-gray-900">{item.quantity}</span>
-    </p>
-  
-
-  {/* RIGHT: Prices info */}
- 
-    <p className="text-xs text-gray-500">
-      Item Price: ₹<span className="text-gray-900">{item.price}</span>
-    </p>
-
-    <p className="text-xs text-gray-500">
-      Delivery Fee: ₹<span className="text-gray-900">{deliveryFee}</span>
-    </p>
-
-    <p className="text-sm font-semibold text-red-600">
-      Total Price: ₹<span className="text-green-900">{item.price + deliveryFee}</span>
-    </p>
- 
-</div>
-
-
-
+                  {Array.isArray(item.sizes) ? (
+                    <div className="flex flex-wrap gap-2 ml-14">
+                      {item.sizes.map((s: any, sIdx: number) => (
+                        <div
+                          key={`${item.name}-${s.size}-${sIdx}`}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm bg-gray-50"
+                        >
+                          <span className="font-medium text-gray-700">{s.size}</span>
+                          <span className="text-gray-500"> × {s.quantity}</span>
+                          {s.updated_quantity && s.updated_quantity !== s.quantity && (
+                            <span className="text-gray-400 text-xs italic ml-1">
+                              → {s.updated_quantity}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-700 ml-14">
+                      {item.size} × {item.quantity}
+                    </div>
+                  )}
                 </div>
               ))
             )}
           </div>
 
-          <p className="text-2xl font-bold text-green-600 text-center">₹{amount }</p>
+          <p className="text-2xl font-bold text-green-600 text-center">₹{amount}</p>
 
           <Button
             onClick={handleRetryPayment}
-            disabled={loading}
+            disabled={loading || orderItems.length === 0}
             className="w-full h-12 text-lg font-semibold"
           >
             {loading ? (
@@ -174,7 +187,7 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
                 Processing...
               </>
             ) : (
-              `Retry Payment ₹${amount }`
+              `Retry Payment ₹${amount}`
             )}
           </Button>
         </CardContent>

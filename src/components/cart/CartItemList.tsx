@@ -12,7 +12,7 @@ interface CartItemListProps {
 }
 
 const CartItemList: React.FC<CartItemListProps> = ({ cartItems }) => {
-  const { removeFromCart, updateQuantity, clearCart } = useCart();
+  const { removeFromCart, updateSizeQuantity, removeSizeFromCart, clearCart } = useCart();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -25,18 +25,22 @@ const CartItemList: React.FC<CartItemListProps> = ({ cartItems }) => {
     action();
   };
 
-  const incrementQuantity = (id: string, currentQuantity: number) => {
-    handleAction(() => updateQuantity(id, currentQuantity + 1));
+  const incrementQuantity = (id: string, size: string, currentQuantity: number) => {
+    handleAction(() => updateSizeQuantity(id, size, currentQuantity + 1));
   };
 
-  const decrementQuantity = (id: string, currentQuantity: number) => {
+  const decrementQuantity = (id: string, size: string, currentQuantity: number) => {
     if (currentQuantity > 1) {
-      handleAction(() => updateQuantity(id, currentQuantity - 1));
+      handleAction(() => updateSizeQuantity(id, size, currentQuantity - 1));
     }
   };
 
   const handleRemoveFromCart = (id: string) => {
     handleAction(() => removeFromCart(id));
+  };
+
+  const handleRemoveSize = (id: string, size: string) => {
+    handleAction(() => removeSizeFromCart(id, size));
   };
 
   const handleClearCart = () => {
@@ -94,9 +98,6 @@ const CartItemList: React.FC<CartItemListProps> = ({ cartItems }) => {
                     {item.color && (
                       <p className="mt-1 text-sm text-gray-500">Color: {item.color}</p>
                     )}
-                    {item.size && (
-                      <p className="mt-1 text-sm text-gray-500">Size: {item.size}</p>
-                    )}
                   </div>
 
                   <button
@@ -107,28 +108,42 @@ const CartItemList: React.FC<CartItemListProps> = ({ cartItems }) => {
                   </button>
                 </div>
 
-                <div className="flex justify-between items-center mt-4">
-                  <div className="flex items-center border rounded-md">
-                    <button
-                      onClick={() => decrementQuantity(item.id, item.quantity)}
-                      className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <span className="px-4 py-1">{item.quantity}</span>
-                    <button
-                      onClick={() => incrementQuantity(item.id, item.quantity)}
-                      className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-                      aria-label="Increase quantity"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
+                {/* Display sizes and quantities */}
+                <div className="mt-4 space-y-2">
+                  {item.sizes.map((sizeItem, index) => (
+                    <div key={`${item.id}-${sizeItem.size}-${index}`} className="flex justify-between items-center">
+                      <div className="flex items-center space-x-4">
+                        <span className="text-sm text-gray-600">Size: {sizeItem.size}</span>
+                        <div className="flex items-center border rounded-md">
+                          <button
+                            onClick={() => decrementQuantity(item.id, sizeItem.size, sizeItem.quantity)}
+                            className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <span className="px-4 py-1">{sizeItem.quantity}</span>
+                          <button
+                            onClick={() => incrementQuantity(item.id, sizeItem.size, sizeItem.quantity)}
+                            className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveSize(item.id, sizeItem.size)}
+                          className="text-red-500 hover:text-red-600 text-sm"
+                        >
+                          Remove Size
+                        </button>
+                      </div>
 
-                  <div className="font-medium">
-                    {formatPrice(item.price * item.quantity)}
-                  </div>
+                      <div className="font-medium">
+                        {formatPrice(item.price * sizeItem.quantity)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

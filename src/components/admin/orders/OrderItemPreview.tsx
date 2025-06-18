@@ -11,8 +11,8 @@ interface OrderItemPreviewProps {
 }
 
 const OrderItemPreview: React.FC<OrderItemPreviewProps> = ({ item, orderNumber }) => {
-  const isCustomProduct = item.productId?.includes('custom-') && 
-    (item.productId?.includes('tshirt') || item.productId?.includes('mug') || item.productId?.includes('cap'));
+  const isCustomProduct = item.product_id?.includes('custom-') && 
+    (item.product_id?.includes('tshirt') || item.product_id?.includes('mug') || item.product_id?.includes('cap'));
 
   const downloadPreviewImage = async () => {
     try {
@@ -94,7 +94,9 @@ const OrderItemPreview: React.FC<OrderItemPreviewProps> = ({ item, orderNumber }
       
       <div className="mt-2 text-xs text-blue-700">
         {item.metadata?.view && <span>View: {item.metadata.view}</span>}
-        {item.size && <span className="ml-2">Size: {item.size}</span>}
+        {item.sizes.map((sizeItem, index) => (
+          <span key={index} className="ml-2">Size: {sizeItem.size} (Qty: {sizeItem.quantity})</span>
+        ))}
       </div>
     </div>
   );

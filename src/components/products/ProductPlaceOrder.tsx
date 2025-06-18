@@ -52,13 +52,19 @@ const ProductPlaceOrder: React.FC<ProductPlaceOrderProps> = ({
         return;
       }
       
+      // Convert to sizes array format
+      const sizesArray = selectedSizes.length > 0 
+        ? selectedSizes.map(size => ({ size, quantity: 1 }))
+        : selectedSize 
+        ? [{ size: selectedSize, quantity: 1 }]
+        : [];
+      
       // Add to cart with correct structure
       await addToCart({
         product_id: productId,
         name: product.name || 'Product',
         price: product.price || 0,
-        quantity: 1,
-        size: selectedSize || (selectedSizes.length > 0 ? selectedSizes[0] : undefined),
+        sizes: sizesArray,
         image: product.image || '',
       });
       

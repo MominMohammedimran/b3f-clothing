@@ -4,13 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
+export interface SizeQuantity {
+  size: string;
+  quantity: number;
+}
+
 export interface CartItem {
   id: string;
   product_id: string;
   name: string;
   price: number;
-  quantity: number;
-  size?: string;
+  sizes: SizeQuantity[];
   color?: string;
   image?: string;
   metadata?: {
@@ -18,6 +22,7 @@ export interface CartItem {
     backImage?: string;
     designData?: any;
     previewImage?: string;
+    isMultipleSize?: boolean;
   };
 }
 
@@ -28,7 +33,8 @@ interface CartContextType {
   getCartCount: () => number;
   addToCart: (item: Omit<CartItem, 'id'>) => Promise<void>;
   removeFromCart: (id: string) => Promise<void>;
-  updateQuantity: (id: string, quantity: number) => Promise<void>;
+  removeSizeFromCart: (id: string, size: string) => Promise<void>;
+  updateSizeQuantity: (id: string, size: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   loading: boolean;
   refreshCart: () => Promise<void>;
@@ -61,8 +67,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         product_id: item.product_id,
         name: item.name,
         price: Number(item.price),
-        quantity: item.quantity,
-        size: item.size || undefined,
+        sizes: item.sizes || [],
         color: item.color || undefined,
         image: item.image || undefined,
         metadata: item.metadata || undefined,
@@ -84,50 +89,57 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Check if item already exists with same product_id, size, and color
-      const existingItem = cartItems.find(
+      // Check if item already exists with same product_id and color
+      const existingItemIndex = cartItems.findIndex(
         cartItem => 
           cartItem.product_id === item.product_id &&
-          cartItem.size === item.size &&
           cartItem.color === item.color
       );
 
-      if (existingItem) {
-        await updateQuantity(existingItem.id, existingItem.quantity + item.quantity);
-        return;
+      if (existingItemIndex >= 0) {
+        // Merge sizes with existing item
+        const existingItem = cartItems[existingItemIndex];
+        const mergedSizes = [...existingItem.sizes];
+        
+        item.sizes.forEach(newSize => {
+          const existingSizeIndex = mergedSizes.findIndex(s => s.size === newSize.size);
+          if (existingSizeIndex >= 0) {
+            mergedSizes[existingSizeIndex].quantity += newSize.quantity;
+          } else {
+            mergedSizes.push(newSize);
+          }
+        });
+
+        const { error } = await supabase
+          .from('carts')
+          .update({ 
+            sizes: mergedSizes,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingItem.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new item
+        const { data, error } = await supabase
+          .from('carts')
+          .insert([{
+            user_id: currentUser.id,
+            product_id: item.product_id,
+            name: item.name,
+            price: item.price,
+            sizes: item.sizes,
+            color: item.color,
+            image: item.image,
+            metadata: item.metadata,
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
       }
 
-      const { data, error } = await supabase
-        .from('carts')
-        .insert([{
-          user_id: currentUser.id,
-          product_id: item.product_id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          size: item.size,
-          color: item.color,
-          image: item.image,
-          metadata: item.metadata,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const newItem: CartItem = {
-        id: data.id,
-        product_id: data.product_id,
-        name: data.name,
-        price: Number(data.price),
-        quantity: data.quantity,
-        size: data.size || undefined,
-        color: data.color || undefined,
-        image: data.image || undefined,
-        metadata: (data as any).metadata || undefined,
-      };
-
-      setCartItems(prev => [...prev, newItem]);
+      await fetchCart();
       toast.success('Item added to cart');
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -155,20 +167,66 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateQuantity = async (id: string, quantity: number) => {
-    if (!currentUser || quantity < 1) return;
+  const removeSizeFromCart = async (id: string, size: string) => {
+    if (!currentUser) return;
 
     try {
+      const item = cartItems.find(item => item.id === id);
+      if (!item) return;
+
+      const newSizes = item.sizes.filter(s => s.size !== size);
+      
+      if (newSizes.length === 0) {
+        // Remove entire item if no sizes left
+        await removeFromCart(id);
+        return;
+      }
+
       const { error } = await supabase
         .from('carts')
-        .update({ quantity })
+        .update({ 
+          sizes: newSizes,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id)
         .eq('user_id', currentUser.id);
 
       if (error) throw error;
 
       setCartItems(prev => prev.map(item => 
-        item.id === id ? { ...item, quantity } : item
+        item.id === id ? { ...item, sizes: newSizes } : item
+      ));
+      toast.success('Size removed from cart');
+    } catch (error) {
+      console.error('Error removing size from cart:', error);
+      toast.error('Failed to remove size');
+    }
+  };
+
+  const updateSizeQuantity = async (id: string, size: string, quantity: number) => {
+    if (!currentUser || quantity < 1) return;
+
+    try {
+      const item = cartItems.find(item => item.id === id);
+      if (!item) return;
+
+      const newSizes = item.sizes.map(s => 
+        s.size === size ? { ...s, quantity } : s
+      );
+
+      const { error } = await supabase
+        .from('carts')
+        .update({ 
+          sizes: newSizes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      setCartItems(prev => prev.map(item => 
+        item.id === id ? { ...item, sizes: newSizes } : item
       ));
     } catch (error) {
       console.error('Error updating quantity:', error);
@@ -199,15 +257,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getCartCount = () => {
-    return cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    return cartItems.reduce((sum, item) => 
+      sum + item.sizes.reduce((sizeSum, size) => sizeSum + size.quantity, 0), 0
+    );
   };
 
   useEffect(() => {
     fetchCart();
   }, [currentUser]);
 
-  const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = cartItems.reduce((sum, item) => 
+    sum + item.sizes.reduce((sizeSum, size) => sizeSum + (item.price * size.quantity), 0), 0
+  );
+  
+  const totalItems = cartItems.reduce((sum, item) => 
+    sum + item.sizes.reduce((sizeSum, size) => sizeSum + size.quantity, 0), 0
+  );
 
   return (
     <CartContext.Provider value={{
@@ -217,7 +282,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       getCartCount,
       addToCart,
       removeFromCart,
-      updateQuantity,
+      removeSizeFromCart,
+      updateSizeQuantity,
       clearCart,
       loading,
       refreshCart

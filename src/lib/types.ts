@@ -1,3 +1,4 @@
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -25,6 +26,7 @@ export interface Order {
   payment_details?: any;
   payment_status?: string;
   order_status?: string;
+   reward_points?: number;
 }
 
 export interface TrackingInfo {
@@ -34,15 +36,19 @@ export interface TrackingInfo {
   location: string;
 }
 
+export interface SizeQuantity {
+  size: string;
+  quantity: number;
+}
+
 export interface CartItem {
   id: string;
   product_id: string;
   productId?: string;
   name: string;
-  image: string;
+  image?: string;
   price: number;
-  quantity: number;
-  size?: string;
+  sizes: SizeQuantity[];
   color?: string;
   metadata?: any;
 }

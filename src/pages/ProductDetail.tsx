@@ -1,83 +1,120 @@
 
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import ProductCustomizer from "@/components/ProductCustomizer";
-import { products } from "@/data/products";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/lib/types';
+import { toast } from 'sonner';
+import Layout from '@/components/layout/Layout';
+import ProductImage from '@/components/products/ProductImage';
+import ProductDetails from '@/components/products/ProductDetails';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  const product = products.find(p => p.id === id);
-  
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (!product) {
-      // If product doesn't exist, redirect to products page
-      navigate('/');
-    }
-  }, [product, navigate]);
-  
+    const fetchProduct = async () => {
+      if (!id) {
+        navigate('/');
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          // Transform database data to match Product interface
+          const transformedProduct: Product = {
+            id: data.id,
+            code: data.code || `PROD-${data.id.slice(0, 8)}`,
+            name: data.name,
+            description: data.description || '',
+            price: data.price,
+            originalPrice: data.original_price || undefined,
+            discountPercentage: data.discount_percentage || undefined,
+            image: Array.isArray(data.images) && data.images.length > 0 ? String(data.images[0]) : (data.image || ''),
+            images: Array.isArray(data.images) ? data.images.map(img => String(img)) : [],
+            rating: 4.5, // Default rating
+            category: data.category || 'uncategorized',
+            tags: Array.isArray(data.tags) ? data.tags.map(tag => String(tag)) : [],
+            stock: data.stock || 0,
+            sizes: Array.isArray(data.sizes) ? data.sizes.map(size => String(size)) : [],
+            variants: Array.isArray(data.variants) ? data.variants.map(variant => {
+              if (typeof variant === 'object' && variant !== null && 'size' in variant && 'stock' in variant) {
+                return {
+                  size: String(variant.size || ''),
+                  stock: Number(variant.stock || 0)
+                };
+              }
+              return { size: String(variant), stock: 0 };
+            }) : []
+          };
+          
+          setProduct(transformedProduct);
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        toast.error('Failed to load product');
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id, navigate]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8 mt-10">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!product) {
-    return null; // Will redirect in the useEffect
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8 mt-10">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold">Product not found</h2>
+            <p className="mt-2 text-gray-600">The product you're looking for doesn't exist.</p>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
-    <>
-      <Header />
-      
-      <main className="min-h-screen pb-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Breadcrumb Navigation */}
-          <nav className="flex items-center mb-6 text-sm">
-            <Link
-              to="/products"
-              className="text-gray-500 hover:text-brand-navy flex items-center"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to Products
-            </Link>
-          </nav>
+    <Layout>
+      <div className="container mx-auto px-4 py-8 mt-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <ProductImage 
+            image={product.image} 
+            name={product.name}
+            additionalImages={product.images}
+          />
           
-          {/* Product Customizer */}
-          <ProductCustomizer product={product} />
-          
-          {/* Product Details */}
-          <div className="mt-16">
-            <h2 className="text-xl font-semibold mb-4">Product Details</h2>
-            <div className="prose max-w-none">
-              <p className="text-gray-600">
-                {product.description}
-              </p>
-              
-              {/* Additional product information could go here */}
-              <div className="mt-6 bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-medium mb-3">Materials & Care</h3>
-                <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                  <li>Premium quality materials for long-lasting wear</li>
-                  <li>Machine washable (check product specific care instructions)</li>
-                  <li>Designed and printed in the USA</li>
-                  <li>Satisfaction guaranteed</li>
-                </ul>
-              </div>
-              
-              <div className="mt-6">
-                <h3 className="font-medium mb-3">Shipping Information</h3>
-                <p className="text-gray-600">
-                  Orders typically process within 2-3 business days. Once shipped, delivery times vary based on your location.
-                  Standard shipping typically takes 5-7 business days, while express shipping options are available at checkout.
-                </p>
-              </div>
-            </div>
-          </div>
+          <ProductDetails 
+            product={product}
+            allowMultipleSizes={true}
+          />
         </div>
-      </main>
-      
-      <Footer />
-    </>
+      </div>
+    </Layout>
   );
 };
 

@@ -29,7 +29,7 @@ serve(async (req) => {
     const smtpConfig = {
       hostname: Deno.env.get('SMTP_HOSTNAME') || 'smtp.gmail.com',
       port: parseInt(Deno.env.get('SMTP_PORT') || '587'),
-      username: Deno.env.get('SMTP_USERNAME'),
+      username: Deno.env.get('SMTP_USERNAME') || 'b3f.prints.pages.dev@gmail.com',
       password: Deno.env.get('SMTP_PASSWORD'),
     };
 

@@ -23,8 +23,8 @@ const GMAIL_CONFIG = {
   port: 587,
   secure: false, // true for 465, false for other ports
   auth: {
-    user: Deno.env.get("GMAIL_USER"),
-    pass: Deno.env.get("GMAIL_APP_PASSWORD"),
+    user: Deno.env.get("SMTP_USER"),
+    pass: Deno.env.get("SMTP_PASSWORD"),
   },
 };
 

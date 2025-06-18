@@ -3,33 +3,34 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, CheckCircle } from 'lucide-react';
 import { Product } from '@/lib/types';
-import { useCart } from '@/context/CartContext';
+import { useCart, SizeQuantity } from '@/context/CartContext';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
 interface ProductActionButtonsProps {
   product: Product;
-  selectedSize: string;
-  selectedSizes?: string[];
-  quantity?: number;
-  totalPrice?: number;
+  selectedSizes: string[];
+  quantities: Record<string, number>;
 }
 
 const ProductActionButtons = ({ 
   product, 
-  selectedSize, 
-  selectedSizes = [], 
-  quantity = 1,
-  totalPrice
+  selectedSizes, 
+  quantities
 }: ProductActionButtonsProps) => {
   const { addToCart } = useCart();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  
-  const effectiveSizes = selectedSizes.length > 0 ? selectedSizes : [selectedSize];
-  const finalPrice = totalPrice || (effectiveSizes.length > 1 ? product.price * 2 : product.price);
-  
+
+  const sizesArray: SizeQuantity[] = selectedSizes.map(size => ({
+    size,
+    quantity: quantities[size] || 1
+  }));
+
+  const totalQuantity = sizesArray.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = sizesArray.reduce((sum, item) => sum + (product.price * item.quantity), 0);
+
   const handleAddToCart = () => {
     if (!currentUser) {
       toast.error('Please sign in to add to cart');
@@ -37,33 +38,26 @@ const ProductActionButtons = ({
       return;
     }
     
-    // Validate size selection
-    if (!selectedSize && effectiveSizes.length === 0) {
-      toast.error('Please select a size before adding to cart');
+    if (selectedSizes.length === 0) {
+      toast.error('Please select at least one size');
       return;
     }
-    
-    if (product) {
-      const cartItem = {
-        product_id: product.id,
-        name: product.name,
-        price: finalPrice,
-        quantity: quantity,
-        size: effectiveSizes.length > 1 ? effectiveSizes.join(', ') : selectedSize,
-        image: product.image,
-        metadata: {
-          view: 'product',
-          selectedSizes: effectiveSizes,
-          isMultipleSize: effectiveSizes.length > 1
-        }
-      };
-      
-      addToCart(cartItem);
-      
-      toast.success(`${product.name} added to cart`);
-    }
+
+    const cartItem = {
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      sizes: sizesArray,
+      image: product.image,
+      metadata: {
+        view: 'product',
+        isMultipleSize: true
+      }
+    };
+
+    addToCart(cartItem);
   };
-  
+
   const handlePlaceOrder = async () => {
     if (!currentUser) {
       toast.error('Please sign in to place an order');
@@ -71,35 +65,26 @@ const ProductActionButtons = ({
       return;
     }
     
-    // Validate size selection
-    if (!selectedSize && effectiveSizes.length === 0) {
-      toast.error('Please select a size before placing your order');
+    if (selectedSizes.length === 0) {
+      toast.error('Please select at least one size');
       return;
     }
-    
+
     try {
-      if (product) {
-        const cartItem = {
-          product_id: product.id,
-          name: product.name,
-          price: finalPrice,
-          quantity: quantity,
-          size: effectiveSizes.length > 1 ? effectiveSizes.join(', ') : selectedSize,
-          image: product.image,
-          metadata: {
-            view: 'product',
-            selectedSizes: effectiveSizes,
-            isMultipleSize: effectiveSizes.length > 1
-          }
-        };
-        
-        await addToCart(cartItem);
-        
-        toast.success(`${product.name} added to cart`);
-        
-        // Navigate directly to checkout
-        navigate('/checkout');
-      }
+      const cartItem = {
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        sizes: sizesArray,
+        image: product.image,
+        metadata: {
+          view: 'product',
+          isMultipleSize: true
+        }
+      };
+
+      await addToCart(cartItem);
+      navigate('/checkout');
     } catch (error) {
       console.error('Failed to place order:', error);
       toast.error('Failed to place order');
@@ -112,17 +97,19 @@ const ProductActionButtons = ({
         onClick={handleAddToCart} 
         className="flex-1"
         variant="outline"
+        disabled={selectedSizes.length === 0}
       >
         <ShoppingBag size={16} className="mr-2" />
-        Add to Cart (₹{finalPrice})
+        Add to Cart {totalPrice > 0 && `(₹${totalPrice})`}
       </Button>
       
       <Button
         onClick={handlePlaceOrder}
         className="flex-1"
+        disabled={selectedSizes.length === 0}
       >
         <CheckCircle size={16} className="mr-2" />
-        Place Order (₹{finalPrice})
+        Place Order {totalPrice > 0 && `(₹${totalPrice})`}
       </Button>
     </div>
   );

@@ -70,6 +70,7 @@ ALTER TABLE public.order_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 -- Enable RLS on payments table
 alter table payments enable row level security;
+ALTER TABLE orders ADD COLUMN reward_points_used integer DEFAULT 0;
 
 -- Allow insert from any user (adjust for your auth logic)
 create policy "Allow insert for all"
@@ -77,6 +78,12 @@ on payments
 for insert
 using (true);
 
+ALTER TABLE carts
+ADD COLUMN sizes JSONB;
+
+-- Optional: Drop old size & quantity if you want:
+ALTER TABLE carts DROP COLUMN size;
+ALTER TABLE carts DROP COLUMN quantity;
 
 -- Profiles RLS policies
 CREATE POLICY "Users can view their own profile"
@@ -212,3 +219,10 @@ INSERT INTO public.admin_users (email, role, permissions)
 VALUES 
   ('admin@example.com', 'admin', '["admin.all"]')
 ON CONFLICT (email) DO NOTHING;
+CREATE POLICY "Allow users to delete unpaid orders"
+ON orders
+FOR DELETE
+USING (
+  auth.uid() = user_id
+  AND (payment_status IS NULL OR payment_status != 'paid')
+);

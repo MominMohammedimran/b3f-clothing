@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { Trash2, ShoppingBag, X } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import SEOHelmet from '../components/seo/SEOHelmet';
 import { useSEO } from '../hooks/useSEO';
@@ -13,16 +13,18 @@ import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 const Cart = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+
   const seoData = useSEO({
     title: 'Shopping Cart - Review Your Custom Products',
     description: 'Review your custom designed products and proceed to secure checkout.',
     keywords: 'shopping cart, checkout, custom products, secure payment'
   });
+
   const {
     cartItems,
     totalPrice,
     removeFromCart,
-    updateQuantity,
+    removeSizeFromCart,
     clearCart,
     loading
   } = useCart();
@@ -35,30 +37,8 @@ const Cart = () => {
     navigate('/checkout');
   };
 
-  const handleQuantityChange = async (id: string, newQuantity: number) => {
-    if (newQuantity < 1) {
-      await removeFromCart(id);
-    } else {
-      await updateQuantity(id, newQuantity);
-    }
-  };
-
-  const getItemDisplayImage = (item: any) => {
-    if (item.metadata?.previewImage) {
-      return item.metadata.previewImage;
-    }
-    if (item.image) {
-      return item.image;
-    }
-    return '/placeholder.svg';
-  };
-
-  const hasCustomDesign = (item: any) => {
-    return item.metadata?.previewImage || item.metadata?.designData;
-  };
-
-  const { settings: deliverySettings, loading: settingsLoading, refetch: refetchSettings } = useDeliverySettings();
-  const deliveryFee = deliverySettings.delivery_fee;
+  const { settings: deliverySettings, loading: settingsLoading } = useDeliverySettings();
+  const deliveryFee = deliverySettings?.delivery_fee || 80;
 
   if (loading) {
     return (
@@ -95,113 +75,85 @@ const Cart = () => {
       <div className="container mx-auto px-4 py-8 mt-10">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Shopping Cart ({cartItems.length})</h1>
-          <Button variant="outline" onClick={clearCart}>
-            Clear Cart
-          </Button>
+          <Button variant="outline" onClick={clearCart}>Clear Cart</Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cart Items */}
           <div className="lg:col-span-2">
-            <div className="space-y-4">
-              {cartItems.map((item) => {
-                const handleItemClick = () => {
-                  if (hasCustomDesign(item)) {
-                    navigate(`/design-tool`);
-                  } else {
-                    navigate(`/product/details/${item.product_id}`);
-                  }
-                };
+            <div className="space-y-6">
+              {cartItems.map((item) => (
+                <div key={item.id} className="bg-white p-6 rounded-lg shadow border">
+                  <div className="flex items-start space-x-4">
+                    {/* Product Image */}
+                    <div className="flex-shrink-0">
+                      <img
+                        src={item.image || '/placeholder.svg'}
+                        alt={item.name}
+                        className="h-24 w-24 object-cover rounded border"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                        }}
+                      />
+                    </div>
 
-                return (
-                  <div key={item.id} className="bg-white p-4 rounded-lg shadow border">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0 cursor-pointer" onClick={handleItemClick}>
-                        {hasCustomDesign(item) ? (
-                          <div className="relative">
-                            <div className="h-20 w-20 border-2 border-dashed border-blue-400 rounded bg-blue-50 flex items-center justify-center">
-                              <img
-                                src={getItemDisplayImage(item)}
-                                alt={item.name}
-                                className="h-16 w-16 object-contain rounded"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = '/placeholder.svg';
-                                }}
-                              />
-                            </div>
-                            <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-1 rounded-full">
-                              ✨
-                            </div>
-                          </div>
-                        ) : (
-                          <img
-                            src={getItemDisplayImage(item)}
-                            alt={item.name}
-                            className="h-20 w-20 object-cover rounded border"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/placeholder.svg';
-                            }}
-                          />
-                        )}
-                        {item.metadata?.view && (
-                          <div className="text-xs text-center mt-1 text-gray-500">
-                            {item.metadata.view}
-                          </div>
-                        )}
-                        {item.metadata?.backImage && (
-                          <div className="text-xs text-center text-blue-600">
-                            Dual-Sided
-                          </div>
-                        )}
-                      </div>
+                    {/* Product Details */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 mb-2">{item.name}</h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Price per item: {formatPrice(item.price)}
+                      </p>
 
-                      <div className="flex items-center">
+                     
+
+                      {/* Remove entire item button */}
+                      <div className="mt-4 flex justify-start">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                        >
-                          <Minus className="h-2 w-2" />
-                        </Button>
-                        <span className="w-12 text-center font-medium">{item.quantity}</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="h2 w-2" />
-                        </Button>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="font-medium">{formatPrice(item.price * item.quantity)}</p>
-                        <Button
-                          size="sm"
-                          variant="ghost"
                           onClick={() => removeFromCart(item.id)}
                           className="text-red-600 hover:text-red-800"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove Item
                         </Button>
                       </div>
                     </div>
-
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate mb-1">{item.name}</h3>
-                      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-600">
-                        <p>Price: <span className="font-medium">{formatPrice(item.price)}</span></p>
-                        {item.size && <p>Size: <span className="font-medium">{item.size}</span></p>}
-                        {item.color && <p>Color: <span className="font-medium">{item.color}</span></p>}
-                        {hasCustomDesign(item) && (
-                          <p className="text-green-600 font-semibold">✨ Custom Design</p>
-                        )}
-                      </div>
-                    </div>
                   </div>
-                );
-              })}
+                   {/* Sizes Section */}
+                      <div className="mt-3">
+                        <h4 className="text-sm font-semibold mb-2">Sizes:</h4>
+                        <div className="flex gap-3 overflow-x-auto py-1">
+                          {item.sizes.map((sizeItem) => (
+                            <div
+                              key={sizeItem.size}
+                              className="flex flex-col items-center bg-gray-50 border p-3 rounded-lg min-w-[120px] shadow-sm"
+                            >
+                              <div className="flex justify-between items-center w-full mb-1">
+                                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold">
+                                 Size : {sizeItem.size}
+                                </span>
+                                <button
+                                  onClick={() => removeSizeFromCart(item.id, sizeItem.size)}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="text-sm font-medium">Qty: {sizeItem.quantity}</div>
+                              <div className="text-sm font-semibold text-gray-900">
+                                {formatPrice(item.price * sizeItem.quantity)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                </div>
+              ))}
             </div>
           </div>
 
+          {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white p-6 rounded-lg shadow border sticky top-4">
               <h2 className="text-lg font-semibold mb-4">Order Summary</h2>

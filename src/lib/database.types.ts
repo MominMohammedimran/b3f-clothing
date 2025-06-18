@@ -157,6 +157,7 @@ export interface Database {
           payment_status?: string
           order_status?: string
           user_email?: string
+          reward_points?: number | null;
         }
         Insert: {
           created_at?: string
@@ -175,6 +176,7 @@ export interface Database {
           payment_status?: string
           order_status?: string
           user_email?: string
+          reward_points?: number | null;
         }
         Update: {
           created_at?: string
@@ -193,6 +195,7 @@ export interface Database {
           payment_status?: string
           order_status?: string
           user_email?: string
+          reward_points?: number | null;
         }
         Relationships: []
       }

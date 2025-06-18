@@ -7,15 +7,12 @@ import { Product, ProductVariant } from '@/lib/types';
 import { toast } from 'sonner';
 import ProductImage from '@/components/products/ProductImage';
 import ProductDetails from '@/components/products/ProductDetails';
-import ProductActionButtons from '@/components/products/ProductActionButtons';
 
 const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedSize, setSelectedSize] = useState<string>('');
-  const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -113,21 +110,10 @@ const ProductPage = () => {
             additionalImages={product.images}
           />
           
-          <div>
-            <ProductDetails 
-              product={product} 
-              selectedSize={selectedSize} 
-              setSelectedSize={setSelectedSize}
-              quantity={quantity}
-              onQuantityChange={setQuantity}
-            />
-            
-            <ProductActionButtons 
-              product={product} 
-              selectedSize={selectedSize}
-              quantity={quantity}
-            />
-          </div>
+          <ProductDetails 
+            product={product} 
+            allowMultipleSizes={true}
+          />
         </div>
       </div>
     </Layout>

@@ -13,8 +13,8 @@ interface OrderDesignDownloadProps {
 const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderNumber }) => {
   
   const isCustomProduct = (item: CartItem) => {
-    return item.productId?.includes('custom-') && 
-           (item.productId?.includes('tshirt') || item.productId?.includes('mug') || item.productId?.includes('cap'));
+    return item.product_id?.includes('custom-') && 
+           (item.product_id?.includes('tshirt') || item.product_id?.includes('mug') || item.product_id?.includes('cap'));
   };
 
   const captureDesignScreenshot = async (item: CartItem): Promise<string | null> => {
@@ -38,7 +38,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
       ctx.lineWidth = 3;
       ctx.beginPath();
       
-      if (item.productId?.includes('tshirt')) {
+      if (item.product_id?.includes('tshirt')) {
         // T-shirt outline
         ctx.moveTo(300, 200);
         ctx.lineTo(900, 200);
@@ -49,10 +49,10 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
         ctx.lineTo(400, 400);
         ctx.lineTo(300, 400);
         ctx.closePath();
-      } else if (item.productId?.includes('mug')) {
+      } else if (item.product_id?.includes('mug')) {
         // Mug outline
         ctx.roundRect(350, 300, 500, 600, 50);
-      } else if (item.productId?.includes('cap')) {
+      } else if (item.product_id?.includes('cap')) {
         // Cap outline
         ctx.arc(600, 500, 300, 0, Math.PI * 2);
       }
@@ -64,7 +64,10 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
       ctx.font = 'bold 24px Arial';
       ctx.textAlign = 'center';
       ctx.fillText(`Order: ${orderNumber}`, canvas.width / 2, 100);
-      ctx.fillText(`${item.name} - ${item.size || 'Standard'}`, canvas.width / 2, 140);
+      
+      // Show sizes information
+      const sizesInfo = item.sizes.map(s => `${s.size}(${s.quantity})`).join(', ');
+      ctx.fillText(`${item.name} - Sizes: ${sizesInfo}`, canvas.width / 2, 140);
 
       // Draw design if available
       if (item.metadata?.previewImage) {
@@ -131,9 +134,10 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
         const screenshot = await captureDesignScreenshot(item);
         
         if (screenshot) {
+          const sizesInfo = item.sizes.map(s => `${s.size}_${s.quantity}`).join('_');
           await downloadImage(
             screenshot,
-            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_${item.metadata?.view || 'design'}_PRINT_READY.png`
+            `${orderNumber}_${item.name.replace(/\s+/g, '_')}_${sizesInfo}_${item.metadata?.view || 'design'}_PRINT_READY.png`
           );
         }
 
@@ -181,7 +185,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
           <div key={index} className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
             <span className="font-medium">{item.name}</span>
             {item.metadata?.view && ` • ${item.metadata.view}`}
-            {item.size && ` • Size: ${item.size}`}
+            {item.sizes.length > 0 && ` • Sizes: ${item.sizes.map(s => `${s.size}(${s.quantity})`).join(', ')}`}
           </div>
         ))}
       </div>

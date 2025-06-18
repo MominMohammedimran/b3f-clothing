@@ -1,5 +1,3 @@
-
-import { useState } from 'react';
 import { Trash2, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,148 +9,115 @@ interface CartItemProps {
   image: string;
   name: string;
   price: number;
-  quantity: number;
+  sizes: { size: string; quantity: number }[];
   options?: Record<string, string>;
 }
 
-const CartItem = ({ id, image, name, price, quantity, options }: CartItemProps) => {
-  const { updateQuantity, removeFromCart } = useCart();
-  const [itemQuantity, setItemQuantity] = useState(quantity);
+const CartItem = ({ id, image, name, price, sizes, options }: CartItemProps) => {
+  const { updateSizeQuantity, removeFromCart, removeSizeFromCart } = useCart();
 
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    if (!isNaN(value) && value > 0) {
-      setItemQuantity(value);
-      updateQuantity(id, value);
-    }
+  const handleQuantityChange = (size: string, value: number) => {
+    if (value > 0) updateSizeQuantity(id, size, value);
   };
 
-  const incrementQuantity = () => {
-    const newQuantity = itemQuantity + 1;
-    setItemQuantity(newQuantity);
-    updateQuantity(id, newQuantity);
+  const increment = (size: string, currentQty: number) => {
+    updateSizeQuantity(id, size, currentQty + 1);
   };
 
-  const decrementQuantity = () => {
-    if (itemQuantity > 1) {
-      const newQuantity = itemQuantity - 1;
-      setItemQuantity(newQuantity);
-      updateQuantity(id, newQuantity);
-    }
+  const decrement = (size: string, currentQty: number) => {
+    if (currentQty > 1) updateSizeQuantity(id, size, currentQty - 1);
   };
+
+  const totalQuantity = sizes.reduce((sum, s) => sum + s.quantity, 0);
+  const totalPrice = totalQuantity * price;
 
   return (
-    
     <div className="flex flex-col sm:flex-row gap-4 py-6 border-b">
       {/* Product Image */}
-      <Link to={`/product/details${id}`} className="w-full sm:w-24 h-24 overflow-hidden rounded-md bg-gray-100">
-        <img 
-          src={image} 
-          alt={name} 
+      <Link to={`/product/details/${id}`} className="w-full sm:w-24 h-24 overflow-hidden rounded-md bg-gray-100">
+        <img
+          src={image}
+          alt={name}
           className="w-full h-full object-cover object-center"
         />
       </Link>
 
-      {/* Product Info */}
+      {/* Info */}
       <div className="flex-1">
-        <div className="flex justify-between">
+        <div className="flex justify-between items-start">
           <div>
-            <Link to={`/product/details/${id}`} className="text-lg font-medium text-gray-900 hover:text-brand-navy">
+            <Link to={`/product/details/${id}`} className="text-lg font-semibold text-gray-900 hover:text-primary">
               {name}
             </Link>
-            
-            {/* Display selected options */}
+
             {options && Object.keys(options).length > 0 && (
               <div className="mt-1 text-sm text-gray-500">
                 {Object.entries(options).map(([key, value]) => (
-                  <span key={key} className="mr-4">
-                    {key}: <span className="font-medium">{value}</span>
-                  </span>
+                  <span key={key} className="mr-4">{key}: <span className="font-medium">{value}</span></span>
                 ))}
               </div>
             )}
           </div>
-          
-          <p className="font-medium text-gray-900">
-            ${price.toFixed(2)}
-          </p>
+          <p className="text-sm font-semibold text-gray-800">₹{totalPrice}</p>
         </div>
 
-        {/* Mobile: Full Width Controls */}
-        <div className="flex justify-between items-center mt-4 sm:hidden">
-          <div className="flex items-center">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={decrementQuantity}
-              className="h-8 w-8 rounded-r-none"
-            >
-              <Minus className="h-3 w-3" />
-            </Button>
-            <Input
-              type="number"
-              value={itemQuantity}
-              onChange={handleQuantityChange}
-              min={1}
-              className="h-8 w-16 rounded-none text-center border-x-0"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={incrementQuantity}
-              className="h-8 w-8 rounded-l-none"
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => removeFromCart(id)}
-            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Remove
-          </Button>
+        {/* Sizes and Quantities */}
+        <div className="mt-4 space-y-3">
+          {sizes.map((s, index) => (
+            <div key={`${s.size}-${index}`} className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">Size: {s.size}</span>
+
+                <div className="flex items-center">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => decrement(s.size, s.quantity)}
+                    className="h-8 w-8 rounded-r-none"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={s.quantity}
+                    onChange={(e) => handleQuantityChange(s.size, parseInt(e.target.value))}
+                    className="h-8 w-16 rounded-none text-center border-x-0"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => increment(s.size, s.quantity)}
+                    className="h-8 w-8 rounded-l-none"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => removeSizeFromCart(id, s.size)}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Remove Size
+              </Button>
+            </div>
+          ))}
         </div>
 
-        {/* Desktop: inline controls */}
-        <div className="hidden sm:flex justify-between items-center mt-2">
-          <div className="flex items-center">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={decrementQuantity}
-              className="h-8 w-8 rounded-r-none"
-            >
-              <Minus className="h-3 w-3" />
-            </Button>
-            <Input
-              type="number"
-              value={itemQuantity}
-              onChange={handleQuantityChange}
-              min={1}
-              className="h-8 w-16 rounded-none text-center border-x-0"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={incrementQuantity}
-              className="h-8 w-8 rounded-l-none"
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
+        {/* Remove Entire Item */}
+        <div className="mt-4">
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={() => removeFromCart(id)}
-            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+            className="text-red-600 hover:text-red-800 hover:bg-red-50"
           >
             <Trash2 className="h-4 w-4 mr-1" />
-            Remove
+            Remove Item
           </Button>
         </div>
       </div>

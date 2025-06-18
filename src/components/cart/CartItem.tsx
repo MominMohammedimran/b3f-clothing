@@ -6,7 +6,7 @@ import { CartItem } from '@/lib/types';
 
 interface CartItemProps {
   item: CartItem;
-  onUpdateQuantity: (id: string, quantity: number) => void;
+  onUpdateQuantity: (id: string, size: string, quantity: number) => void;
   onRemove: (id: string) => void;
 }
 
@@ -25,6 +25,8 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
   };
 
   const displayImage = item.metadata?.previewImage || item.image;
+  const totalQuantity = item.sizes.reduce((sum, size) => sum + size.quantity, 0);
+  const totalPrice = item.price * totalQuantity;
 
   return (
     <div className="flex items-center space-x-4 p-4 border-b border-gray-200 last:border-b-0">
@@ -52,32 +54,39 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
       <div className="flex-1">
         <h3 className="font-medium text-gray-900">{item.name}</h3>
         <div className="text-sm text-gray-500 space-y-1">
-          {item.size && <p>Size: {item.size}</p>}
+          {item.sizes.map((sizeItem, index) => (
+            <div key={index}>Size: {sizeItem.size}, Qty: {sizeItem.quantity}</div>
+          ))}
           {item.color && <p>Color: {item.color}</p>}
           {item.metadata?.view && <p>View: {item.metadata.view}</p>}
         </div>
-        <p className="font-medium text-gray-900 mt-1">₹{item.price}</p>
+        <p className="font-medium text-gray-900 mt-1">₹{item.price} each</p>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-          disabled={item.quantity <= 1}
-        >
-          <Minus size={16} />
-        </Button>
-        
-        <span className="w-8 text-center font-medium">{item.quantity}</span>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-        >
-          <Plus size={16} />
-        </Button>
+      <div className="flex flex-col items-center space-y-2">
+        {item.sizes.map((sizeItem, index) => (
+          <div key={index} className="flex items-center space-x-2">
+            <span className="text-sm font-medium w-8">{sizeItem.size}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onUpdateQuantity(item.id, sizeItem.size, Math.max(1, sizeItem.quantity - 1))}
+              disabled={sizeItem.quantity <= 1}
+            >
+              <Minus size={16} />
+            </Button>
+            
+            <span className="w-8 text-center font-medium">{sizeItem.quantity}</span>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onUpdateQuantity(item.id, sizeItem.size, sizeItem.quantity + 1)}
+            >
+              <Plus size={16} />
+            </Button>
+          </div>
+        ))}
       </div>
 
       <div className="flex items-center space-x-2">
@@ -103,7 +112,7 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
       </div>
 
       <div className="text-right">
-        <p className="font-medium text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</p>
+        <p className="font-medium text-gray-900">₹{totalPrice.toFixed(2)}</p>
       </div>
     </div>
   );

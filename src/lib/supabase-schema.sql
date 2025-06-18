@@ -41,3 +41,17 @@ CREATE POLICY "Admins can update all data"
   USING (
     is_admin(auth.email())
   );
+ALTER TABLE carts
+ADD COLUMN sizes JSONB;
+CREATE POLICY "Allow users to delete unpaid orders"
+ON orders
+FOR DELETE
+USING (
+  auth.uid() = user_id
+  AND (payment_status IS NULL OR payment_status != 'paid')
+);
+
+
+-- Optional: Drop old size & quantity if you want:
+ALTER TABLE carts DROP COLUMN size;
+ALTER TABLE carts DROP COLUMN quantity;

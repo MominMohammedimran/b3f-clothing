@@ -74,34 +74,10 @@ const AdminOrders: React.FC = () => {
     }
   };
 
-  const sendStatusUpdateEmail = async (order: Order, newStatus: string) => {
-    if (!order.user_email || order.user_email === 'N/A') return;
-
-    try {
-      const { data, error } = await supabase.functions.invoke('send-order-notification', {
-        body: {
-          orderId: order.order_number,
-          customerEmail: order.user_email,
-          customerName: 'Customer',
-          status: newStatus,
-          orderItems: order.items,
-          totalAmount: order.total,
-          shippingAddress: order.shipping_address,
-          businessEmail: 'b3f.prints.pages.dev@gmail.com'
-        }
-      });
-
-      if (error) throw error;
-      console.log('Status update email sent successfully');
-      toast.success('Status update email sent to customer');
-    } catch (emailError) {
-      console.error('Failed to send status update email:', emailError);
-      toast.error('Failed to send email notification');
-    }
-  };
-
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
+      console.log(`Updating order ${orderId} to status: ${newStatus}`);
+      
       // Update order_status instead of status
       const { error } = await supabase
         .from('orders')
@@ -115,27 +91,59 @@ const AdminOrders: React.FC = () => {
 
       const updatedOrder = orders.find(order => order.id === orderId);
       
-      // Send status update email to user
       if (updatedOrder) {
-        console.log('Sending email for order:', updatedOrder);
-        await notifyOrderStatusChange(
-          updatedOrder.order_number,
-          newStatus,
-          updatedOrder.user_email,
-          updatedOrder.items,
-          updatedOrder.total,
-          updatedOrder.shipping_address
-        );
+        console.log('Order found, attempting to send email:', {
+          orderNumber: updatedOrder.order_number,
+          email: updatedOrder.user_email,
+          status: newStatus
+        });
+
+        // Show loading toast
+        const loadingToast = toast.loading('Updating order status and sending email...');
+        
+        try {
+          // Send status update email to user with improved error handling
+          const emailSent = await notifyOrderStatusChange(
+            updatedOrder.order_number,
+            newStatus,
+            updatedOrder.user_email,
+            updatedOrder.items || [],
+            updatedOrder.total,
+            updatedOrder.shipping_address
+          );
+          
+          // Dismiss loading toast
+          toast.dismiss(loadingToast);
+          
+          if (emailSent) {
+            toast.success(`✅ Order status updated to "${newStatus}" and email sent to ${updatedOrder.user_email}`, {
+              duration: 5000
+            });
+          } else {
+            toast.warning(`⚠️ Order status updated to "${newStatus}" but email notification failed`, {
+              duration: 5000
+            });
+          }
+        } catch (emailError) {
+          console.error('Email sending error:', emailError);
+          toast.dismiss(loadingToast);
+          toast.error(`❌ Order status updated but failed to send email: ${emailError}`, {
+            duration: 5000
+          });
+        }
+      } else {
+        console.warn('Order not found for email sending');
+        toast.warning('Order status updated but could not send email - order not found');
       }
 
+      // Update local state
       setOrders(prev => prev.map(order => 
         order.id === orderId ? { ...order, order_status: newStatus } : order
       ));
 
-      toast.success('Order status updated successfully');
     } catch (error) {
       console.error('Error updating order status:', error);
-      toast.error('Failed to update order status');
+      toast.error(`Failed to update order status: ${error}`);
     }
   };
 
@@ -222,6 +230,15 @@ const AdminOrders: React.FC = () => {
           </div>
         </div>
 
+        {/* Email Status Info */}
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h3 className="font-medium text-blue-800 mb-2">📧 Email Notifications</h3>
+          <p className="text-sm text-blue-700">
+            When you update an order status, an automatic email notification will be sent to the customer. 
+            Watch for success/error messages to confirm email delivery.
+          </p>
+        </div>
+
         {loading ? (
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -246,7 +263,14 @@ const AdminOrders: React.FC = () => {
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.order_number}</TableCell>
                       <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>{order.user_email}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div>{order.user_email}</div>
+                          <div className="text-xs text-gray-500">
+                            {order.user_email && order.user_email !== 'N/A' ? '✅ Valid email' : '❌ No email'}
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={order.payment_status === 'paid' ? 'default' : 'destructive'}>
                           {order.payment_status || 'N/A'}
@@ -276,8 +300,9 @@ const AdminOrders: React.FC = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleStatusUpdate(order.id, 'delivered')}
+                              className="bg-green-50 hover:bg-green-100 text-green-700"
                             >
-                              Mark Delivered
+                              📧 Mark Delivered
                             </Button>
                           )}
                         </div>

@@ -32,9 +32,9 @@ const OrderDesignPreview: React.FC<OrderDesignPreviewProps> = ({ items, orderNum
             <div className="flex items-center justify-between">
               <h4 className="font-medium">{item.name}</h4>
               <div className="flex gap-2">
-                {item.size && (
-                  <Badge variant="outline">Size: {item.size}</Badge>
-                )}
+                {item.sizes.map((sizeItem, sizeIndex) => (
+                  <Badge key={sizeIndex} variant="outline">Size: {sizeItem.size} (Qty: {sizeItem.quantity})</Badge>
+                ))}
                 {item.metadata?.view && (
                   <Badge variant="secondary">{item.metadata.view}</Badge>
                 )}

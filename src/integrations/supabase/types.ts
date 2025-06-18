@@ -135,6 +135,7 @@ export type Database = {
           product_id: string
           quantity: number
           size: string | null
+          sizes: Json
           updated_at: string | null
           user_id: string
         }
@@ -149,6 +150,7 @@ export type Database = {
           product_id: string
           quantity?: number
           size?: string | null
+          sizes?: Json
           updated_at?: string | null
           user_id: string
         }
@@ -163,6 +165,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           size?: string | null
+          sizes?: Json
           updated_at?: string | null
           user_id?: string
         }

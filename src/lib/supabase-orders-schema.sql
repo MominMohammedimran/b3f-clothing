@@ -81,6 +81,7 @@ on payments
 for insert
 using (true);
 
+ALTER TABLE orders ADD COLUMN reward_points_used integer DEFAULT 0;
 
 CREATE POLICY "Users can view their own orders"
   ON public.orders
@@ -96,3 +97,16 @@ CREATE POLICY "Users can update their own orders"
   ON public.orders
   FOR UPDATE
   USING (auth.uid() = user_id);
+ALTER TABLE carts
+ADD COLUMN sizes JSONB;
+
+-- Optional: Drop old size & quantity if you want:
+ALTER TABLE carts DROP COLUMN size;
+ALTER TABLE carts DROP COLUMN quantity;
+CREATE POLICY "Allow users to delete unpaid orders"
+ON orders
+FOR DELETE
+USING (
+  auth.uid() = user_id
+  AND (payment_status IS NULL OR payment_status != 'paid')
+);

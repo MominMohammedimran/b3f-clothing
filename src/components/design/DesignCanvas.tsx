@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { fabric } from 'fabric';
 import { useColor } from '@/context/ColorContext';
@@ -35,6 +34,8 @@ interface DesignCanvasProps {
 const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
   const localCanvasRef = useRef<HTMLCanvasElement>(null);
   const [localCanvas, setLocalCanvas] = useState<fabric.Canvas | null>(null);
+  const [localUndoStack, setLocalUndoStack] = useState<string[]>([]);
+  const [localRedoStack, setLocalRedoStack] = useState<string[]>([]);
   const [canvasReady, setCanvasReady] = useState(false);
   const { selectedColor } = useColor();
   const { selectedFont } = useFont();
@@ -46,8 +47,19 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
   const canvasRef = props.canvasRef || localCanvasRef;
   const canvas = props.canvas || localCanvas;
   const setCanvas = props.setCanvas || setLocalCanvas;
-  const undoStack = props.undoStack || [];
-  const redoStack = props.redoStack || [];
+  const undoStack = props.undoStack || localUndoStack;
+  const redoStack = props.redoStack || localRedoStack;
+  const setUndoStack = props.setUndoStack || setLocalUndoStack;
+  const setRedoStack = props.setRedoStack || setLocalRedoStack;
+
+  // Save state function for undo/redo
+  const saveState = () => {
+    if (canvas) {
+      const currentState = JSON.stringify(canvas.toJSON());
+      setUndoStack(prev => [...prev, currentState]);
+      setRedoStack([]); // Clear redo stack when new action is performed
+    }
+  };
 
   useEffect(() => {
     const initializeCanvas = () => {
@@ -102,6 +114,11 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           centeredScaling: false,
           centeredRotation: true,
         });
+
+        // Set up event listeners for undo/redo functionality
+        newCanvas.on('object:added', () => saveState());
+        newCanvas.on('object:removed', () => saveState());
+        newCanvas.on('object:modified', () => saveState());
 
         // Set custom cursors for different interactions
         newCanvas.hoverCursor = 'move';
@@ -232,6 +249,10 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         setCanvas(newCanvas);
         setCanvasReady(true);
         
+        // Save initial state
+        const initialState = JSON.stringify(newCanvas.toJSON());
+        setUndoStack([initialState]);
+        
         if (props.setCanvasInitialized) {
           props.setCanvasInitialized(true);
         }
@@ -289,7 +310,6 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         },
       });
 
-      // Add entrance animation
       textObject.set({ opacity: 0, scaleX: 0, scaleY: 0 });
       canvas.add(textObject);
       
@@ -309,10 +329,6 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
 
       canvas.setActiveObject(textObject);
       setText('');
-      
-      if (props.setUndoStack && props.undoStack) {
-        props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
-      }
       
       if (props.checkDesignStatus) {
         props.checkDesignStatus(canvas);
@@ -356,7 +372,6 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           },
         });
         
-        // Add entrance animation
         img.set({ opacity: 0, angle: -90 });
         canvas.add(img);
         
@@ -371,10 +386,6 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         });
         
         canvas.setActiveObject(img);
-        
-        if (props.setUndoStack && props.undoStack) {
-          props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
-        }
         
         if (props.checkDesignStatus) {
           props.checkDesignStatus(canvas);
@@ -418,7 +429,6 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         },
       });
       
-      // Add bounce entrance animation
       emojiObject.set({ opacity: 0, scaleX: 2, scaleY: 2 });
       canvas.add(emojiObject);
       
@@ -438,10 +448,6 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
       
       canvas.setActiveObject(emojiObject);
       
-      if (props.setUndoStack && props.undoStack) {
-        props.setUndoStack([...props.undoStack, JSON.stringify(canvas.toJSON())]);
-      }
-      
       if (props.checkDesignStatus) {
         props.checkDesignStatus(canvas);
       }
@@ -450,30 +456,67 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
     addEmojiToCanvas(selectedEmoji);
   }, [selectedEmoji, canvas, canvasReady]);
 
+  // Enhanced undo/redo/clear functions
   const handleUndo = () => {
-    if (props.undo) {
-      props.undo();
+    if (undoStack.length > 1 && canvas) {
+      const currentState = undoStack[undoStack.length - 1];
+      const previousState = undoStack[undoStack.length - 2];
+      
+      setRedoStack(prev => [...prev, currentState]);
+      setUndoStack(prev => prev.slice(0, -1));
+      
+      canvas.loadFromJSON(previousState, () => {
+        canvas.renderAll();
+        if (props.checkDesignStatus) {
+          props.checkDesignStatus(canvas);
+        }
+      });
     }
   };
 
   const handleRedo = () => {
-    if (props.redo) {
-      props.redo();
+    if (redoStack.length > 0 && canvas) {
+      const nextState = redoStack[redoStack.length - 1];
+      
+      setUndoStack(prev => [...prev, nextState]);
+      setRedoStack(prev => prev.slice(0, -1));
+      
+      canvas.loadFromJSON(nextState, () => {
+        canvas.renderAll();
+        if (props.checkDesignStatus) {
+          props.checkDesignStatus(canvas);
+        }
+      });
     }
   };
 
   const handleClear = () => {
-    if (props.clearCanvas) {
-      props.clearCanvas();
+    if (canvas) {
+      canvas.clear();
+      canvas.backgroundColor = 'black';
+      canvas.renderAll();
+      
+      // Save the cleared state
+      const clearedState = JSON.stringify(canvas.toJSON());
+      setUndoStack(prev => [...prev, clearedState]);
+      setRedoStack([]);
+      
+      if (props.setDesignComplete) {
+        props.setDesignComplete(prev => ({ ...prev, [props.productView || 'front']: false }));
+      }
+      
+      if (props.checkDesignStatus) {
+        props.checkDesignStatus(canvas);
+      }
     }
   };
 
   return (
     <div className="design-canvas-container">
       <CanvasControls
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onClear={handleClear}
+        onUndo={props.undo || handleUndo}
+        onRedo={props.redo || handleRedo}
+        onClear={props.clearCanvas || handleClear}
         canUndo={undoStack.length > 1}
         canRedo={redoStack.length > 0}
       />

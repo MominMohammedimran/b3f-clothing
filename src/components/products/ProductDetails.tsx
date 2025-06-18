@@ -1,217 +1,219 @@
-
 import React, { useState } from 'react';
 import { Product } from '@/lib/types';
-import ProductSizeSelector from './ProductSizeSelector';
 import ProductQuantitySelector from './ProductQuantitySelector';
 import ProductActionButtons from './ProductActionButtons';
+import { XCircle } from 'lucide-react';
+
+interface SizeWithQuantity {
+  size: string;
+  quantity: number;
+}
 
 export interface ProductDetailsProps {
   product: Product;
-  selectedSize?: string;
-  setSelectedSize?: (size: string) => void;
-  selectedSizes?: string[];
-  onSizeToggle?: (size: string) => void;
-  quantity?: number;
-  onQuantityChange?: (quantity: number) => void;
   allowMultipleSizes?: boolean;
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = ({
   product,
-  selectedSize,
-  setSelectedSize,
-  selectedSizes,
-  onSizeToggle,
-  quantity: propQuantity,
-  onQuantityChange,
-  allowMultipleSizes = false,
+  allowMultipleSizes = true,
 }) => {
-  const [internalQuantity, setInternalQuantity] = useState(1);
-  const [internalSelectedSizes, setInternalSelectedSizes] = useState<string[]>([]);
-  const [internalSelectedSize, setInternalSelectedSize] = useState('');
+  const [selectedSizes, setSelectedSizes] = useState<SizeWithQuantity[]>([]);
 
-  const quantity = propQuantity ?? internalQuantity;
-  const currentSelectedSizes = selectedSizes ?? internalSelectedSizes;
-  const currentSelectedSize = selectedSize ?? internalSelectedSize;
-
-  const handleQuantityChange = (newQuantity: number) => {
-    if (onQuantityChange) {
-      onQuantityChange(newQuantity);
-    } else {
-      setInternalQuantity(newQuantity);
-    }
-  };
-
-  const handleSizeSelect = (size: string) => {
-    if (setSelectedSize) {
-      setSelectedSize(size);
-    } else {
-      setInternalSelectedSize(size);
-    }
-  };
-
-  const handleSizeToggle = (size: string) => {
-    if (onSizeToggle) {
-      onSizeToggle(size);
-    } else if (setSelectedSize && !allowMultipleSizes) {
-      setSelectedSize(size);
-    } else {
-      setInternalSelectedSizes(prev =>
-        prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
-      );
-    }
-  };
-
-  const effectiveSelectedSizes = allowMultipleSizes
-    ? currentSelectedSizes
-    : currentSelectedSize
-    ? [currentSelectedSize]
-    : [];
-
-  const sizeMultiplier = effectiveSelectedSizes.length > 1 ? effectiveSelectedSizes.length : 1;
-  const basePrice = product.price * sizeMultiplier;
-  const totalPrice = basePrice * quantity;
-
-  // Parse variants from JSON and build size data
-  const sizeQuantities: Record<string, number> = {};
-  const availableSizes: string[] = [];
- 
-  // Parse variants properly from JSON if needed
+  // Parse variants from JSON
   let productVariants = product.variants;
   if (typeof productVariants === 'string') {
     try {
       productVariants = JSON.parse(productVariants);
-       } catch (e) {
+    } catch (e) {
       console.error('Error parsing product variants:', e);
       productVariants = [];
     }
   }
 
-  // Build size data from variants
+  // Build available sizes from variants or fallback
+  const availableSizes: string[] = [];
   if (Array.isArray(productVariants) && productVariants.length > 0) {
     for (const variant of productVariants) {
-      if (variant && variant.size) {
-        const sizeKey = variant.size.toLowerCase();
-        const stock = variant.stock || 0;
-        sizeQuantities[sizeKey] = stock;
-        if (stock > 0 && !availableSizes.includes(variant.size)) {
-          availableSizes.push(variant.size);
-        }
+      if (variant && variant.size && variant.stock > 0) {
+        availableSizes.push(variant.size);
       }
     }
   } else if (Array.isArray(product.sizes) && product.sizes.length > 0) {
-    // Fallback to sizes array if variants not available
-    for (const size of product.sizes) {
-      availableSizes.push(size);
-      sizeQuantities[size.toLowerCase()] = product.stock || 10;
-    }
+    availableSizes.push(...product.sizes);
   } else {
-    // Default sizes if no variants or sizes
-    const defaultSizes = ['S', 'M', 'L', 'XL'];
-    for (const size of defaultSizes) {
-      availableSizes.push(size);
-      sizeQuantities[size.toLowerCase()] = product.stock || 10;
-    }
+    availableSizes.push('S', 'M', 'L', 'XL');
   }
+
+  const handleSizeToggle = (size: string) => {
+    setSelectedSizes((prev) => {
+      const exists = prev.find((s) => s.size === size);
+      if (exists) {
+        return prev.filter((s) => s.size !== size);
+      } else {
+        return [...prev, { size, quantity: 1 }];
+      }
+    });
+  };
+
+  const handleQuantityChange = (size: string, quantity: number) => {
+    setSelectedSizes((prev) =>
+      prev.map((s) => (s.size === size ? { ...s, quantity } : s))
+    );
+  };
+
+  const totalQuantity = selectedSizes.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = selectedSizes.reduce((sum, item) => sum + item.quantity * product.price, 0);
+
   return (
-    <div className="space-y-6 bg-white p-4 pt-0 md:p-6 rounded-xl shadow-md">
+    <div className="space-y-6 bg-white p-4 md:p-6 rounded-xl shadow-md">
+
       {/* Product Title + Price */}
-   <div className="relative  rounded-xl">
-  <div className="flex items-center justify-between">
-    <h2 className="text-lg md:text-xl font-semibold text-black-900 tracking-tight">
-      Name : <span className=" font-medium text-l text-gray-700"> {product.name}</span>
-    </h2>
+      <div className="relative rounded-xl">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900 tracking-tight">
+            {product.name}
+          </h2>
+          <div className="relative">
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 opacity-30 blur-md -z-10"
+            />
+            <span className="relative text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 px-6 py-1">
+              ₹{totalPrice || product.price}
+            </span>
+          </div>
+        </div>
 
-    <div className="relative">
-      {/* Glowing background behind price */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 rounded-full bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 opacity-30 blur-md -z-10"
-      />
-      {/* Price text */}
-      <span className="relative text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 px-6 py-1">
-        ₹{totalPrice}
-      </span>
-    </div>
-  </div>
-
-  {sizeMultiplier > 1 && (
-    <div className="text-sm text-gray-600 italic mt-1 text-right">
-      ({sizeMultiplier} sizes × {quantity} qty)
-    </div>
-  )}
-</div>
-
-
-
+        {selectedSizes.length > 1 && (
+          <div className="text-sm text-gray-600 italic mt-1 text-right">
+            ({selectedSizes.length} sizes × {totalQuantity} qty)
+          </div>
+        )}
+      </div>
 
       {/* Description */}
-     {product.description && (
-      <div className="mt-2 ">
-
-       <p className="text-base font-semibold text-l text-gray-700 leading-relaxed break-words">
-          <span className="text-lg text-gray-900">Description</span> : {product.description}
+      {product.description && (
+        <div className="mt-2">
+          <p className="text-base font-semibold text-gray-700 leading-relaxed break-words">
+            <span className="text-lg text-gray-900">Description:</span> {product.description}
           </p>
-       </div>
-     )}
- {/* Price breakdown and badges */}
+        </div>
+      )}
+
+      {/* Price breakdown and badges */}
       <div className="flex flex-wrap items-center gap-2 text-sm">
         {product.originalPrice && product.originalPrice > product.price && (
           <>
             <span className="text-gray-400 line-through">
-              ₹{product.originalPrice * sizeMultiplier * quantity}
+              ₹{product.originalPrice * totalQuantity}
             </span>
             <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
               {product.discountPercentage}% OFF
             </span>
           </>
         )}
-        {sizeMultiplier > 1 && (
+        {selectedSizes.length > 1 && (
           <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-            {sizeMultiplier} Sizes
+            {selectedSizes.length} Sizes
           </span>
         )}
-        {quantity > 1 && (
+        {totalQuantity > 1 && (
           <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
-            Qty: {quantity}
+            Qty: {totalQuantity}
           </span>
         )}
       </div>
-      {/* Size Selector */}
+
+      {/* Size Selection */}
       {availableSizes.length > 0 && (
-        <ProductSizeSelector
-          productId={product.id}
-          sizes={availableSizes}
-          selectedSize={currentSelectedSize}
-          onSizeSelect={handleSizeSelect}
-          sizeQuantities={sizeQuantities}
-          selectedSizes={effectiveSelectedSizes}
-          onSizeToggle={handleSizeToggle}
-          allowMultiple={allowMultipleSizes}
-          showStock={true}
-        />
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Sizes</h3>
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {availableSizes.map((size) => {
+              const isSelected = selectedSizes.some(s => s.size === size);
+              const variant = Array.isArray(productVariants) 
+                ? productVariants.find(v => v.size === size)
+                : null;
+              const stock = variant?.stock || 10;
+
+              return (
+                <button
+                  key={size}
+                  onClick={() => handleSizeToggle(size)}
+                  className={`p-3 border-2 rounded-lg text-center font-medium transition-all duration-200
+                    ${isSelected 
+                      ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                      : 'border-gray-300 hover:border-gray-400 text-gray-700 hover:bg-gray-50'}
+                  `}
+                  disabled={stock <= 0}
+                >
+                  <div className="text-sm font-semibold">{size}</div>
+                  <div className="text-xs mt-1 text-gray-600">
+                    {stock > 0 ? `${stock} left` : 'Out of stock'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
 
-      {/* Quantity Selector */}
-      <div className="flex  sm:items-center gap-3">
-        <h3 className="text-base md:text-lg font-semibold text-gray-800">Quantity</h3>
-        <ProductQuantitySelector
-          quantity={quantity}
-          maxQuantity={10}
-          onChange={handleQuantityChange}
-        />
-      </div>
+      {/* Quantity Controls for Selected Sizes */}
+      {selectedSizes.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Quantities</h3>
+          <div className="flex gap-3 overflow-x-auto py-2">
+            {selectedSizes.map((sizeItem) => {
+              const variant = Array.isArray(productVariants) 
+                ? productVariants.find(v => v.size === sizeItem.size)
+                : null;
+              const maxStock = variant?.stock || 10;
+
+              return (
+                <div
+                  key={sizeItem.size}
+                  className="flex flex-col items-center justify-between bg-gray-50 border p-3 rounded-lg min-w-[140px] shadow-sm"
+                >
+                  {/* Size Label */}
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+                      {sizeItem.size}
+                    </span>
+                    <button
+                      onClick={() => handleSizeToggle(sizeItem.size)}
+                      className="text-red-500 hover:text-red-700 transition"
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Quantity Selector */}
+                  <div className="mb-2">
+                    <ProductQuantitySelector
+                      quantity={sizeItem.quantity}
+                      maxQuantity={maxStock}
+                      onChange={(qty) => handleQuantityChange(sizeItem.size, qty)}
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div className="text-lg font-semibold text-gray-900">
+                    ₹{(product.price * sizeItem.quantity).toFixed(2)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <ProductActionButtons
         product={product}
-        selectedSize={currentSelectedSize || effectiveSelectedSizes[0] || ''}
-        selectedSizes={effectiveSelectedSizes}
-        quantity={quantity}
-        totalPrice={totalPrice}
+        selectedSizes={selectedSizes.map(s => s.size)}
+        quantities={selectedSizes.reduce((acc, s) => ({ ...acc, [s.size]: s.quantity }), {})}
       />
-
-     
     </div>
   );
 };

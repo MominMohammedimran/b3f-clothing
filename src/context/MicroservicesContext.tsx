@@ -1,8 +1,11 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { orderMicroservice, OrderMicroservice } from '@/services/microservices/orderService';
-import { EdgeFunctionApiService } from '@/services/microservices/api';
+import { createOrderInMicroservice } from '@/services/microservices/orderService';
 import { NotificationType, sendNotification } from '@/services/notificationService';
+
+interface OrderMicroservice {
+  createOrder: typeof createOrderInMicroservice;
+}
 
 interface MicroservicesContextType {
   orderService: OrderMicroservice;
@@ -39,8 +42,12 @@ export const MicroservicesProvider: React.FC<{ children: React.ReactNode }> = ({
     return await sendNotification(params);
   };
 
+  const orderService: OrderMicroservice = {
+    createOrder: createOrderInMicroservice
+  };
+
   const value = {
-    orderService: orderMicroservice,
+    orderService,
     isReady,
     sendNotification: handleSendNotification
   };

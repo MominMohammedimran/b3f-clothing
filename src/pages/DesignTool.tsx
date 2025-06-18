@@ -31,7 +31,8 @@ const DesignTool = () => {
   const [emojiSearch, setEmojiSearch] = useState('');
   const [filteredEmojis, setFilteredEmojis] = useState<string[]>([]);
   const [isDualSided, setIsDualSided] = useState(false);
- 
+ const [quantity, setQuantity] = useState(1);
+
   const { currentUser } = useAuth();
   const { addToCart } = useCart();
   const { sizeInventory, fetchProductInventory, updateInventory } = useDesignToolInventory();
@@ -488,9 +489,12 @@ const DesignTool = () => {
                 selectedSizes={selectedSizes}
                 onSizeToggle={handleSizeToggle}
                 getTotalPrice={getTotalPrice}
-                quantity={1}
+                quantity={quantity}
                 productId={activeProduct}
                 upi_input=""
+                  onQuantityChange={setQuantity} 
+                
+
               />
             </div>
           </div>

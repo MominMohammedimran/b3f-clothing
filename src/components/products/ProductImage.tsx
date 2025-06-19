@@ -23,7 +23,7 @@ const ProductImage = ({ image, name, additionalImages = [] }: ProductImageProps)
   };
   
   return (
-    <div className="bg-white p-4 rounded-lg shadow ">
+    <div className="bg-white p-4 pt-0rounded-lg shadow ">
       <div className="relative mb-4 align-middle"
 >
         <img 

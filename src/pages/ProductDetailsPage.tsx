@@ -1,19 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import ProductDetails from '../components/products/ProductDetails';
+import ProductDetailsContent from '../components/products/details/ProductDetailsContent';
+import RelatedProducts from '../components/products/RelatedProducts';
 import { supabase } from '../integrations/supabase/client';
 import { Product, ProductVariant } from '../lib/types';
 import { ArrowLeft } from 'lucide-react';
-import ProductDetailsContent from '../components/products/details/ProductDetailsContent';
-import RelatedProducts from '../components/products/RelatedProducts';
 
 const ProductDetailsPage = () => {
   const { productId } = useParams<{ productId: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedSize, setSelectedSize] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,15 +44,17 @@ const ProductDetailsPage = () => {
             sizes: Array.isArray(data.sizes) ? data.sizes.filter(size => typeof size === 'string') : [],
             tags: Array.isArray(data.tags) ? data.tags.filter(tag => typeof tag === 'string') : [],
             variants: Array.isArray(data.variants)
-              ? data.variants.filter((v: any) => 
-                  typeof v === 'object' && v && 
-                  typeof v.size === 'string' && 
-                  typeof v.stock === 'number'
-                ).map((v: any) => ({
-                  size: v.size as string,
-                  stock: v.stock as number
-                } as ProductVariant))
-              : []
+              ? data.variants
+                  .filter((v: any) =>
+                    typeof v === 'object' &&
+                    typeof v.size === 'string' &&
+                    (typeof v.stock === 'string' || typeof v.stock === 'number')
+                  )
+                  .map((v: any) => ({
+                    size: v.size,
+                    stock: String(v.stock ?? 0)  // ✅ Convert string to number here
+                  }) as ProductVariant)
+              : [],
           };
 
           setProduct(transformedProduct);
@@ -73,7 +72,7 @@ const ProductDetailsPage = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-8 mt-10">
+        <div className="container mx-auto px-4 py-12">
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
           </div>
@@ -101,25 +100,21 @@ const ProductDetailsPage = () => {
   return (
     <Layout>
       <div className="container-custom mt-10">
-        <div className="flex items-center mb-4 mt-4">
+        <div className="flex items-center mb-4">
           <Link to="/" className="mr-2">
             <ArrowLeft size={24} className="back-arrow" />
           </Link>
-          <h1 className="text-2xl font-bold text-green-600">{product?.name || 'Product Details'}</h1>
+          <h1 className="text-2xl font-bold text-green-600">
+            {product.name || 'Product Details'}
+          </h1>
         </div>
 
-        {product ? (
-          <ProductDetailsContent product={product} />
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <Link to="/" className="mr-2">
-              <ArrowLeft size={24} className="back-arrow" />
-            </Link>
-            <p className="text-gray-500">Product details are not available.</p>
-          </div>
-        )}
+        <ProductDetailsContent product={product} />
 
-        {product && <RelatedProducts product={product} onProductClick={(product) => navigate(`/product/details/${product.id}`)} />}
+        <RelatedProducts
+          product={product}
+          onProductClick={(product) => navigate(`/product/details/${product.id}`)}
+        />
       </div>
     </Layout>
   );

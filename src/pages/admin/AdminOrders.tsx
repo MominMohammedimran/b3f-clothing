@@ -1,17 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Search } from 'lucide-react';
-import OrderListItem from '../../components/admin/orders/OrderListItem';
+import { Search, Download, Eye, Trash2 } from 'lucide-react';
 import OrderDetailsDialog from '../../components/admin/OrderDetailsDialog';
 import AdminOrderDownload from '../../components/admin/AdminOrderDownload';
 import AdminDownloadDesign from '../../components/admin/AdminDownloadDesign';
-import AdminLayout from '../../components/admin/AdminLayout';
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 import { notifyOrderStatusChange } from '../../components/admin/OrderStatusEmailService';
 
 interface Order {
@@ -102,7 +101,6 @@ const AdminOrders: React.FC = () => {
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
-      // Update order_status instead of status
       const { error } = await supabase
         .from('orders')
         .update({ 
@@ -115,7 +113,6 @@ const AdminOrders: React.FC = () => {
 
       const updatedOrder = orders.find(order => order.id === orderId);
       
-      // Send status update email to user
       if (updatedOrder) {
         console.log('Sending email for order:', updatedOrder);
         await notifyOrderStatusChange(
@@ -201,16 +198,18 @@ const AdminOrders: React.FC = () => {
   );
 
   return (
-    <AdminLayout title="Orders">
+    <ModernAdminLayout 
+      title="Orders Management" 
+      subtitle="Manage customer orders and track status"
+      actionButton={
+        <Button variant="outline" onClick={handleExportOrders} className="gap-2">
+          <Download size={16} />
+          Export Orders
+        </Button>
+      }
+    >
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Orders Management</h2>
-          <Button variant="outline" onClick={handleExportOrders}>
-            Export Orders
-          </Button>
-        </div>
-
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
@@ -220,52 +219,57 @@ const AdminOrders: React.FC = () => {
               className="pl-10"
             />
           </div>
+          
+          <div className="flex gap-2 text-sm text-gray-600">
+            <Badge variant="outline">{filteredOrders.length} orders</Badge>
+          </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center">
+          <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <Card>
-            <CardContent className="p-0">
+          <div className="rounded-lg border overflow-hidden">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Order Number</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Payment Status</TableHead>
-                    <TableHead>Order Status</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-semibold">Order</TableHead>
+                    <TableHead className="font-semibold">Date</TableHead>
+                    <TableHead className="font-semibold">Customer</TableHead>
+                    <TableHead className="font-semibold">Payment</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold text-right">Total</TableHead>
+                    <TableHead className="font-semibold text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow key={order.id} className="hover:bg-gray-50">
                       <TableCell className="font-medium">{order.order_number}</TableCell>
                       <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>{order.user_email}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{order.user_email}</TableCell>
                       <TableCell>
-                        <Badge variant={order.payment_status === 'paid' ? 'default' : 'destructive'}>
+                        <Badge variant={order.payment_status === 'paid' ? 'default' : 'destructive'} className="text-xs">
                           {order.payment_status || 'N/A'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={order.order_status === 'delivered' ? 'default' : 'secondary'}>
+                        <Badge variant={order.order_status === 'delivered' ? 'default' : 'secondary'} className="text-xs">
                           {order.order_status || order.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">₹{order.total}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                      <TableCell className="text-right font-medium">₹{order.total}</TableCell>
+                      <TableCell>
+                        <div className="flex justify-center gap-2 flex-wrap">
                           <Button 
                             variant="ghost" 
                             size="sm" 
                             onClick={() => handleViewOrder(order)}
+                            className="h-8 w-8 p-0"
                           >
-                            View
+                            <Eye size={14} />
                           </Button>
                           <AdminOrderDownload order={order} />
                           {hasCustomPrinted(order) && (
@@ -276,6 +280,7 @@ const AdminOrders: React.FC = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleStatusUpdate(order.id, 'delivered')}
+                              className="text-xs px-2 py-1 h-8"
                             >
                               Mark Delivered
                             </Button>
@@ -286,14 +291,14 @@ const AdminOrders: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
-              
-              {filteredOrders.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  {searchTerm ? 'No orders found matching your search.' : 'No orders found.'}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+            
+            {filteredOrders.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                {searchTerm ? 'No orders found matching your search.' : 'No orders found.'}
+              </div>
+            )}
+          </div>
         )}
 
         {showOrderDetails && selectedOrder && (
@@ -306,7 +311,7 @@ const AdminOrders: React.FC = () => {
           />
         )}
       </div>
-    </AdminLayout>
+    </ModernAdminLayout>
   );
 };
 

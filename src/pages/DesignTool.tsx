@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -23,7 +22,6 @@ const DesignTool = () => {
   const params = useParams();
   const [activeProduct, setActiveProduct] = useState<string>('tshirt');
   const [productView, setProductView] = useState<string>('front');
-  const [selectedSize, setSelectedSize] = useState<string>('M');
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -31,7 +29,7 @@ const DesignTool = () => {
   const [emojiSearch, setEmojiSearch] = useState('');
   const [filteredEmojis, setFilteredEmojis] = useState<string[]>([]);
   const [isDualSided, setIsDualSided] = useState(false);
- const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(1);
 
   const { currentUser } = useAuth();
   const { addToCart } = useCart();
@@ -111,7 +109,6 @@ const DesignTool = () => {
     if (products[productId]) {
       setActiveProduct(productId);
       setProductView('front');
-      setSelectedSize(productId === 'tshirt' ? 'M' : 'Standard');
       setSelectedSizes([]);
       setIsDualSided(false);
       setFrontDesign(null);
@@ -173,16 +170,12 @@ const DesignTool = () => {
         return [...prev, size];
       }
     });
-    
-    if (!selectedSizes.includes(size)) {
-      setSelectedSize(size);
-    }
   };
 
   const getTotalPrice = () => {
     const product = products[activeProduct];
     const basePrice = product?.price || 200;
-    const effectiveSizes = selectedSizes.length > 0 ? selectedSizes : (selectedSize ? [selectedSize] : []);
+    const effectiveSizes = selectedSizes.length > 0 ? selectedSizes : [];
     const sizeMultiplier = effectiveSizes.length > 1 ? effectiveSizes.length : 1;
     const dualSidedCost = isDualSided ? 100 : 0;
     
@@ -238,10 +231,18 @@ const DesignTool = () => {
       return;
     }
 
-    const effectiveSizes = selectedSizes.length > 0 ? selectedSizes : (selectedSize ? [selectedSize] : []);
+    const effectiveSizes = selectedSizes.length > 0 ? selectedSizes : [];
     if (effectiveSizes.length === 0) {
       toast.error("Size required", {
         description: "Please select at least one size",
+      });
+      return;
+    }
+
+    // Check if user has added at least one design element (text, image, or emoji)
+    if (!hasDesignElements()) {
+      toast.error("Design required", {
+        description: "Please add at least one design element (text, image, or emoji) before adding to cart",
       });
       return;
     }
@@ -266,13 +267,16 @@ const DesignTool = () => {
         duration: 4000,
       });
       
-      // Optional: Auto-move elements into boundary
+      // Auto-move elements into boundary
       const boundaryId = `design-boundary-${activeProduct}`;
       moveObjectsIntoBoundary(canvas!, boundaryId);
       toast.info("Design elements moved into boundary", {
         description: "We've automatically moved your elements within the design area.",
       });
-      return;
+      
+      // Don't return here - continue with adding to cart after moving elements
+      // Wait a moment for the boundary move to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     if (isDualSided && activeProduct === 'tshirt') {
@@ -314,9 +318,8 @@ const DesignTool = () => {
           product_id: `custom-${activeProduct}-dual-${Date.now()}`,
           name: `Custom ${products[activeProduct]?.name || 'Product'} (Dual-Sided)`,
           price: totalPrice,
-          image: frontDesign,
-          quantity: 1,
-          size: effectiveSizes.join(', '),
+          image: frontDesign!,
+          sizes: effectiveSizes.map(size => ({ size, quantity: 1 })),
           metadata: {
             view: 'Dual-Sided',
             backImage: backDesign,
@@ -342,8 +345,7 @@ const DesignTool = () => {
           name: `Custom ${products[activeProduct]?.name || 'Product'}`,
           price: totalPrice,
           image: previewImage || '/placeholder.svg',
-          quantity: 1,
-          size: effectiveSizes.join(', '),
+          sizes: effectiveSizes.map(size => ({ size, quantity: 1 })),
           metadata: {
             view: productView,
             designData: canvasJSON,
@@ -363,6 +365,7 @@ const DesignTool = () => {
         });
       }
      
+      // Navigate to cart page after successful addition
       setTimeout(() => {
         navigate('/cart');
       }, 1000);
@@ -475,8 +478,8 @@ const DesignTool = () => {
                 activeProduct={activeProduct}
                 productView={productView}
                 onViewChange={handleViewChange}
-                selectedSize={selectedSize}
-                onSizeChange={setSelectedSize}
+                selectedSizes={selectedSizes}
+                onSizeToggle={handleSizeToggle}
                 isDualSided={isDualSided}
                 onDualSidedChange={handleDualSidedChange}
                 sizeInventory={sizeInventory}
@@ -486,15 +489,11 @@ const DesignTool = () => {
                 onOpenEmojiModal={() => setIsEmojiModalOpen(true)}
                 onAddToCart={handleAddToCart}
                 validateDesign={validateDesign}
-                selectedSizes={selectedSizes}
-                onSizeToggle={handleSizeToggle}
                 getTotalPrice={getTotalPrice}
                 quantity={quantity}
+                onQuantityChange={setQuantity}
                 productId={activeProduct}
                 upi_input=""
-                  onQuantityChange={setQuantity} 
-                
-
               />
             </div>
           </div>

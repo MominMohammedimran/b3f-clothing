@@ -1,9 +1,11 @@
-import React from 'react';
+
+import React,{ useState }  from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Type, Image, Smile, ShoppingCart, Minus, Plus, XCircle } from 'lucide-react';
+import { Type, Image, Smile, ShoppingCart, Minus, Plus, Loader2 } from 'lucide-react';
+
 
 interface Variant {
   size: string;
@@ -18,6 +20,7 @@ interface CustomizationSidebarProps {
   onSizeToggle: (size: string) => void;
   isDualSided: boolean;
   onDualSidedChange: (checked: boolean) => void;
+  sizeInventory: Record<string, Record<string, number>>;
   products: Record<string, any>;
   onOpenTextModal: () => void;
   onOpenImageModal: () => void;
@@ -39,6 +42,7 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
   onSizeToggle,
   isDualSided,
   onDualSidedChange,
+  sizeInventory,
   products,
   onOpenTextModal,
   onOpenImageModal,
@@ -51,7 +55,7 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
   productId,
   upi_input
 }) => {
-
+const [adding, setAdding] = useState(false); 
   const product = products[activeProduct];
   const productVariants: Variant[] = Array.isArray(product?.variants)
     ? product.variants.filter(v => v && typeof v.size === 'string' && typeof v.stock === 'number')
@@ -190,15 +194,34 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
 
       {/* Action Button */}
       <div className="space-y-2">
-        <Button
-          className="w-full"
-          onClick={onAddToCart}
-          disabled={!validateDesign()}
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          Add to Cart
-        </Button>
-      </div>
+  <Button
+    className="w-full"
+    onClick={async () => {
+      setAdding(true);
+      try {
+        await onAddToCart(); // Ensure this is a Promise (make `onAddToCart` async if not)
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setAdding(false);
+      }
+    }}
+    disabled={!validateDesign() || adding}
+  >
+    {adding ? (
+      <>
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+         Adding to cart Please wait...
+      </>
+    ) : (
+      <>
+        <ShoppingCart className="h-4 w-4 mr-2" />
+        Add to Cart
+      </>
+    )}
+  </Button>
+</div>
+
     </div>
   );
 };

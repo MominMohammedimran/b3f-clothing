@@ -1,7 +1,6 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, CheckCircle } from 'lucide-react';
+import { ShoppingBag, CheckCircle, Loader2 } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { useCart, SizeQuantity } from '@/context/CartContext';
 import { toast } from 'sonner';
@@ -14,102 +13,82 @@ interface ProductActionButtonsProps {
   quantities: Record<string, number>;
 }
 
-const ProductActionButtons = ({ 
-  product, 
-  selectedSizes, 
+const ProductActionButtons = ({
+  product,
+  selectedSizes,
   quantities
 }: ProductActionButtonsProps) => {
   const { addToCart } = useCart();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
+  const [adding, setAdding] = useState(false);
+  const [placing, setPlacing] = useState(false);
+
   const sizesArray: SizeQuantity[] = selectedSizes.map(size => ({
     size,
     quantity: quantities[size] || 1
   }));
 
-  const totalQuantity = sizesArray.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = sizesArray.reduce((sum, item) => sum + (product.price * item.quantity), 0);
+  const totalPrice = sizesArray.reduce((sum, item) => sum + product.price * item.quantity, 0);
 
-  const handleAddToCart = () => {
-    if (!currentUser) {
-      toast.error('Please sign in to add to cart');
-      navigate('/signin');
-      return;
-    }
-    
-    if (selectedSizes.length === 0) {
-      toast.error('Please select at least one size');
-      return;
-    }
-
-    const cartItem = {
-      product_id: product.id,
-      name: product.name,
-      price: product.price,
-      sizes: sizesArray,
-      image: product.image,
-      metadata: {
-        view: 'product',
-        isMultipleSize: true
-      }
-    };
-
-    addToCart(cartItem);
-  };
-
-  const handlePlaceOrder = async () => {
-    if (!currentUser) {
-      toast.error('Please sign in to place an order');
-      navigate('/signin');
-      return;
-    }
-    
-    if (selectedSizes.length === 0) {
-      toast.error('Please select at least one size');
-      return;
-    }
-
-    try {
-      const cartItem = {
-        product_id: product.id,
-        name: product.name,
-        price: product.price,
-        sizes: sizesArray,
-        image: product.image,
-        metadata: {
-          view: 'product',
-          isMultipleSize: true
-        }
-      };
-
-      await addToCart(cartItem);
-      navigate('/checkout');
-    } catch (error) {
-      console.error('Failed to place order:', error);
-      toast.error('Failed to place order');
+  const cartItem = {
+    product_id: product.id,
+    name: product.name,
+    price: product.price,
+    sizes: sizesArray,
+    image: product.image,
+    metadata: {
+      view: 'product',
+      isMultipleSize: true
     }
   };
 
   return (
     <div className="mt-8 flex flex-wrap gap-3">
-      <Button 
-        onClick={handleAddToCart} 
+      <Button
+        onClick={() => {
+          setAdding(true);
+          Promise.resolve(addToCart(cartItem)).finally(() => setAdding(false));
+        }}
         className="flex-1"
         variant="outline"
-        disabled={selectedSizes.length === 0}
+        disabled={selectedSizes.length === 0 || adding}
       >
-        <ShoppingBag size={16} className="mr-2" />
-        Add to Cart {totalPrice > 0 && `(₹${totalPrice})`}
+        {adding ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Adding to Cart...
+          </>
+        ) : (
+          <>
+            <ShoppingBag size={16} className="mr-2" />
+            Add to Cart {totalPrice > 0 && ` (₹${totalPrice})`}
+          </>
+        )}
       </Button>
-      
+
       <Button
-        onClick={handlePlaceOrder}
+        onClick={() => {
+          setPlacing(true);
+          Promise.resolve(addToCart(cartItem))
+            .then(() => navigate('/checkout'))
+            .finally(() => setPlacing(false));
+        }}
         className="flex-1"
-        disabled={selectedSizes.length === 0}
+        disabled={selectedSizes.length === 0 || placing}
       >
-        <CheckCircle size={16} className="mr-2" />
-        Place Order {totalPrice > 0 && `(₹${totalPrice})`}
+        {placing ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Placing Order...
+          </>
+        ) : (
+          <>
+            <CheckCircle size={16} className="mr-2" />
+            Place Order {totalPrice > 0 && ` (₹${totalPrice})`}
+          </>
+        )}
       </Button>
     </div>
   );

@@ -5,12 +5,9 @@ import Layout from '../components/layout/Layout';
 import { toast } from '@/utils/toastWrapper';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../context/AuthContext';
-import OrderSummaryComponent from '../components/checkout/OrderSummaryComponent';
 import ShippingDetailsForm from '../components/checkout/ShippingDetailsForm';
 import { useLocation as useLocationContext } from '../context/LocationContext';
 import { useCart } from '../context/CartContext';
-import { useAddresses } from '../hooks/useAddresses';
-import SavedAddresses from '@/components/checkout/SavedAddresses';
 
 type FormData = {
   firstName: string;
@@ -40,14 +37,9 @@ const Checkout = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [currentOrder, setCurrentOrder] = useState<any>(null);
-  const [useNewAddress, setUseNewAddress] = useState(true);
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-
   const { currentUser } = useAuth();
   const { currentLocation } = useLocationContext();
   const { cartItems, totalPrice } = useCart();
-  const { addresses, defaultAddress, loading: addressesLoading } = useAddresses(currentUser?.id);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -65,16 +57,11 @@ const Checkout = () => {
 
     const loadProfile = async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', currentUser.id)
           .maybeSingle();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Profile fetch error:', error);
-          return;
-        }
 
         if (data) {
           setFormData(prev => ({
@@ -100,57 +87,6 @@ const Checkout = () => {
     loadProfile();
   }, [currentUser, cartItems, navigate, currentLocation]);
 
-  useEffect(() => {
-    if (addressesLoading) return;
-    if (!useNewAddress && selectedAddressId) {
-      const selected = addresses.find(a => a.id === selectedAddressId);
-      if (selected) {
-        fillFormFromAddress(selected);
-      }
-    }
-  }, [addresses, selectedAddressId, useNewAddress, addressesLoading]);
-
-  const fillFormFromAddress = (addr: any) => {
-    setFormData({
-      firstName: addr.first_name || addr.name?.split(' ')[0] || '',
-      lastName: addr.last_name || addr.name?.split(' ').slice(1).join(' ') || '',
-      email: formData.email,
-      phone: addr.phone || '',
-      address: addr.street || '',
-      city: addr.city || '',
-      state: addr.state || '',
-      zipCode: addr.zipcode || '',
-      country: addr.country || 'India',
-    });
-  };
-
-  const handleAddressSelect = (addressId: string) => {
-    setSelectedAddressId(addressId);
-    setUseNewAddress(false);
-    const selected = addresses.find(a => a.id === addressId);
-    if (selected) {
-      fillFormFromAddress(selected);
-      toast.success('Address details filled automatically');
-    }
-  };
-
-const handleUseNewAddress = () => {
-  setUseNewAddress(true);
-  setSelectedAddressId(null);
-  setFormData({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: 'India',
-  });
-};
-
-
   const handleFormSubmit = async (values: FormData) => {
     if (!currentUser || !cartItems || cartItems.length === 0) {
       toast.error('Invalid checkout state');
@@ -162,40 +98,8 @@ const handleUseNewAddress = () => {
     try {
       const shippingAddress = {
         fullName: `${values.firstName} ${values.lastName}`,
-        firstName: values.firstName,
-        lastLine: values.lastName,
-        addressLine1: values.address,
-        street: values.address,
-        city: values.city,
-        state: values.state,
-        postalCode: values.zipCode,
-        zipCode: values.zipCode,
-        country: values.country,
-        phone: values.phone,
-        email: values.email,
+        ...values,
       };
-
-      if (useNewAddress && currentUser && values.address.trim()) {
-        const addressData = {
-          user_id: currentUser.id,
-          name: `${values.firstName} ${values.lastName}`,
-          first_name: values.firstName,
-          last_name: values.lastName,
-          street: values.address,
-          city: values.city,
-          state: values.state,
-          zipcode: values.zipCode,
-          country: values.country,
-          phone: values.phone,
-          is_default: addresses.length === 0,
-        };
-
-        const { error: addressError } = await supabase.from('addresses').insert(addressData);
-        if (addressError) {
-          console.error('Error saving address:', addressError);
-          toast.error('Warning: Could not save address for future use');
-        }
-      }
 
       navigate('/payment', {
         state: {
@@ -218,14 +122,6 @@ const handleUseNewAddress = () => {
   const subtotal = totalPrice;
   const total = subtotal + DELIVERY_FEE;
 
-  const orderSummary = {
-    orderNumber: `B3F-${Date.now().toString().slice(-6)}`,
-    subtotal,
-    deliveryFee: DELIVERY_FEE,
-    total,
-    items: cartItems,
-  };
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-4 sm:py-8 mt-10">
@@ -237,44 +133,19 @@ const handleUseNewAddress = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Shipping Form */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
               <h2 className="text-lg sm:text-xl font-semibold mb-4">Shipping Details</h2>
 
-              {currentLocation && (
+              {/*currentLocation && (
                 <div className="mb-4 p-2 bg-blue-50 rounded-md border border-blue-100">
                   <p className="text-sm text-blue-600">
                     <span className="font-medium">Current Location:</span> {currentLocation.name}
                   </p>
                 </div>
-              )}
-
-              <div className="mb-6">
-                <div className="flex items-center space-x-2 mb-4">
-                  <input
-                    type="radio"
-                    id="new-address"
-                    name="address-option"
-                    checked={useNewAddress}
-                    onChange={handleUseNewAddress}
-                    className="w-4 h-4 text-blue-600"
-                  />
-                  <label htmlFor="new-address" className="text-sm font-medium">
-                    Use new address
-                  </label>
-                </div>
-
-                {!addressesLoading && addresses.length > 0 && (
-                  <SavedAddresses
-                    addresses={addresses}
-                    selectedAddressId={selectedAddressId}
-                    onAddressSelect={handleAddressSelect}
-                    onUseNewAddress={handleUseNewAddress}
-                    useNewAddress={useNewAddress}
-                  />
-                )}
-              </div>
-
+              )*/}
+                
               <ShippingDetailsForm
                 formData={formData}
                 setFormData={setFormData}
@@ -283,10 +154,53 @@ const handleUseNewAddress = () => {
               />
             </div>
           </div>
-
+           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <OrderSummaryComponent currentOrder={currentOrder} />
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <h3 className="font-medium mb-3">Order Summary</h3>
+
+              <div className="space-y-3 mb-4">
+                {cartItems.map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <img
+                      src={item.image || '/placeholder.svg'}
+                      alt={item.name}
+                      className="w-14 h-14 rounded object-cover border"
+                    />
+                    <div className="text-sm">
+                      <p className="font-semibold">{item.name}</p>
+                      {Array.isArray(item.sizes) ? (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {item.sizes.map((s: any, i: number) => (
+                            <div key={i} className="bg-white border px-2 py-1 rounded text-xs text-gray-700">
+                              Size: {s.size} × {s.quantity}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-600">Sizes : N/A</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span>₹{subtotal}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Delivery Fee:</span>
+                <span>₹{DELIVERY_FEE}</span>
+              </div>
+              <div className="flex justify-between font-bold border-t pt-2 mt-2 text-lg">
+                <span>Total:</span>
+                <span className="text-green-600">₹{total}</span>
+              </div>
+            </div>
           </div>
+
+         
         </div>
       </div>
     </Layout>

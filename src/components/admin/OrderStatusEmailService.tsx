@@ -16,14 +16,12 @@ export const sendOrderStatusEmail = async (orderData: OrderEmailData): Promise<b
   try {
     console.log('🚀 Attempting to send order status email:', orderData);
     
-    // Validate email data before sending
     if (!orderData.customerEmail || orderData.customerEmail === 'N/A' || orderData.customerEmail.trim() === '') {
       console.warn('❌ No valid customer email provided:', orderData.customerEmail);
       toast.error('Cannot send email - no valid customer email address');
       return false;
     }
 
-    // Show loading state
     const loadingToast = toast.loading('📧 Sending email notification...');
 
     console.log('📡 Invoking send-order-notification function...');
@@ -48,7 +46,6 @@ export const sendOrderStatusEmail = async (orderData: OrderEmailData): Promise<b
       }
     });
 
-    // Dismiss loading toast
     toast.dismiss(loadingToast);
 
     if (error) {
@@ -112,7 +109,6 @@ export const notifyOrderStatusChange = async (
   return success;
 };
 
-// Function to send order confirmation email after payment completion
 export const sendOrderConfirmationEmail = async (orderData: OrderEmailData): Promise<boolean> => {
   try {
     console.log('🎉 Sending order confirmation email with full details:', orderData);
@@ -123,7 +119,6 @@ export const sendOrderConfirmationEmail = async (orderData: OrderEmailData): Pro
       return false;
     }
 
-    // Show loading state
     const loadingToast = toast.loading('📧 Sending order confirmation with details...');
 
     const { data, error } = await supabase.functions.invoke('send-order-notification', {
@@ -147,7 +142,6 @@ export const sendOrderConfirmationEmail = async (orderData: OrderEmailData): Pro
       }
     });
 
-    // Dismiss loading toast
     toast.dismiss(loadingToast);
 
     if (error) {

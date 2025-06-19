@@ -50,15 +50,17 @@ const ProductDetails = () => {
           stock: data.stock || 0,
           sizes: Array.isArray(data.sizes) ? data.sizes.filter(size => typeof size === 'string') : [],
           tags: Array.isArray(data.tags) ? data.tags.filter(tag => typeof tag === 'string') : [],
-          variants: Array.isArray(data.variants) 
-            ? data.variants.filter((v: any) => 
-                typeof v === 'object' && v && 
-                typeof v.size === 'string' && 
-                typeof v.stock === 'number'
-              ).map((v: any) => ({
-                size: v.size as string,
-                stock: v.stock as number
-              } as ProductVariant))
+         variants: Array.isArray(data.variants)
+ ? data.variants
+ .filter((v: any) =>
+ typeof v === 'object' &&
+ typeof v.size === 'string' &&
+  (typeof v.stock === 'string'|| typeof v.stock ==='number')
+                      )
+                   .map((v: any) => ({
+                    size: v.size,
+                    stock: String(v.stock??'0') 
+                   }))
             : []
         };
 

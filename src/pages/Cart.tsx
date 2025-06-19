@@ -38,7 +38,7 @@ const Cart = () => {
   };
 
   const { settings: deliverySettings, loading: settingsLoading } = useDeliverySettings();
-  const deliveryFee = deliverySettings?.delivery_fee || 80;
+  const deliveryFee = deliverySettings?.delivery_fee || 100;
 
   if (loading) {
     return (

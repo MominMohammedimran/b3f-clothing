@@ -10,7 +10,7 @@ interface ProductDetailsContentProps {
 
 const ProductDetailsContent: React.FC<ProductDetailsContentProps> = ({ product }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white rounded-xl shadow-md p-6">
+    <div className="grid grid-cols-1 md:grid-cols-2  bg-white rounded-xl shadow-md p-6 pb-0">
       <ProductImage 
         image={product.image} 
         name={product.name} 

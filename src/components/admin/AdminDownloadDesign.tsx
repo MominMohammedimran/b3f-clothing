@@ -4,267 +4,163 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface Order {
+  id: string;
+  order_number: string;
+  items: any[];
+}
+
 interface AdminDownloadDesignProps {
-  order: any;
+  order: Order;
 }
 
 const AdminDownloadDesign: React.FC<AdminDownloadDesignProps> = ({ order }) => {
-  const hasCustomPrint = order.items?.some((item: any) => 
-    item.metadata?.designData || item.metadata?.customDesign || item.name?.toLowerCase().includes('custom') || item.name?.toLowerCase().includes('printed')
-  );
-
-  const handleDownload = async () => {
+  const downloadDesignAsImage = async (designData: any, fileName: string) => {
     try {
-      // Find items with design data
-      const customItems = order.items?.filter((item: any) => 
-        item.metadata?.designData || item.metadata?.customDesign || item.name?.toLowerCase().includes('custom') || item.name?.toLowerCase().includes('printed')
-      );
-
-      if (!customItems || customItems.length === 0) {
-        toast.error('No custom design found in this order');
-        return;
-      }
-
-      // Create a canvas for the print-ready design with WHITE background
+      // Create a canvas to render the design
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      // Set optimal print dimensions (300 DPI for high quality printing)
-      const printWidth = 2400;  // 8 inches at 300 DPI
-      const printHeight = 3000; // 10 inches at 300 DPI
-      
-      canvas.width = printWidth;
-      canvas.height = printHeight;
-
       if (!ctx) {
-        toast.error('Failed to create canvas context');
-        return;
+        throw new Error('Could not get canvas context');
       }
 
-      // Fill with PURE WHITE background for printing
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, printWidth, printHeight);
-
-      // Add order header information
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 48px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`Order: ${order.order_number}`, printWidth / 2, 80);
+      // Set canvas size
+      canvas.width = 800;
+      canvas.height = 800;
       
-      ctx.font = '32px Arial';
-      ctx.fillText(`Date: ${new Date(order.created_at).toLocaleDateString()}`, printWidth / 2, 140);
+      // Make background transparent
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Add customer info
-      ctx.font = '28px Arial';
-      ctx.fillText(`Customer: ${order.user_email}`, printWidth / 2, 180);
-
-      let yOffset = 250;
-
-      // Process each custom item
-      for (let i = 0; i < customItems.length; i++) {
-        const item = customItems[i];
-        const designData = item.metadata?.designData || item.metadata?.customDesign || item.metadata?.previewImage;
-        
-        // Add item information with clear spacing
-        ctx.fillStyle = '#000000';
-        ctx.font = 'bold 36px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText(`Item ${i + 1}: ${item.name}`, 50, yOffset);
-        yOffset += 50;
-        
-        ctx.font = '24px Arial';
-        ctx.fillText(`Size: ${item.size || 'N/A'} | Quantity: ${item.quantity}`, 50, yOffset);
-        yOffset += 80;
-        
-        if (designData) {
+      if (designData && designData.objects) {
+        // Render each design object
+        for (const obj of designData.objects) {
           try {
-            let imageUrl = null;
-            
-            // Handle different design data formats
-            if (typeof designData === 'string') {
-              if (designData.startsWith('data:image') || designData.startsWith('http')) {
-                imageUrl = designData;
-              } else {
-                // Try to parse as JSON
-                try {
-                  const parsed = JSON.parse(designData);
-                  imageUrl = parsed.canvas || parsed.frontDesign || parsed.imageUrl;
-                } catch {
-                  imageUrl = designData;
-                }
-              }
-            } else if (designData.frontDesign) {
-              imageUrl = designData.frontDesign;
-            } else if (designData.canvas) {
-              imageUrl = designData.canvas;
-            } else if (designData.imageUrl) {
-              imageUrl = designData.imageUrl;
-            }
-            
-            if (imageUrl) {
-              // Load and process the design image
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              
-              await new Promise((resolve, reject) => {
-                img.onload = () => {
-                  // Create a white background for the design area
-                  const designAreaWidth = printWidth - 100;
-                  const designAreaHeight = 800;
-                  const designX = 50;
-                  const designY = yOffset;
-                  
-                  // Fill design area with white background
-                  ctx.fillStyle = '#FFFFFF';
-                  ctx.fillRect(designX - 20, designY - 20, designAreaWidth + 40, designAreaHeight + 40);
-                  
-                  // Add a subtle border around the design area
-                  ctx.strokeStyle = '#CCCCCC';
-                  ctx.lineWidth = 2;
-                  ctx.strokeRect(designX - 20, designY - 20, designAreaWidth + 40, designAreaHeight + 40);
-                  
-                  // Calculate image dimensions maintaining aspect ratio
-                  let designWidth = img.width;
-                  let designHeight = img.height;
-                  
-                  // Scale to fit within design area
-                  const scaleX = designAreaWidth / designWidth;
-                  const scaleY = designAreaHeight / designHeight;
-                  const scale = Math.min(scaleX, scaleY, 1); // Don't upscale
-                  
-                  designWidth *= scale;
-                  designHeight *= scale;
-                  
-                  // Center the design in the area
-                  const centeredX = designX + (designAreaWidth - designWidth) / 2;
-                  const centeredY = designY + (designAreaHeight - designHeight) / 2;
-                  
-                  // Draw the design image on WHITE background
-                  ctx.drawImage(img, centeredX, centeredY, designWidth, designHeight);
-                  
-                  // Add design label
-                  ctx.fillStyle = '#000000';
-                  ctx.font = 'bold 20px Arial';
-                  ctx.textAlign = 'center';
-                  ctx.fillText('DESIGN FOR PRINTING', printWidth / 2, designY + designAreaHeight + 60);
-                  
-                  resolve(null);
-                };
-                
-                img.onerror = () => {
-                  console.error('Failed to load design image:', imageUrl);
-                  // Draw placeholder on white background
-                  ctx.fillStyle = '#FFFFFF';
-                  ctx.fillRect(50, yOffset, printWidth - 100, 200);
-                  ctx.strokeStyle = '#CCCCCC';
-                  ctx.lineWidth = 2;
-                  ctx.strokeRect(50, yOffset, printWidth - 100, 200);
-                  
-                  ctx.fillStyle = '#666666';
-                  ctx.font = '24px Arial';
-                  ctx.textAlign = 'center';
-                  ctx.fillText('Design image could not be loaded', printWidth / 2, yOffset + 100);
-                  resolve(null);
-                };
-                
-                img.src = imageUrl;
-              });
-              
-              yOffset += 900; // Space for next item
-            } else {
-              // No valid image found, show placeholder on white background
-              ctx.fillStyle = '#FFFFFF';
-              ctx.fillRect(50, yOffset, printWidth - 100, 150);
-              ctx.strokeStyle = '#CCCCCC';
-              ctx.lineWidth = 2;
-              ctx.strokeRect(50, yOffset, printWidth - 100, 150);
-              
+            if (obj.type === 'text' || obj.type === 'i-text') {
+              // Render text
+              ctx.font = `${obj.fontSize || 20}px ${obj.fontFamily || 'Arial'}`;
+              ctx.fillStyle = obj.fill || '#000000';
+              ctx.textAlign = 'left';
+              ctx.fillText(obj.text || '', obj.left || 50, (obj.top || 50) + (obj.fontSize || 20));
+            } else if (obj.type === 'image') {
+              // For images, we'll create a placeholder since we can't load the actual image
+              ctx.fillStyle = obj.fill || '#CCCCCC';
+              ctx.fillRect(obj.left || 50, obj.top || 50, obj.width || 100, obj.height || 100);
               ctx.fillStyle = '#666666';
-              ctx.font = '20px Arial';
-              ctx.textAlign = 'center';
-              ctx.fillText('Custom design data available but no image found', printWidth / 2, yOffset + 75);
-              yOffset += 200;
+              ctx.font = '12px Arial';
+              ctx.fillText('Image', (obj.left || 50) + 10, (obj.top || 50) + 20);
+            } else if (obj.type === 'circle') {
+              // Render circle/emoji
+              ctx.beginPath();
+              ctx.arc(
+                (obj.left || 50) + (obj.radius || 25), 
+                (obj.top || 50) + (obj.radius || 25), 
+                obj.radius || 25, 
+                0, 
+                2 * Math.PI
+              );
+              ctx.fillStyle = obj.fill || '#FFFF00';
+              ctx.fill();
+              
+              // If it's an emoji, try to render the text
+              if (obj.text) {
+                ctx.font = `${(obj.radius || 25) * 1.5}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#000000';
+                ctx.fillText(
+                  obj.text, 
+                  (obj.left || 50) + (obj.radius || 25), 
+                  (obj.top || 50) + (obj.radius || 25) + ((obj.radius || 25) * 0.5)
+                );
+              }
             }
-          } catch (error) {
-            console.error('Error processing design:', error);
-            // Error placeholder on white background
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(50, yOffset, printWidth - 100, 150);
-            ctx.strokeStyle = '#FF0000';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(50, yOffset, printWidth - 100, 150);
-            
-            ctx.fillStyle = '#FF0000';
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Error loading design', printWidth / 2, yOffset + 75);
-            yOffset += 200;
+          } catch (objError) {
+            console.error('Error rendering object:', objError);
           }
-        } else {
-          // No design data, show placeholder on white background
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(50, yOffset, printWidth - 100, 150);
-          ctx.strokeStyle = '#CCCCCC';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(50, yOffset, printWidth - 100, 150);
-          
-          ctx.fillStyle = '#888888';
-          ctx.font = '20px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText('No design data available', printWidth / 2, yOffset + 75);
-          yOffset += 200;
         }
-        
-        yOffset += 100; // Space between items
       }
-
-      // Add footer with print instructions
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 24px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('PRINT INSTRUCTIONS:', printWidth / 2, yOffset + 50);
-      ctx.font = '18px Arial';
-      ctx.fillText('• Print on white background for best results', printWidth / 2, yOffset + 80);
-      ctx.fillText('• Use high-quality transfer paper for t-shirt printing', printWidth / 2, yOffset + 110);
-      ctx.fillText('• Follow heat press instructions according to paper manufacturer', printWidth / 2, yOffset + 140);
-
-      // Convert canvas to blob and download
+      
+      // Download the canvas as PNG with transparent background
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `PRINT_READY_design-${order.order_number}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
           URL.revokeObjectURL(url);
-          
-          toast.success('✅ Print-ready design downloaded successfully with white background');
-        } else {
-          toast.error('Failed to generate download');
+          toast.success('Design downloaded successfully');
         }
-      }, 'image/png', 1.0); // Maximum quality for printing
-
+      }, 'image/png');
+      
     } catch (error) {
       console.error('Error downloading design:', error);
-      toast.error('Failed to download design: ' + (error as Error).message);
+      toast.error('Failed to download design');
     }
   };
 
-  if (!hasCustomPrint) {
-    return null;
-  }
+  const handleDownloadDesign = async () => {
+    try {
+      const customItems = order.items.filter((item: any) => 
+        item.metadata?.designData || item.metadata?.previewImage
+      );
+      
+      if (customItems.length === 0) {
+        toast.error('No custom designs found in this order');
+        return;
+      }
+
+      // Download designs for each custom item
+      for (let i = 0; i < customItems.length; i++) {
+        const item = customItems[i];
+        const fileName = `design_${order.order_number}_item_${i + 1}.png`;
+        
+        if (item.metadata?.designData) {
+          // Parse the design data if it's a string
+          let designData = item.metadata.designData;
+          if (typeof designData === 'string') {
+            try {
+              designData = JSON.parse(designData);
+            } catch (parseError) {
+              console.error('Error parsing design data:', parseError);
+              continue;
+            }
+          }
+          
+          await downloadDesignAsImage(designData, fileName);
+          
+          // Add delay between downloads
+          if (i < customItems.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } else if (item.metadata?.previewImage) {
+          // If only preview image is available, download that
+          const link = document.createElement('a');
+          link.href = item.metadata.previewImage;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error in handleDownloadDesign:', error);
+      toast.error('Failed to download designs');
+    }
+  };
 
   return (
     <Button
-      variant="outline"
+      variant="ghost"
       size="sm"
-      onClick={handleDownload}
-      className="ml-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+      onClick={handleDownloadDesign}
+      className="h-8 w-8 p-0"
+      title="Download Design"
     >
-      <Download className="h-4 w-4 mr-1" />
-      📄 Download Print Design
+      <Download size={14} />
     </Button>
   );
 };

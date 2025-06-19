@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { XCircle } from 'lucide-react';
 import { Product } from '@/lib/types';
 import ProductQuantitySelector from './ProductQuantitySelector';
 import ProductActionButtons from './ProductActionButtons';
-import { XCircle } from 'lucide-react';
+import { useCart } from '@/context/CartContext';
 
 interface SizeWithQuantity {
   size: string;
@@ -14,194 +15,163 @@ export interface ProductDetailsProps {
   allowMultipleSizes?: boolean;
 }
 
-const ProductDetails: React.FC<ProductDetailsProps> = ({
-  product,
-  allowMultipleSizes = true,
-}) => {
+const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allowMultipleSizes = true }) => {
   const [selectedSizes, setSelectedSizes] = useState<SizeWithQuantity[]>([]);
+  const { cartItems, removeSizeFromCart } = useCart();
 
-  // Parse variants from JSON
-  let productVariants = product.variants;
-  if (typeof productVariants === 'string') {
-    try {
-      productVariants = JSON.parse(productVariants);
-    } catch (e) {
-      console.error('Error parsing product variants:', e);
-      productVariants = [];
+  useEffect(() => {
+    const cartItem = cartItems.find(item => item.product_id === product.id);
+    if (cartItem) {
+      setSelectedSizes(cartItem.sizes.map(s => ({ size: s.size, quantity: s.quantity })));
     }
-  }
-
-  // Build available sizes from variants or fallback
-  const availableSizes: string[] = [];
-  if (Array.isArray(productVariants) && productVariants.length > 0) {
-    for (const variant of productVariants) {
-      if (variant && variant.size && variant.stock > 0) {
-        availableSizes.push(variant.size);
-      }
-    }
-  } else if (Array.isArray(product.sizes) && product.sizes.length > 0) {
-    availableSizes.push(...product.sizes);
-  } else {
-    availableSizes.push('S', 'M', 'L', 'XL');
-  }
+  }, [cartItems, product.id]);
 
   const handleSizeToggle = (size: string) => {
-    setSelectedSizes((prev) => {
-      const exists = prev.find((s) => s.size === size);
+    setSelectedSizes(prev => {
+      const exists = prev.find(s => s.size === size);
       if (exists) {
-        return prev.filter((s) => s.size !== size);
+        return prev.filter(s => s.size !== size);
       } else {
         return [...prev, { size, quantity: 1 }];
       }
     });
   };
 
+  const handleDoubleRemove = async (size: string) => {
+    const cartItem = cartItems.find(item => item.product_id === product.id);
+    if (cartItem) {
+      await removeSizeFromCart(cartItem.id, size);
+    }
+    handleSizeToggle(size);
+  };
+
   const handleQuantityChange = (size: string, quantity: number) => {
-    setSelectedSizes((prev) =>
-      prev.map((s) => (s.size === size ? { ...s, quantity } : s))
+    setSelectedSizes(prev =>
+      prev.map(s => (s.size === size ? { ...s, quantity } : s))
     );
   };
+
+  let productVariants = product.variants;
+  if (typeof productVariants === 'string') {
+    try {
+      productVariants = JSON.parse(productVariants);
+    } catch {
+      productVariants = [];
+    }
+  }
+
+  const availableSizes = Array.isArray(productVariants)
+    ? productVariants.map(v => v.size)
+    : [];
 
   const totalQuantity = selectedSizes.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = selectedSizes.reduce((sum, item) => sum + item.quantity * product.price, 0);
 
   return (
     <div className="space-y-6 bg-white p-4 md:p-6 rounded-xl shadow-md">
-
-      {/* Product Title + Price */}
-      <div className="relative rounded-xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-900 tracking-tight">
-            {product.name}
-          </h2>
-          <div className="relative">
-            <span
-              aria-hidden="true"
-              className="absolute inset-0 rounded-full bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 opacity-30 blur-md -z-10"
-            />
-            <span className="relative text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 px-6 py-1">
-              ₹{totalPrice || product.price}
-            </span>
-          </div>
-        </div>
-
-        {selectedSizes.length > 1 && (
-          <div className="text-sm text-gray-600 italic mt-1 text-right">
-            ({selectedSizes.length} sizes × {totalQuantity} qty)
-          </div>
-        )}
+      {/* Product Title */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-900">{product.name}</h2>
+        <span className="text-2xl font-bold text-blue-600">₹{totalPrice || product.price}</span>
       </div>
 
       {/* Description */}
       {product.description && (
-        <div className="mt-2">
-          <p className="text-base font-semibold text-gray-700 leading-relaxed break-words">
-            <span className="text-lg text-gray-900">Description:</span> {product.description}
-          </p>
-        </div>
+        <p className="text-gray-700">{product.description}</p>
       )}
 
-      {/* Price breakdown and badges */}
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        {product.originalPrice && product.originalPrice > product.price && (
-          <>
-            <span className="text-gray-400 line-through">
-              ₹{product.originalPrice * totalQuantity}
-            </span>
-            <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
-              {product.discountPercentage}% OFF
-            </span>
-          </>
-        )}
-        {selectedSizes.length > 1 && (
-          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-            {selectedSizes.length} Sizes
-          </span>
-        )}
-        {totalQuantity > 1 && (
-          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
-            Qty: {totalQuantity}
-          </span>
-        )}
-      </div>
+      {/* Sizes */}
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Select Sizes</h3>
+        <div className="grid grid-cols-4 gap-2">
+          {availableSizes.map(size => {
+            const selected = selectedSizes.some(s => s.size === size);
+            const cartItem = cartItems.find(item => item.product_id === product.id);
+            const inCart = cartItem?.sizes.some(s => s.size === size);
 
-      {/* Size Selection */}
-      {availableSizes.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Sizes</h3>
-          <div className="grid grid-cols-4 gap-2 mb-4">
-            {availableSizes.map((size) => {
-              const isSelected = selectedSizes.some(s => s.size === size);
-              const variant = Array.isArray(productVariants) 
-                ? productVariants.find(v => v.size === size)
-                : null;
-              const stock = variant?.stock || 10;
-
-              return (
-                <button
-                  key={size}
-                  onClick={() => handleSizeToggle(size)}
-                  className={`p-3 border-2 rounded-lg text-center font-medium transition-all duration-200
-                    ${isSelected 
-                      ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                      : 'border-gray-300 hover:border-gray-400 text-gray-700 hover:bg-gray-50'}
-                  `}
-                  disabled={stock <= 0}
-                >
-                  <div className="text-sm font-semibold">{size}</div>
-                  <div className="text-xs mt-1 text-gray-600">
-                    {stock > 0 ? `${stock} left` : 'Out of stock'}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+            return (
+              <button
+                key={size}
+                onClick={() => handleSizeToggle(size)}
+                onDoubleClick={() => handleDoubleRemove(size)}
+                className={`px-3 py-2 rounded-lg border text-sm font-medium
+                  ${selected ? 'bg-blue-100 border-blue-500 text-blue-800' : 'border-gray-300'}
+                  ${inCart ? 'ring-2 ring-green-400' : ''}`}
+              >
+                {size}
+                {inCart && (
+                  <div className="text-xs text-green-700">In Cart</div>
+                )}
+              </button>
+            );
+          })}
         </div>
-      )}
+         </div>
 
-      {/* Quantity Controls for Selected Sizes */}
+      {/* Quantity Controls */}
       {selectedSizes.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">Quantities</h3>
-          <div className="flex gap-3 overflow-x-auto py-2">
-            {selectedSizes.map((sizeItem) => {
-              const variant = Array.isArray(productVariants) 
-                ? productVariants.find(v => v.size === sizeItem.size)
-                : null;
-              const maxStock = variant?.stock || 10;
+          <h3 className="text-lg font-semibold mb-2">Quantities</h3>
+          <div className="flex gap-3 overflow-x-auto">
+            {selectedSizes.map(sizeItem => {
+              const variant = productVariants?.find(v => v.size === sizeItem.size);
+              const maxStock = variant ? parseInt(variant.stock.toString()) : 10;
+              const cartItem = cartItems.find(item => item.product_id === product.id);
+              const cartSize = cartItem?.sizes.find(s => s.size === sizeItem.size);
+              const inCartQty = cartSize?.quantity;
 
               return (
                 <div
-                  key={sizeItem.size}
-                  className="flex flex-col items-center justify-between bg-gray-50 border p-3 rounded-lg min-w-[140px] shadow-sm"
-                >
-                  {/* Size Label */}
-                  <div className="flex items-center justify-between w-full mb-2">
-                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
-                      {sizeItem.size}
-                    </span>
-                    <button
-                      onClick={() => handleSizeToggle(sizeItem.size)}
-                      className="text-red-500 hover:text-red-700 transition"
-                    >
-                      <XCircle className="w-5 h-5" />
-                    </button>
-                  </div>
+  key={sizeItem.size}
+  className={`flex flex-col border rounded-lg p-3 min-w-[140px] bg-gray-50 ${
+    inCartQty ? 'border-green-400 bg-green-50' : ''
+  }`}
+>
+  {/* Size + Actions */}
+  <div className="flex justify-between items-center mb-2">
+    <span className="text-sm font-semibold">{sizeItem.size}</span>
 
-                  {/* Quantity Selector */}
-                  <div className="mb-2">
-                    <ProductQuantitySelector
-                      quantity={sizeItem.quantity}
-                      maxQuantity={maxStock}
-                      onChange={(qty) => handleQuantityChange(sizeItem.size, qty)}
-                    />
-                  </div>
+    <div className="flex items-center space-x-1">
+      {inCartQty > 0 && (
+        <button
+          onClick={() => removeSizeFromCart(cartItem?.id, sizeItem.size)}
+          className="text-red-600 hover:text-green-800"
+          title="Remove from cart"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-cart-x" viewBox="0 0 16 16">
+  <path d="M7.354 5.646a.5.5 0 1 0-.708.708L7.793 7.5 6.646 8.646a.5.5 0 1 0 .708.708L8.5 8.207l1.146 1.147a.5.5 0 0 0 .708-.708L9.207 7.5l1.147-1.146a.5.5 0 0 0-.708-.708L8.5 6.793z"/>
+  <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1zm3.915 10L3.102 4h10.796l-1.313 7zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0m7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+</svg>
+        </button>
+      )}
+      <button
+        className="text-red-500"
+        onClick={() => handleSizeToggle(sizeItem.size)}
+        title="Remove selection"
+      >
+        <XCircle className="w-4 h-4" />
+      </button>
+    </div>
+  </div>
 
-                  {/* Price */}
-                  <div className="text-lg font-semibold text-gray-900">
-                    ₹{(product.price * sizeItem.quantity).toFixed(2)}
-                  </div>
-                </div>
+  {/* In Cart Quantity Info */}
+  {inCartQty > 0 && (
+    <div className="text-xs text-green-700 mb-1">In Cart: {inCartQty}</div>
+  )}
+
+  {/* Quantity Selector */}
+  <ProductQuantitySelector
+    quantity={sizeItem.quantity}
+    maxQuantity={maxStock}
+    onChange={(qty) => handleQuantityChange(sizeItem.size, qty)}
+  />
+
+  {/* Price */}
+  <div className="mt-2 text-sm font-semibold text-gray-800">
+    ₹{(product.price * sizeItem.quantity).toFixed(2)}
+  </div>
+</div>
+
               );
             })}
           </div>

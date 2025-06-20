@@ -83,100 +83,100 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product, allowMultipleS
       {/* Sizes */}
       <div>
         <h3 className="text-lg font-semibold mb-2">Select Sizes</h3>
+        
         <div className="grid grid-cols-4 gap-2">
-          {availableSizes.map(size => {
-            const selected = selectedSizes.some(s => s.size === size);
-            const cartItem = cartItems.find(item => item.product_id === product.id);
-            const inCart = cartItem?.sizes.some(s => s.size === size);
+  {availableSizes.map(size => {
+    const selected = selectedSizes.some(s => s.size === size);
+    const cartItem = cartItems.find(item => item.product_id === product.id);
+    const inCart = cartItem?.sizes.some(s => s.size === size);
+    const variant = productVariants?.find(v => v.size === size);
+    const stock = variant?.stock ?? 'N/A';
 
-            return (
-              <button
-                key={size}
-                onClick={() => handleSizeToggle(size)}
-                onDoubleClick={() => handleDoubleRemove(size)}
-                className={`px-3 py-2 rounded-lg border text-sm font-medium
-                  ${selected ? 'bg-blue-100 border-blue-500 text-blue-800' : 'border-gray-300'}
-                  ${inCart ? 'ring-2 ring-green-400' : ''}`}
-              >
-                {size}
-                {inCart && (
-                  <div className="text-xs text-green-700">In Cart</div>
-                )}
-              </button>
-            );
-          })}
+    return (
+      <button
+        key={size}
+        onClick={() => handleSizeToggle(size)}
+        onDoubleClick={() => handleDoubleRemove(size)}
+        className={`px-3 py-2 rounded-lg border text-sm font-medium text-center
+          ${selected ? 'bg-blue-100 border-blue-500 text-blue-800' : 'border-gray-300'}
+          ${inCart ? 'ring-2 ring-green-400' : ''}`}
+      >
+        <div className="font-semibold">{size}</div>
+        <div className="text-xs text-gray-600">
+          Qty: {stock !== 'N/A' ? stock : 'N/A'}
         </div>
+        {inCart && (
+          <div className="text-xs text-green-700 mt-1">In Cart</div>
+        )}
+      </button>
+    );
+  })}
+</div>
+
+
          </div>
 
       {/* Quantity Controls */}
       {selectedSizes.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Quantities</h3>
-          <div className="flex gap-3 overflow-x-auto">
-            {selectedSizes.map(sizeItem => {
-              const variant = productVariants?.find(v => v.size === sizeItem.size);
-              const maxStock = variant ? parseInt(variant.stock.toString()) : 10;
-              const cartItem = cartItems.find(item => item.product_id === product.id);
-              const cartSize = cartItem?.sizes.find(s => s.size === sizeItem.size);
-              const inCartQty = cartSize?.quantity;
+  <div>
+    <h3 className="text-lg font-semibold text-gray-800 mb-3">Quantities</h3>
+    <div className="flex gap-3 overflow-x-auto py-2">
+      {selectedSizes.map((sizeItem) => {
+        const variant = Array.isArray(productVariants)
+          ? productVariants.find((v) => v.size === sizeItem.size)
+          : null;
+        const maxStock = variant?.stock ? parseInt(variant.stock) : 0;
 
-              return (
-                <div
-  key={sizeItem.size}
-  className={`flex flex-col border rounded-lg p-3 min-w-[140px] bg-gray-50 ${
-    inCartQty ? 'border-green-400 bg-green-50' : ''
-  }`}
->
-  {/* Size + Actions */}
-  <div className="flex justify-between items-center mb-2">
-    <span className="text-sm font-semibold">{sizeItem.size}</span>
+        const cartItem = cartItems.find((item) => item.product_id === product.id);
+        const cartSizeInfo = cartItem?.sizes?.find((s) => s.size === sizeItem.size);
+        const inCartQty = cartSizeInfo?.quantity;
 
-    <div className="flex items-center space-x-1">
-      {inCartQty > 0 && (
-        <button
-          onClick={() => removeSizeFromCart(cartItem?.id, sizeItem.size)}
-          className="text-red-600 hover:text-green-800"
-          title="Remove from cart"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-cart-x" viewBox="0 0 16 16">
-  <path d="M7.354 5.646a.5.5 0 1 0-.708.708L7.793 7.5 6.646 8.646a.5.5 0 1 0 .708.708L8.5 8.207l1.146 1.147a.5.5 0 0 0 .708-.708L9.207 7.5l1.147-1.146a.5.5 0 0 0-.708-.708L8.5 6.793z"/>
-  <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1zm3.915 10L3.102 4h10.796l-1.313 7zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0m7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
-</svg>
-        </button>
-      )}
-      <button
-        className="text-red-500"
-        onClick={() => handleSizeToggle(sizeItem.size)}
-        title="Remove selection"
-      >
-        <XCircle className="w-4 h-4" />
-      </button>
+        return (
+          <div
+            key={sizeItem.size}
+            onDoubleClick={() => handleDoubleRemove(sizeItem.size)}
+            className={`flex flex-col border rounded-lg p-3 min-w-[140px] bg-gray-50 ${
+              inCartQty ? 'border-green-400 bg-green-50' : ''
+            }`}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-semibold">{sizeItem.size}</span>
+              <button
+                className="text-red-500"
+                onClick={() => handleSizeToggle(sizeItem.size)}
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Stock Info */}
+            <div className="text-xs text-gray-800 mb-2">
+              Qty : {variant?.stock ?? 'N/A'}
+            </div>
+
+            {/* Cart Info */}
+            {inCartQty !== undefined && (
+              <div className="text-xs text-green-700 mb-1">
+                In Cart : {inCartQty}
+              </div>
+            )}
+
+            <ProductQuantitySelector
+              quantity={sizeItem.quantity}
+              maxQuantity={maxStock}
+              onChange={(qty) => handleQuantityChange(sizeItem.size, qty)}
+            />
+
+            <div className="mt-2 text-sm font-semibold text-gray-800">
+              ₹{(product.price * sizeItem.quantity).toFixed(2)}
+            </div>
+          </div>
+        );
+      })}
     </div>
   </div>
+)}
 
-  {/* In Cart Quantity Info */}
-  {inCartQty > 0 && (
-    <div className="text-xs text-green-700 mb-1">In Cart: {inCartQty}</div>
-  )}
-
-  {/* Quantity Selector */}
-  <ProductQuantitySelector
-    quantity={sizeItem.quantity}
-    maxQuantity={maxStock}
-    onChange={(qty) => handleQuantityChange(sizeItem.size, qty)}
-  />
-
-  {/* Price */}
-  <div className="mt-2 text-sm font-semibold text-gray-800">
-    ₹{(product.price * sizeItem.quantity).toFixed(2)}
-  </div>
-</div>
-
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Action Buttons */}
       <ProductActionButtons

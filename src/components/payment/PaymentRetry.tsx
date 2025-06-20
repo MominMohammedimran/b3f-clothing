@@ -121,58 +121,58 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
           <p className="text-sm text-gray-600 text-center">Order: {orderNumber}</p>
 
           <div className="space-y-3 border-b pb-4">
-            {orderItems.length === 0 ? (
-              <p className="text-center text-gray-400 text-sm">No items found.</p>
-            ) : (
-              orderItems.map((item: any, index: number) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={item.image || '/placeholder.svg'}
-                        alt={item.name}
-                        className="w-12 h-12 object-cover rounded border"
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{item.name}</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveItem(index)}
-                      className="text-red-600 bg-blue hover:text-red-800"
-                    >
-                       Remove
-                    </Button>
-                  </div>
+{orderItems.length === 0 ? (
+ <p className="text-center text-gray-400 text-sm">No items found.</p>
+) : (
+ orderItems.map((item: any, index: number) => (
+ <div key={index} className="space-y-1">
+ <div className="flex items-start justify-between">
+ <div className="flex items-center gap-3">
+ <img
+ src={item.image || '/placeholder.svg'}
+ alt={item.name}
+className="w-12 h-12 object-cover rounded border"
+ />
+ <p className="text-sm font-medium text-gray-900 leading-tight">{item.name}</p>
+</div>
 
-                  {Array.isArray(item.sizes) ? (
-                    <div className="flex flex-wrap gap-2 ml-14">
-                      {item.sizes.map((s: any, sIdx: number) => (
-                        <div
-                          key={`${item.name}-${s.size}-${sIdx}`}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm bg-gray-50"
-                        >
-                          <span className="font-medium text-gray-700">{s.size}</span>
-                          <span className="text-gray-500"> × {s.quantity}</span>
-                          {s.updated_quantity && s.updated_quantity !== s.quantity && (
-                            <span className="text-gray-400 text-xs italic ml-1">
-                              → {s.updated_quantity}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-700 ml-14">
-                      {item.size} × {item.quantity}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+ <Button
+ variant="ghost"
+ size="icon"
+onClick={() => handleRemoveItem(index)}
+ className="text-xs text-red-600 hover:text-red-800"
+ >
+ Clear
+</Button>
+ </div>
+
+ {Array.isArray(item.sizes) ? (
+ <div className="flex flex-wrap gap-1 pl-14">
+{item.sizes.map((s: any, sIdx: number) => (
+<div
+ key={`${item.name}-${s.size}-${sIdx}`}
+className="flex items-center gap-1 px-2 py-0.5 border rounded bg-gray-100 text-xs"
+ >
+<span className="text-gray-700 font-medium">{s.size}</span>
+ <span className="text-gray-500">× {s.quantity}</span>
+ {s.updated_quantity && s.updated_quantity !== s.quantity && (
+ <span className="text-gray-400 italic ml-1">
+ → {s.updated_quantity}
+ </span>
+ )}
+ </div>
+ ))}
+ </div>
+ ) : (
+<div className="pl-14 text-xs text-gray-700">
+ {item.size} × {item.quantity}
+</div>
+ )}
+ </div>
+ ))
+ )}
+</div>
+
 
           <p className="text-2xl font-bold text-green-600 text-center">₹{amount}</p>
 

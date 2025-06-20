@@ -37,6 +37,21 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
   const [loading, setLoading] = useState(false);
   const { settings: deliverySettings } = useDeliverySettings();
   const deliveryFee = deliverySettings.delivery_fee;
+const itemsDescription = cartItems
+ .map(item => {
+ const baseName = item.name || "Product";
+  const itemPrice = item.price || 0;
+ if (Array.isArray(item.sizes)) {
+ return item.sizes
+.map((s: any) =>
+`${baseName} (${s.size} ×${s.quantity}) - ₹${s.quantity * itemPrice}`
+)
+.join(", ");
+ } else {
+  return `${baseName} (${item.size} ×${item.quantity}) - ₹${item.quantity * itemPrice}`;
+ }
+ })
+ .join(", ");
 
   const handlePayment = async () => {
     if (!currentUser?.email) {
@@ -94,30 +109,36 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         .join("; ");
 
       const options = {
-        key: "rzp_live_FQUylFpHDtgrDj",
-        amount: data.amount,
-        currency: data.currency || "INR",
-        name: "B3F Prints",
-        description: OrderId ? `Retry Payment - ${itemsDescription}` : `Order: ${itemsDescription}`,
-        order_id: data.razorpayOrderId || data.orderId || data.id,
-        prefill: {
-          name: shippingAddress?.name || "",
-          email: currentUser.email,
-          contact: shippingAddress?.phone || "",
-        },
-        notes: {
-          items: itemsDescription,
-          customer_email: currentUser.email,
-          total_amount: amount,
-        },
-        theme: { color: "#3B82F6" },
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-            toast.error("Payment cancelled by user");
-            onError();
-          }
-        },
+  key: "rzp_live_FQUylFpHDtgrDj",
+  amount: data.amount,
+  currency: data.currency || "INR",
+  name: "B3F Prints",
+  description: itemsDescription, // 👈 Now shows full breakdown
+
+  order_id: data.razorpayOrderId || data.orderId || data.id,
+
+  prefill: {
+    name: shippingAddress?.name || "",
+    email: currentUser.email,
+    contact: shippingAddress?.phone || "",
+  },
+
+  notes: {
+    items: itemsDescription,
+    customer_email: currentUser.email,
+    total_amount: amount,
+  },
+
+  theme: { color: "#3B82F6" },
+
+  modal: {
+    ondismiss: () => {
+      setLoading(false);
+      toast.error("Payment cancelled by user");
+      onError();
+    }
+  },
+
         handler: async (response: any) => {
           try {
             if (OrderId) {
@@ -200,65 +221,65 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3 mb-4 border-b pb-4">
-            <h3 className="font-medium text-gray-700">Order Items</h3>
 
-            {cartItems.map((item, idx) => (
-              <div key={item.id || idx} className="space-y-2">
-                <div className="flex items-center space-x-3">
-                  <img
-                    src={item.image || '/placeholder.svg'}
-                    alt={item.name}
-                    className="w-12 h-12 object-cover rounded"
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{item.name}</p>
-                    <p className="text-xs text-gray-500">
-                      Item Price: ₹<span className="text-gray-900">{item.price}</span>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Delivery Fee: ₹<span className="text-gray-900">{deliveryFee}</span>
-                    </p>
-                    <p className="text-sm font-semibold text-red-600">
-                      Total Price: ₹<span className="text-green-900">{item.price + deliveryFee}</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => onRemoveItem(item.id)}
-                    className="text-red-500 hover:text-red-700 p-1"
-                  >
-                    Remove 
-                  </button>
-                </div>
+       <div className="space-y-3 mb-4 border-b pb-4">
+<h3 className="text-base font-semibold text-gray-800">Order Items</h3>
 
-                {Array.isArray(item.sizes) ? (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {item.sizes.map((s: any) => (
-                      <div
-                        key={s.size}
-                        className="flex items-center gap-1 px-2 py-1 border border-gray-300 rounded text-sm bg-gray-50"
-                      >
-                        <span className="text-gray-700 font-medium">{s.size}</span>
-                        <span className="text-gray-500">× {s.quantity}</span>
-                        <button
-                          onClick={() => onRemoveSize(item.id, s.size)}
-                          className="text-red-500 hover:text-red-700 ml-1"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-700">
-                    <span>{item.size}</span>
-                    <span>×</span>
-                    <span>{item.quantity}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+{cartItems.map((item, idx) => (
+<div
+ key={item.id || idx} className="flex flex-col sm:flex-row sm:items-start gap-3 border rounded-md p-2 bg-white shadow-sm"
+>
+ <img
+ src={item.image || '/placeholder.svg'}
+ alt={item.name}
+ className="w-14 h-14 object-cover rounded border"
+ />
+
+ <div className="flex-1 text-sm text-gray-700 space-y-1">
+ <div className="flex justify-between items-center">
+ <p className="font-medium text-gray-900">{item.name}</p>
+<button
+ onClick={() => onRemoveItem(item.id)}
+ className="text-red-500 text-xs hover:text-red-700"
+ >
+ Remove
+ </button>
+ </div>
+
+ <p className="text-xs">Item Price: ₹{item.price}</p>
+ <p className="text-xs">Delivery Fee: ₹{deliveryFee}</p>
+<p className="font-semibold text-xs text-green-700">
+ Total: ₹{item.price + deliveryFee}
+</p>
+
+{Array.isArray(item.sizes) ? (
+ <div className="flex flex-wrap gap-1">
+{item.sizes.map((s: any) => (
+ <div
+ key={s.size}
+ className="flex items-center gap-1 px-2 py-0.5 border rounded bg-gray-100 text-xs"
+ >
+ <span>{s.size}</span>
+ <span className="text-gray-500">× {s.quantity}</span>
+ <button
+ onClick={() => onRemoveSize(item.id, s.size)}
+ className="text-red-500 hover:text-red-700"
+ >
+ <X className="w-3 h-3" />
+ </button>
+ </div>
+))}
+</div>
+ ) : (
+<div className="text-xs text-gray-600">
+Size: {item.size} × {item.quantity}
+</div>
+ )}
+</div>
+ </div>
+))}
+</div>
+
 
           <div className="text-lg font-bold space-y-1">
             <div>

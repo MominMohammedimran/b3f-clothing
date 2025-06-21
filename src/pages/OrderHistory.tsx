@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import SEOHelmet from '../components/seo/SEOHelmet';
 import { useSEO } from '../hooks/useSEO';
@@ -15,12 +15,20 @@ const OrderHistory = () => {
   const { currentUser } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate= useNavigate()
   const seoData = useSEO({
     title: 'Order History - View Your Orders',
     description: 'View your complete order history and track the status of your custom printed products.',
     keywords: 'order history, my orders, order tracking, purchase history'
   });
-
+const redirect = (product: { id: string }) => {
+  // Example route logic
+ if (!currentUser) {
+      navigate('/signin?redirectTo=/cart');
+      return;
+    }
+ navigate(`/product/details/${product.id}`);
+};
   useEffect(() => {
     const fetchOrders = async () => {
       if (!currentUser) return;
@@ -119,7 +127,10 @@ const OrderHistory = () => {
                 <div className="space-y-2">
                   {order.items.map((item: any, idx) => (
                     <div key={idx} className="flex items-start gap-4">
-                      <img src={item.image || '/placeholder.svg'} className="w-14 h-14 object-cover rounded border" alt={item.name} />
+                      <img src={item.image || '/placeholder.svg'} 
+                       onClick={() => redirect({ id: item.product_id })}
+                      className="w-14 h-14 object-cover rounded border cursor-pointer" 
+                      alt={item.name} />
                       <div className="text-sm">
                         <p className="font-medium">{item.name}</p>
                         {Array.isArray(item.sizes) ? (

@@ -88,6 +88,15 @@ const Checkout = () => {
 
     loadProfile();
   }, [currentUser, cartItems, navigate, currentLocation]);
+const redirect = (product: { id: string }) => {
+  // Example route logic
+ if (!currentUser) {
+      navigate('/signin?redirectTo=/cart');
+      return;
+    }
+ navigate(`/product/details/${product.id}`);
+};
+
 
   const handleFormSubmit = async (values: FormData) => {
     if (!currentUser || !cartItems || cartItems.length === 0) {
@@ -167,7 +176,8 @@ const Checkout = () => {
                     <img
                       src={item.image || '/placeholder.svg'}
                       alt={item.name}
-                      className="w-14 h-14 rounded object-cover border"
+                       onClick={() => redirect({ id: item.product_id })}
+                      className="w-14 h-14 rounded object-cover border cursor-pointer"
                     />
                     <div className="text-sm">
                       <p className="font-semibold">{item.name}</p>

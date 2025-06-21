@@ -13,7 +13,7 @@ import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 const Cart = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-
+ 
   const seoData = useSEO({
     title: 'Shopping Cart - Review Your Custom Products',
     description: 'Review your custom designed products and proceed to secure checkout.',
@@ -28,6 +28,15 @@ const Cart = () => {
     clearCart,
     loading
   } = useCart();
+ 
+ const redirect = (product: { id: string }) => {
+  // Example route logic
+ if (!currentUser) {
+      navigate('/signin?redirectTo=/cart');
+      return;
+    }
+ navigate(`/product/details/${product.id}`);
+};
 
   const handleCheckout = () => {
     if (!currentUser) {
@@ -90,7 +99,9 @@ const Cart = () => {
                       <img
                         src={item.image || '/placeholder.svg'}
                         alt={item.name}
-                        className="h-24 w-24 object-cover rounded border"
+                        
+                        onClick={() => redirect({ id: item.product_id })}
+                        className="h-24 w-24 object-cover rounded border cursor-pointer"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/placeholder.svg';
                         }}

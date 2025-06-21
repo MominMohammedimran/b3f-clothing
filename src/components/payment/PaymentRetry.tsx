@@ -23,7 +23,15 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
   const deliveryFee = deliverySettings.delivery_fee || 0;
 
   const [orderItems, setOrderItems] = useState<any[]>(data.items || []);
-
+const redirect = (product: { id: string }) => {
+  // Example route logic
+ if (!currentUser) {
+      navigate('/signin?redirectTo=/cart');
+      return;
+    }
+ navigate(`/product/details/${product.id}`);
+};
+  
   const handleRetryPayment = async () => {
     try {
       setLoading(true);
@@ -131,7 +139,8 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
  <img
  src={item.image || '/placeholder.svg'}
  alt={item.name}
-className="w-12 h-12 object-cover rounded border"
+  onClick={() => redirect({ id: item.product_id })}
+className="w-12 h-12 object-cover rounded border cursor-pointer"
  />
  <p className="text-sm font-medium text-gray-900 leading-tight">{item.name}</p>
 </div>

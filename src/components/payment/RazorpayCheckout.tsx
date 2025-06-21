@@ -52,7 +52,15 @@ const itemsDescription = cartItems
  }
  })
  .join(", ");
-
+const redirect = (product: { id: string }) => {
+  // Example route logic
+ if (!currentUser) {
+      navigate('/signin?redirectTo=/cart');
+      return;
+    }
+ navigate(`/product/details/${product.id}`);
+};
+  
   const handlePayment = async () => {
     if (!currentUser?.email) {
       toast.error("Please sign in to continue");
@@ -232,7 +240,8 @@ const itemsDescription = cartItems
  <img
  src={item.image || '/placeholder.svg'}
  alt={item.name}
- className="w-14 h-14 object-cover rounded border"
+    onClick={() => redirect({ id: item.product_id })}
+ className="w-14 h-14 object-cover rounded border cursor-pointer"
  />
 
  <div className="flex-1 text-sm text-gray-700 space-y-1">

@@ -43,8 +43,7 @@ serve(async (req) => {
       <p><strong>Total:</strong> ₹${totalAmount}</p>
       <p><strong>Shipping To:</strong> ${shippingAddress.fullName}, ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.state}, ${shippingAddress.zipCode}</p>
       <ul>${itemsHtml}</ul>
-    `;
-
+    `;sss
     const mailPayload = {
       personalizations: [{ to: [{ email: customerEmail }] }],
       from: { email: smtpUser, name: "B3F Prints" },

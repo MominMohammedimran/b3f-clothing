@@ -4,6 +4,9 @@
 
 project_id = "cmpggiyuiattqjmddcac"
 
+api_url = "https://cmpggiyuiattqjmddcac.supabase.co"
+
+
 [api]
 enabled = true
 port = 54321
@@ -15,6 +18,7 @@ max_rows = 1000
 port = 54322
 shadow_port = 54320
 major_version = 15
+
 
 [db.pooler]
 enabled = false
@@ -41,7 +45,7 @@ site_url = "http://localhost:3000"
 additional_redirect_urls = ["https://localhost:3000"]
 jwt_expiry = 3600
 enable_signup = true
-
+port=5432
 [auth.email]
 enable_signup = true
 double_confirm_changes = true

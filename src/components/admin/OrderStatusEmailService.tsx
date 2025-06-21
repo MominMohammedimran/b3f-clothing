@@ -66,22 +66,23 @@ export const sendOrderStatusEmail = async (orderData: OrderEmailData): Promise<b
   }
 };
 
-export const notifyOrderStatusChange = async (
+export async function notifyOrderStatusChange(
   orderId: string,
   newStatus: string,
   customerEmail: string,
   orderItems: any[],
   totalAmount: number,
-  shippingAddress?: any
-) => {
-  console.log('📬 notifyOrderStatusChange called with:', {
-    orderId,
-    newStatus,
-    customerEmail,
-    orderItems: orderItems?.length || 0,
-    totalAmount
-  });
-
+  shippingAddress: {
+    name: string;
+    phone: string;
+    email: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  }
+) {
   if (!customerEmail || customerEmail === 'N/A' || customerEmail.trim() === '') {
     console.warn('⚠️ Invalid customer email provided:', customerEmail);
     toast.warning('Cannot send email notification - no valid email address');
@@ -91,7 +92,7 @@ export const notifyOrderStatusChange = async (
   const emailData: OrderEmailData = {
     orderId,
     customerEmail: customerEmail.trim(),
-    customerName: 'Customer',
+    customerName: shippingAddress.name || 'Customer',
     status: newStatus,
     orderItems: orderItems || [],
     totalAmount: totalAmount || 0,
@@ -99,15 +100,16 @@ export const notifyOrderStatusChange = async (
   };
 
   const success = await sendOrderStatusEmail(emailData);
-  
+
   if (success) {
     console.log('✅ Order details email notification sent successfully');
   } else {
     console.log('❌ Order details email notification failed');
   }
-  
+
   return success;
-};
+}
+
 
 export const sendOrderConfirmationEmail = async (orderData: OrderEmailData): Promise<boolean> => {
   try {

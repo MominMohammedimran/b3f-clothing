@@ -1,7 +1,6 @@
+// supabase/functions/send-order-notification/index.ts
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import Razorpay from "https://esm.sh/razorpay@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,112 +9,72 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    console.log("Request method:", req.method);
-    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
-    
-    let requestBody;
-    try {
-      const text = await req.text();
-      console.log("Raw request body:", text);
-      
-      if (!text || text.trim() === '') {
-        throw new Error("Request body is empty");
-      }
-      
-      requestBody = JSON.parse(text);
-    } catch (parseError) {
-      console.error("JSON parse error:", parseError);
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body" }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400 
-        }
-      );
+    const {
+      orderId,
+      customerEmail,
+      customerName,
+      status,
+      orderItems,
+      totalAmount,
+      shippingAddress
+    } = await req.json();
+
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPass = Deno.env.get("SMTP_PASSWORD");
+
+    if (!smtpUser || !smtpPass) {
+      throw new Error("SMTP credentials not configured");
     }
 
-    const { amount, currency = "INR", cartItems, shippingAddress, customerInfo, orderNumber, OrderId } = requestBody;
+    const itemsHtml = orderItems.map((item: any) => `
+      <li>
+        <strong>${item.name}</strong> - Size: ${item.size || "N/A"}, Qty: ${item.quantity}
+      </li>
+    `).join('');
 
-    console.log("Parsed request data:", { amount, currency, cartItems, shippingAddress, customerInfo, orderNumber, OrderId });
+    const emailBody = `
+      <h2>Order ${status.toUpperCase()} - ${orderId}</h2>
+      <p>Hello ${customerName},</p>
+      <p>Your order status is now: <strong>${status}</strong></p>
+      <p><strong>Total:</strong> ₹${totalAmount}</p>
+      <p><strong>Shipping To:</strong> ${shippingAddress.fullName}, ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.state}, ${shippingAddress.zipCode}</p>
+      <ul>${itemsHtml}</ul>
+    `;
 
-    if (!amount || !cartItems || !customerInfo) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: amount, cartItems, customerInfo" }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400 
-        }
-      );
-    }
+    const mailPayload = {
+      personalizations: [{ to: [{ email: customerEmail }] }],
+      from: { email: smtpUser, name: "B3F Prints" },
+      subject: `Your Order (${orderId}) is ${status}`,
+      content: [{ type: "text/html", value: emailBody }],
+    };
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const razorpay = new Razorpay({
-      key_id: Deno.env.get("RAZORPAY_KEY_ID")!,
-      key_secret: Deno.env.get("RAZORPAY_KEY_SECRET")!,
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": Deno.env.get("BREVO_API_KEY") || "", // You can remove if using Gmail SMTP
+      },
+      body: JSON.stringify(mailPayload),
     });
 
-    // Create Razorpay order
-    const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(amount), // Amount should already be in paise
-      currency: currency,
-      receipt: `order_${Date.now()}`,
-    });
-
-    console.log("Razorpay order created:", razorpayOrder);
-
-    // If this is not a retry, create order in database
-    if (!OrderId) {
-      const authHeader = req.headers.get('Authorization');
-      if (authHeader) {
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-        if (!userError && user) {
-          const { error: orderError } = await supabase.from("orders").insert({
-            user_id: user.id,
-            order_number: orderNumber || `ORD${Date.now()}`,
-            total: amount / 100, // Convert back to rupees
-            items: cartItems,
-            status: "pending",
-            payment_method: "razorpay",
-            shipping_address: shippingAddress,
-            payment_status: "pending",
-          });
-
-          if (orderError) {
-            console.error("Order creation error:", orderError);
-          }
-        }
-      }
+    if (!res.ok) {
+      const errorBody = await res.text();
+      throw new Error(`Mail send failed: ${errorBody}`);
     }
 
-    return new Response(
-      JSON.stringify({
-        razorpayOrderId: razorpayOrder.id,
-        orderId: razorpayOrder.id,
-        amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
-      }),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200 
-      }
-    );
-  } catch (error) {
-    console.error("Create order error:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to create order: " + error.message }),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500 
-      }
-    );
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  } catch (err) {
+    console.error("Error:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

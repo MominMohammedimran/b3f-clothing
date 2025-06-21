@@ -24,7 +24,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   const [showPopupForSize, setShowPopupForSize] = useState<string | null>(null);
   const { cartItems, removeSizeFromCart } = useCart();
 
-  // Parse product variants
   let productVariants: { size: string; stock: string }[] = [];
   if (typeof product.variants === 'string') {
     try {
@@ -79,7 +78,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
 
   return (
     <div className="space-y-6 bg-white p-4 md:p-6 rounded-xl shadow-md">
-      {/* Title & Price */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">{product.name}</h2>
         <span className="text-2xl font-bold text-blue-600">
@@ -87,12 +85,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         </span>
       </div>
 
-      {/* Description */}
       {product.description && (
         <p className="text-gray-700 leading-relaxed">{product.description}</p>
       )}
 
-      {/* Size Selection */}
+      {/* Sizes Section */}
       <div>
         <h3 className="text-lg font-semibold mb-2">Select Sizes</h3>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -115,52 +112,34 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                 >
                   <div className="font-semibold">{size}</div>
                   <div className="text-xs text-gray-600">Qty: {stock}</div>
-                  
-                </button>
-
-                {/* Confirmation Popup */}
-                {showPopupForSize === size && (
-                  <div className="absolute z-50 top-full left-0 mt-2 bg-white border shadow-lg rounded-md w-56 p-4 text-sm">
-                    <p className="text-gray-800 mb-3">
-                      Remove <strong>{size}</strong> from cart?
-                    </p>
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setShowPopupForSize(null)}
-                        className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={async () => {
-                          await handleRemoveFromCartOnly(size);
-                          setShowPopupForSize(null);
-                        }}
-                        className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-                      >
-                        Remove
-                      </button>
+                  {inCart && (
+                    <div className="mt-1">
+                      <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                        In Cart
+                      </span>
                     </div>
-                  </div>
-                )}
+                  )}
+                </button>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Quantity Selectors */}
+      {/* Quantity Section */}
       {selectedSizes.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold text-gray-800 mb-3">
             Quantities
           </h3>
-          <div className="flex gap-3 overflow-x-auto py-2">
+          <div className="flex flex-wrap gap-4 py-2">
             {selectedSizes.map((sizeItem) => {
               const variant = productVariants.find(
                 (v) => v.size === sizeItem.size
               );
-              const maxStock = variant?.stock ? parseInt(variant.stock) : 0;
+              const maxStock = variant?.stock
+                ? parseInt(variant.stock)
+                : 0;
               const cartItem = cartItems.find(
                 (item) => item.product_id === product.id
               );
@@ -172,59 +151,54 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
               return (
                 <div
                   key={sizeItem.size}
-                  className={`flex flex-col border rounded-lg p-3 min-w-[140px] bg-gray-50 ${
-                    inCartQty ? 'border-green-400 bg-green-50' : ''
+                  className={`flex flex-col p-4 w-[140px] bg-white rounded-xl border shadow-sm ${
+                    inCartQty ? 'border-green-400 bg-green-50' : 'border-gray-200'
                   }`}
                 >
-                  <div className="flex justify-between items-center mb-2">
-  <span className="text-sm font-semibold">{sizeItem.size}</span>
-
-  <div className="flex items-center gap-2">
-    {cartItems
-      .find((item) => item.product_id === product.id)
-      ?.sizes.some((s) => s.size === sizeItem.size) && (
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/10967/10967145.png"
-          alt="Remove from cart"
-          title="Remove from cart"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowPopupForSize(sizeItem.size);
-          }}
-          className="w-4 h-4 cursor-pointer transition duration-150 filter grayscale hover:grayscale-0 hover:brightness-110"
-        />
-      )}
-
-    <button
-      className="text-red-500"
-      onClick={() => handleSizeToggle(sizeItem.size)}
-      title="Remove from selection"
-    >
-      <XCircle className="w-4 h-4" />
-    </button>
-  </div>
-</div>
-
-
-                  <div className="text-xs text-gray-800 mb-2">
-                    Qty : {variant?.stock ?? 'N/A'}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold">
+                      {sizeItem.size}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {inCartQty && (
+                        <img
+                          src="https://cdn-icons-png.flaticon.com/512/10967/10967145.png"
+                          alt="Remove from cart"
+                          title="Remove from cart"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowPopupForSize(sizeItem.size);
+                          }}
+                          className="w-5 h-4 cursor-pointer filter grayscale hover:grayscale-0 hover:brightness-110 hover:drop-shadow-md"
+                        />
+                      )}
+                      <button
+                        className="text-red-500"
+                        onClick={() => handleSizeToggle(sizeItem.size)}
+                        title="Remove size"
+                      >
+                        <XCircle className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
 
-                  {inCartQty !== undefined && (
+                  <div className="text-xs text-gray-600 mb-1">
+                    Stock: {variant?.stock ?? 'N/A'}
+                  </div>
+
+                  {inCartQty && (
                     <div className="text-xs text-green-700 mb-1">
-                      In Cart : {inCartQty}
+                      In Cart: {inCartQty}
                     </div>
                   )}
 
                   <ProductQuantitySelector
                     quantity={sizeItem.quantity}
                     maxQuantity={maxStock}
-                    onChange={(qty) =>
-                      handleQuantityChange(sizeItem.size, qty)
-                    }
+                    onChange={(qty) => handleQuantityChange(sizeItem.size, qty)}
                   />
 
-                  <div className="mt-2 text-sm font-semibold text-gray-800">
+                  <div className="mt-2 text-sm font-semibold text-gray-900">
                     ₹{(product.price * sizeItem.quantity).toFixed(2)}
                   </div>
                 </div>

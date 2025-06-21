@@ -148,14 +148,6 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
  <p className="text-sm font-medium text-gray-900 leading-tight">{item.name}</p>
 </div>
 
- <Button
- variant="ghost"
- size="icon"
-onClick={() => handleRemoveItem(index)}
- className="text-xs text-red-600 hover:text-red-800"
- >
- Clear
-</Button>
  </div>
 
  {Array.isArray(item.sizes) ? (

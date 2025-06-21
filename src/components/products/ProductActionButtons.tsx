@@ -16,7 +16,7 @@ interface ProductActionButtonsProps {
 const ProductActionButtons = ({
   product,
   selectedSizes,
-  quantities
+  quantities,
 }: ProductActionButtonsProps) => {
   const { addToCart } = useCart();
   const { currentUser } = useAuth();
@@ -25,12 +25,15 @@ const ProductActionButtons = ({
   const [adding, setAdding] = useState(false);
   const [placing, setPlacing] = useState(false);
 
-  const sizesArray: SizeQuantity[] = selectedSizes.map(size => ({
+  const sizesArray: SizeQuantity[] = selectedSizes.map((size) => ({
     size,
-    quantity: quantities[size] || 1
+    quantity: quantities[size] || 1,
   }));
 
-  const totalPrice = sizesArray.reduce((sum, item) => sum + product.price * item.quantity, 0);
+  const totalPrice = sizesArray.reduce(
+    (sum, item) => sum + product.price * item.quantity,
+    0
+  );
 
   const cartItem = {
     product_id: product.id,
@@ -40,17 +43,56 @@ const ProductActionButtons = ({
     image: product.image,
     metadata: {
       view: 'product',
-      isMultipleSize: true
+      isMultipleSize: true,
+    },
+  };
+
+  const handleAddToCart = async () => {
+    if (!currentUser) {
+      toast.error('Please sign in', {
+        description: 'Login required to add to cart',
+      });
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      setAdding(true);
+      await addToCart(cartItem);
+      toast.success('Added to cart', {
+        description: `${product.name} for ${sizesArray.length} size(s)`,
+      });
+    } catch (error) {
+      toast.error('Failed to add to cart');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!currentUser) {
+      toast.error('Please sign in', {
+        description: 'Login required to place order',
+      });
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      setPlacing(true);
+      await addToCart(cartItem);
+      navigate('/checkout');
+    } catch (error) {
+      toast.error('Failed to place order');
+    } finally {
+      setPlacing(false);
     }
   };
 
   return (
     <div className="mt-8 flex flex-wrap gap-3">
       <Button
-        onClick={() => {
-          setAdding(true);
-          Promise.resolve(addToCart(cartItem)).finally(() => setAdding(false));
-        }}
+        onClick={handleAddToCart}
         className="flex-1"
         variant="outline"
         disabled={selectedSizes.length === 0 || adding}
@@ -69,12 +111,7 @@ const ProductActionButtons = ({
       </Button>
 
       <Button
-        onClick={() => {
-          setPlacing(true);
-          Promise.resolve(addToCart(cartItem))
-            .then(() => navigate('/checkout'))
-            .finally(() => setPlacing(false));
-        }}
+        onClick={handlePlaceOrder}
         className="flex-1"
         disabled={selectedSizes.length === 0 || placing}
       >

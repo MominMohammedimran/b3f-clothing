@@ -1,196 +1,83 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface InventoryData {
-  quantities: Record<string, number>;
-  product_type?: string;
-  [key: string]: any;
+export interface Variant {
+  size: string;
+  stock: number;
 }
 
 interface UseProductInventoryReturn {
-  inventory: InventoryData | null;
+  variants: Variant[];
   loading: boolean;
   error: string | null;
-  fetchInventory: () => Promise<void>;
-  updateInventory: (data: Partial<InventoryData>) => Promise<void>;
-}
-
-// Define a more specific type for the product that includes the properties we need to access
-interface ProductWithInventory {
-  id: string;
-  product_type?: string;
-  stock?: number;
-  metadata?: {
-    inventory?: {
-      quantities?: Record<string, number>;
-      [key: string]: any;
-    };
-    [key: string]: any;
-  } | string;
-  [key: string]: any; // Allow other properties
+  refetch: () => Promise<void>;
 }
 
 export const useProductInventory = (productId?: string): UseProductInventoryReturn => {
-  const [inventory, setInventory] = useState<InventoryData | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchInventory = async (): Promise<void> => {
+  const fetchInventory = async () => {
     if (!productId) {
-      setInventory({ quantities: {} });
+      setVariants([]);
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
-
-      // Fetch product data to get inventory information
-      const { data: product, error: productError } = await supabase
+      const { data: product, error } = await supabase
         .from('products')
-        .select('*')
+        .select('variants')
         .eq('id', productId)
         .maybeSingle();
 
-      if (productError) {
-        throw new Error(`Error fetching product: ${productError.message}`);
-      }
+      if (error) throw error;
 
-      // Handle case where product doesn't exist or inventory is null
-      if (!product) {
-        setInventory({ quantities: {} });
-        return;
-      }
+      let rawVariants = product?.variants;
+      let parsedVariants: Variant[] = [];
 
-      // Cast the product to our more specific type
-      const typedProduct = product as unknown as ProductWithInventory;
-
-      // Extract inventory data with fallback
-      const inventoryData: InventoryData = {
-        quantities: {},
-        product_type: typedProduct.product_type || ''
-      };
-
-      // Check if product has metadata with inventory field
-      if (typedProduct && 'metadata' in typedProduct && typedProduct.metadata) {
+      if (typeof rawVariants === 'string') {
+        // Handle JSON string format
         try {
-          let metadata;
-          // If metadata is a string, parse it
-          if (typeof typedProduct.metadata === 'string') {
-            metadata = JSON.parse(typedProduct.metadata);
-          } else {
-            metadata = typedProduct.metadata;
-          }
-          
-          if (metadata && metadata.inventory && metadata.inventory.quantities) {
-            inventoryData.quantities = metadata.inventory.quantities;
-          }
-        } catch (parseError) {
-          console.error('Error parsing metadata:', parseError);
-          inventoryData.quantities = {};
+          parsedVariants = JSON.parse(rawVariants);
+        } catch (e) {
+          console.error('Error parsing variants JSON string:', e);
+          parsedVariants = [];
         }
+      } else if (Array.isArray(rawVariants)) {
+        // Handle array of objects (possibly Json[])
+        parsedVariants = rawVariants as any[];
+      } else {
+        parsedVariants = [];
       }
 
-      setInventory(inventoryData);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error fetching inventory';
-      setError(errorMessage);
-      console.error('Error fetching inventory:', err);
+      const cleanVariants = parsedVariants
+        .filter(
+          (v): v is Variant =>
+            typeof v === 'object' &&
+            typeof v.size === 'string' &&
+            !isNaN(Number(v.stock))
+        )
+        .map((v) => ({
+          size: v.size,
+          stock: Number(v.stock),
+        }));
+
+      setVariants(cleanVariants);
+    } catch (err: any) {
+      const message = err.message || 'Failed to load product inventory';
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const updateInventory = async (data: Partial<InventoryData>): Promise<void> => {
-    if (!productId) {
-      toast.error('Cannot update inventory: Product ID is missing');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Get current product data
-      const { data: product, error: fetchError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
-        .maybeSingle();
-
-      if (fetchError) {
-        throw new Error(`Error fetching product: ${fetchError.message}`);
-      }
-
-      if (!product) {
-        throw new Error('Product not found');
-      }
-
-      // Cast the product to our more specific type
-      const typedProduct = product as unknown as ProductWithInventory;
-
-      // Prepare the metadata with inventory data
-      let currentMetadata = {};
-      if (typedProduct.metadata) {
-        currentMetadata = typeof typedProduct.metadata === 'string' 
-          ? JSON.parse(typedProduct.metadata) 
-          : typedProduct.metadata;
-      }
-
-      const updatedMetadata = {
-        ...currentMetadata,
-        inventory: {
-          ...((currentMetadata as any)?.inventory || {}),
-          ...data
-        }
-      };
-
-      // Update the product with new metadata - use description field for metadata storage
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({ 
-          description: JSON.stringify(updatedMetadata),
-          updated_at: new Date().toISOString(),
-          productId: product.productId || `prod-${Date.now()}` // Add required productId
-        })
-        .eq('id', productId);
-
-      if (updateError) {
-        throw new Error(`Error updating inventory: ${updateError.message}`);
-      }
-
-      // Update local state
-      setInventory(prevInventory => ({
-        ...prevInventory || { quantities: {} },
-        ...data
-      }));
-
-       } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error updating inventory';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      console.error('Error updating inventory:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load inventory data when productId changes
   useEffect(() => {
-    if (productId) {
-      fetchInventory();
-    } else {
-      setInventory({ quantities: {} });
-    }
+    fetchInventory();
   }, [productId]);
 
-  return {
-    inventory,
-    loading,
-    error,
-    fetchInventory,
-    updateInventory
-  };
+  return { variants, loading, error, refetch: fetchInventory };
 };

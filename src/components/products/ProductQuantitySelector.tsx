@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface ProductQuantitySelectorProps {
@@ -9,12 +8,12 @@ interface ProductQuantitySelectorProps {
   onDecrement?: () => void;
 }
 
-const ProductQuantitySelector: React.FC<ProductQuantitySelectorProps> = ({ 
-  quantity, 
+const ProductQuantitySelector: React.FC<ProductQuantitySelectorProps> = ({
+  quantity,
   maxQuantity = 10,
   onChange,
-  onIncrement, 
-  onDecrement 
+  onIncrement,
+  onDecrement,
 }) => {
   const handleIncrement = () => {
     if (onIncrement) {
@@ -33,18 +32,20 @@ const ProductQuantitySelector: React.FC<ProductQuantitySelectorProps> = ({
   };
 
   return (
-  <div className="flex justify-items-center ">
+    <div className="flex items-center border rounded-md overflow-hidden w-fit">
       <button
         onClick={handleDecrement}
-        className="bg-gray-100 text-xl hover:bg-gray-200 text-gray-600 rounded-l-md  px-2"
+        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold disabled:opacity-50"
         disabled={quantity <= 1}
       >
-        -
+        –
       </button>
-      <span className="text-center w-12">{quantity}</span>
+      <span className="px-4 py-1 text-sm font-semibold text-center min-w-[40px]">
+        {quantity}
+      </span>
       <button
         onClick={handleIncrement}
-        className="bg-gray-100 text-xl hover:bg-gray-200 text-gray-600 rounded-r-md  px-2"
+        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold disabled:opacity-50"
         disabled={quantity >= maxQuantity}
       >
         +

@@ -29,14 +29,7 @@ const Cart = () => {
     loading
   } = useCart();
  
- const redirect = (product: { id: string }) => {
-  // Example route logic
- if (!currentUser) {
-      navigate('/signin?redirectTo=/cart');
-      return;
-    }
- navigate(`/product/details/${product.id}`);
-};
+
 
   const handleCheckout = () => {
     if (!currentUser) {
@@ -45,7 +38,16 @@ const Cart = () => {
     }
     navigate('/checkout');
   };
-
+ const redirect = (product: { id: string,pd_name:string }) => {
+  // Example route logic
+ if (!currentUser) {
+      navigate('/signin?redirectTo=/cart');
+      return;
+    }
+    else if (!product.pd_name.toLowerCase().includes('custom printed')) {
+    navigate(`/product/details/${product.id}`);
+  }
+};
   const { settings: deliverySettings, loading: settingsLoading } = useDeliverySettings();
   const deliveryFee = deliverySettings?.delivery_fee || 100;
 
@@ -100,9 +102,11 @@ const Cart = () => {
                         src={item.image || '/placeholder.svg'}
                         alt={item.name}
                         
-                        onClick={() => redirect({ id: item.product_id })}
-                        className="h-24 w-24 object-cover rounded border cursor-pointer"
-                        onError={(e) => {
+                        onClick={() => redirect({ id: item.product_id ,pd_name:item.name})}
+                        className={`h-24 w-24 object-cover rounded border shadow-sm transition-transform duration-200 hover:scale-125
+                           ${!item.name.toLowerCase().includes('custom printed') ? 'cursor-pointer' : 'cursor-default'}`}
+                       
+                           onError={(e) => {
                           (e.target as HTMLImageElement).src = '/placeholder.svg';
                         }}
                       />

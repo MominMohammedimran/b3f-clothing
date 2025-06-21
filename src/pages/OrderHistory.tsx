@@ -21,14 +21,18 @@ const OrderHistory = () => {
     description: 'View your complete order history and track the status of your custom printed products.',
     keywords: 'order history, my orders, order tracking, purchase history'
   });
-const redirect = (product: { id: string }) => {
+
+   const redirect = (product: { id: string,pd_name:string }) => {
   // Example route logic
  if (!currentUser) {
-      navigate('/signin?redirectTo=/cart');
+      navigate('/signin?redirectTo=/orders');
       return;
     }
- navigate(`/product/details/${product.id}`);
+    else if (!product.pd_name.toLowerCase().includes('custom printed')) {
+    navigate(`/product/details/${product.id}`);
+  }
 };
+
   useEffect(() => {
     const fetchOrders = async () => {
       if (!currentUser) return;
@@ -42,7 +46,7 @@ const redirect = (product: { id: string }) => {
 
         if (error) throw error;
 
-        const transformedOrders: Order[] = (data || []).map(order => ({
+        let transformedOrders: Order[] = (data || []).map(order => ({
           id: order.id,
           orderNumber: order.order_number,
           items: Array.isArray(order.items) ? order.items : [],
@@ -80,7 +84,9 @@ const redirect = (product: { id: string }) => {
   if (loading) {
     return (
       <Layout>
-        <div className="px-4 py-8">Loading...</div>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
       </Layout>
     );
   }
@@ -128,9 +134,10 @@ const redirect = (product: { id: string }) => {
                   {order.items.map((item: any, idx) => (
                     <div key={idx} className="flex items-start gap-4">
                       <img src={item.image || '/placeholder.svg'} 
-                       onClick={() => redirect({ id: item.product_id })}
-                      className="w-14 h-14 object-cover rounded border cursor-pointer" 
-                      alt={item.name} />
+                       onClick={() => redirect({ id: item.product_id ,pd_name:item.name})}
+                      className={`h-14 w-14 object-cover rounded border shadow-sm transition-transform duration-200 hover:scale-125
+                           ${!item.name.toLowerCase().includes('custom printed') ? 'cursor-pointer' : 'cursor-default'}`}
+                       alt={item.name} />
                       <div className="text-sm">
                         <p className="font-medium">{item.name}</p>
                         {Array.isArray(item.sizes) ? (

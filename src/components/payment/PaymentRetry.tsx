@@ -23,13 +23,15 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
   const deliveryFee = deliverySettings.delivery_fee || 0;
 
   const [orderItems, setOrderItems] = useState<any[]>(data.items || []);
-const redirect = (product: { id: string }) => {
+   const redirect = (product: { id: string,pd_name:string }) => {
   // Example route logic
  if (!currentUser) {
-      navigate('/signin?redirectTo=/cart');
+      navigate('/signin?redirectTo=/orders');
       return;
     }
- navigate(`/product/details/${product.id}`);
+    else if (!product.pd_name.toLowerCase().includes('custom printed')) {
+    navigate(`/product/details/${product.id}`);
+  }
 };
   
   const handleRetryPayment = async () => {
@@ -139,9 +141,10 @@ const redirect = (product: { id: string }) => {
  <img
  src={item.image || '/placeholder.svg'}
  alt={item.name}
-  onClick={() => redirect({ id: item.product_id })}
-className="w-12 h-12 object-cover rounded border cursor-pointer"
- />
+  onClick={() => redirect({ id: item.product_id,pd_name:item.name})}
+ className={`h-14 w-14 object-cover rounded border shadow-sm transition-transform duration-200 hover:scale-125
+                           ${!item.name.toLowerCase().includes('custom printed') ? 'cursor-pointer' : 'cursor-default'}`}
+                       />
  <p className="text-sm font-medium text-gray-900 leading-tight">{item.name}</p>
 </div>
 

@@ -54,7 +54,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <img
           src={product.image}
           alt={product.name}
-          className="w-full h-36 sm:h-40 object-cover rounded-md"
+          className="w-full h-36 sm:h-40 md:h-50 lg:h-60 object-cover rounded-md"
         />
         {product.discountPercentage && (
           <Badge className="absolute top-2 left-2 bg-red-500">

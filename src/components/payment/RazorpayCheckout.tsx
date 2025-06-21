@@ -52,13 +52,17 @@ const itemsDescription = cartItems
  }
  })
  .join(", ");
-const redirect = (product: { id: string }) => {
+
+
+ const redirect = (product: { id: string,pd_name:string }) => {
   // Example route logic
  if (!currentUser) {
-      navigate('/signin?redirectTo=/cart');
+      navigate('/signin?redirectTo=/payment');
       return;
     }
- navigate(`/product/details/${product.id}`);
+    else if (!product.pd_name.toLowerCase().includes('custom printed')) {
+    navigate(`/product/details/${product.id}`);
+  }
 };
   
   const handlePayment = async () => {
@@ -240,8 +244,10 @@ const redirect = (product: { id: string }) => {
  <img
  src={item.image || '/placeholder.svg'}
  alt={item.name}
-    onClick={() => redirect({ id: item.product_id })}
- className="w-14 h-14 object-cover rounded border cursor-pointer"
+    onClick={() => redirect({ id: item.product_id,pd_name:item.name })}
+  className={`h-14 w-14 object-cover rounded border shadow-sm transition-transform duration-200 hover:scale-125
+                           ${!item.name.toLowerCase().includes('custom printed') ? 'cursor-pointer' : 'cursor-default'}`}
+                       
  />
 
  <div className="flex-1 text-sm text-gray-700 space-y-1">

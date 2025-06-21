@@ -103,7 +103,7 @@ const Search = () => {
     if (product.code.includes('TSHIRT-PRINT') || product.code.includes('MUG-PRINT')) {
       navigate(`/design-tool`);
     } else {
-      navigate(`/product/${product.id}`);
+      navigate(`/product/details/${product.id}`);
     }
   };
   

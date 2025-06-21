@@ -60,6 +60,7 @@ const Index = () => {
   };
   
   const handleProductClick = (product: Product) => {
+    
     if (product.code.includes('TSHIRT-PRINT') || product.code.includes('MUG-PRINT')) {
       navigate(`/design-tool`);
     } else {
@@ -126,7 +127,7 @@ const Index = () => {
           </div>
         </div>
         <h2 className="text-xl md:text-2xl font-bold mb-5 text-left">Hero Products</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-2">
           
           {products.map((product, index) => (
             <div key={product.id} className={`animate-fade-in`} style={{ animationDelay: `${index * 0.1}s` }}>

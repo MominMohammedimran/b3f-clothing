@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Location } from '../../lib/types';
 import { supabase } from '@/integrations/supabase/client';
-
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 // Location service for Supabase
 const useLocationService = () => {
   const fetchAllLocations = async () => {

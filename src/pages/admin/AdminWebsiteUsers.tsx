@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Search } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
-
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 interface User {
   id: string;
   email: string;
@@ -83,7 +83,7 @@ const AdminWebsiteUsers = () => {
   );
 
   return (
-    <AdminLayout title="Website Users">
+    <ModernAdminLayout title="Users">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Website Users</h2>
@@ -151,7 +151,7 @@ const AdminWebsiteUsers = () => {
           </Card>
         )}
       </div>
-    </AdminLayout>
+    </ModernAdminLayout >
   );
 };
 

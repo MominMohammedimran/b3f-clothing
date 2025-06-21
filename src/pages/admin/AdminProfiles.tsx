@@ -9,7 +9,7 @@ import ProfileCard from '@/components/admin/ProfileCard';
 import ProfileEditModal from '@/components/admin/ProfileEditModal';
 import ProfileSearchBar from '@/components/admin/ProfileSearchBar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 interface Profile {
   id: string;
   email: string;
@@ -114,7 +114,7 @@ const AdminProfiles = () => {
   );
 
   return (
-    <AdminLayout>
+     <ModernAdminLayout title="Users">
       <div className="container mx-auto px-4 py-8 mt-10">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Customer Profiles</h1>
@@ -162,7 +162,7 @@ const AdminProfiles = () => {
           />
         )}
       </div>
-    </AdminLayout>
+    </ModernAdminLayout>
   );
 };
 

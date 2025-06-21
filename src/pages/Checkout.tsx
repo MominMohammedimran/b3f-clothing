@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import ShippingDetailsForm from '../components/checkout/ShippingDetailsForm';
 import { useLocation as useLocationContext } from '../context/LocationContext';
 import { useCart } from '../context/CartContext';
-
+import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 type FormData = {
   firstName: string;
   lastName: string;
@@ -40,7 +40,9 @@ const Checkout = () => {
   const { currentUser } = useAuth();
   const { currentLocation } = useLocationContext();
   const { cartItems, totalPrice } = useCart();
-
+  const { settings: deliverySettings, loading: settingsLoading } = useDeliverySettings();
+   const deliveryFee = deliverySettings?.delivery_fee || 100;
+ 
   useEffect(() => {
     window.scrollTo(0, 0);
     if (!currentUser) {
@@ -120,7 +122,7 @@ const Checkout = () => {
 
   const DELIVERY_FEE = 80;
   const subtotal = totalPrice;
-  const total = subtotal + DELIVERY_FEE;
+
 
   return (
     <Layout>
@@ -191,11 +193,11 @@ const Checkout = () => {
               </div>
               <div className="flex justify-between text-sm">
                 <span>Delivery Fee:</span>
-                <span>₹{DELIVERY_FEE}</span>
+                <span>₹{deliveryFee}</span>
               </div>
               <div className="flex justify-between font-bold border-t pt-2 mt-2 text-lg">
                 <span>Total:</span>
-                <span className="text-green-600">₹{total}</span>
+                <span className="text-green-600">₹{subtotal+deliveryFee}</span>
               </div>
             </div>
           </div>

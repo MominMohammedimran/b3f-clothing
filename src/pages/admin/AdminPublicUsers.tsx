@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserProfile } from '@/lib/types';
-
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 const AdminPublicUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -89,27 +89,27 @@ const AdminPublicUsers = () => {
 
   if (isLoading) {
     return (
-      <AdminLayout title="Public Users">
+      <ModernAdminLayout title="Users">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      </AdminLayout>
+       </ModernAdminLayout>
     );
   }
 
   if (error) {
     return (
-      <AdminLayout title="Public Users">
+     <ModernAdminLayout title="Users">
         <div className="text-center py-8">
           <p className="text-red-500 mb-4">Error loading users.</p>
           <Button onClick={() => refetch()}>Retry</Button>
         </div>
-      </AdminLayout>
+       </ModernAdminLayout>
     );
   }
   
   return (
-    <AdminLayout title="Public Users Management">
+    <ModernAdminLayout title="Users">
       
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -195,7 +195,7 @@ const AdminPublicUsers = () => {
           )}
         </div>
       </div>
-    </AdminLayout>
+     </ModernAdminLayout>
   );
 };
 

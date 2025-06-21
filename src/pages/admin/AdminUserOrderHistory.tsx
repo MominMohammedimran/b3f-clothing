@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 // Define an explicit type for profile data
 interface UserProfileData {
   id: string;

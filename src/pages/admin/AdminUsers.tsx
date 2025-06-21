@@ -9,7 +9,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import UserAccountsTable from '@/components/admin/users/UserAccountsTable';
 import { useNavigate } from 'react-router-dom';
 import { UserProfile } from '@/lib/types';
-
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 const AdminUsers = () => {
   const navigate = useNavigate();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);

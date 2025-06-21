@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '../../components/admin/AdminLayout';
-
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 interface Settings {
   site_name: string;
   site_description: string;
@@ -122,7 +122,7 @@ const AdminSettings = () => {
   };
 
   return (
-    <AdminLayout title="Settings">
+    <ModernAdminLayout title="Settings">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Admin Settings</h2>
@@ -226,7 +226,7 @@ const AdminSettings = () => {
           </div>
         )}
       </div>
-    </AdminLayout>
+     </ModernAdminLayout>
   );
 };
 

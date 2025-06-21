@@ -4,6 +4,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { ShoppingCart, Package, Users, TrendingUp } from 'lucide-react';
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 
 interface DashboardStats {
   orders: number;
@@ -118,7 +119,7 @@ const AdminDashboard = () => {
   );
 
   return (
-    <AdminLayout title="Admin Dashboard">
+     <ModernAdminLayout title="Dashboard">
       <div className="bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="bg-white p-4 border-b">
@@ -184,7 +185,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-    </AdminLayout>
+     </ModernAdminLayout >
   );
 };
 

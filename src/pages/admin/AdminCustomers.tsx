@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 
 const AdminCustomers = () => {
   const [customers, setCustomers] = useState<UserProfile[]>([]);
@@ -167,7 +168,7 @@ const AdminCustomers = () => {
   };
 
   return (
-    <AdminLayout>
+    <ModernAdminLayout title="Users">
       <div className="bg-white rounded-lg shadow p-6 pt-0">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Customers</h1>
@@ -394,7 +395,7 @@ const AdminCustomers = () => {
           </DialogContent>
         </Dialog>
       )}
-    </AdminLayout>
+    </ModernAdminLayout>
   );
 };
 

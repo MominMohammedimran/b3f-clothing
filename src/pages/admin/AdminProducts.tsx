@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
-
+import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 interface Product {
   id: string;
   name: string;
@@ -235,7 +235,7 @@ const AdminProducts = () => {
   );
 
   return (
-    <AdminLayout title="Products Management">
+     <ModernAdminLayout title="Products">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h2 className="text-xl sm:text-2xl font-bold">Products</h2>
@@ -471,7 +471,7 @@ const AdminProducts = () => {
           </div>
         )}
       </div>
-    </AdminLayout>
+    </ModernAdminLayout>
   );
 };
 

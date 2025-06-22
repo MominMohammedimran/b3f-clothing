@@ -105,7 +105,7 @@ const handleStatusUpdate = async (orderId: string, newStatus: string) => {
   try {
     const { error } = await supabase
       .from('orders')
-      .update({ 
+      .update({
         order_status: newStatus,
         updated_at: new Date().toISOString()
       })
@@ -116,37 +116,47 @@ const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     const updatedOrder = orders.find(order => order.id === orderId);
 
     if (updatedOrder) {
-      const emailToSend = updatedOrder.shipping_address?.email || updatedOrder.user_email;
+      const shipping = updatedOrder.shipping_address;
+      const emailToSend = shipping?.email || updatedOrder.user_email;
 
-      await notifyOrderStatusChange(
-        updatedOrder.order_number,
-        newStatus,
-        emailToSend,
-        updatedOrder.items,
-        updatedOrder.total,
-        {
-          name: updatedOrder.shipping_address?.fullName || '',
-          phone: updatedOrder.shipping_address?.phone || '',
-          email: updatedOrder.shipping_address?.email || '',
-          address: updatedOrder.shipping_address?.address || '',
-          city: updatedOrder.shipping_address?.city || '',
-          state: updatedOrder.shipping_address?.state || '',
-          zipCode: updatedOrder.shipping_address?.zipCode || '',
-          country: updatedOrder.shipping_address?.country || ''
-        }
-      );
+      if (!emailToSend || emailToSend === 'N/A') {
+        toast.warning('⚠️ No email found for this customer');
+      } else {
+        await notifyOrderStatusChange(
+          updatedOrder.order_number,
+          newStatus,
+          emailToSend,
+          updatedOrder.items || [],
+          updatedOrder.total || 0,
+          {
+            name: shipping?.fullName || 'Customer',
+            phone: shipping?.phone || '',
+            email: emailToSend,
+            address: shipping?.address || '',
+            city: shipping?.city || '',
+            state: shipping?.state || '',
+            zipCode: shipping?.zipCode || '',
+            country: shipping?.country || ''
+          },
+          updatedOrder.payment_method
+        );
+      }
     }
 
-    setOrders(prev => 
-      prev.map(order => order.id === orderId ? { ...order, order_status: newStatus } : order)
+    // Update state locally
+    setOrders(prev =>
+      prev.map(order =>
+        order.id === orderId ? { ...order, order_status: newStatus } : order
+      )
     );
 
-    toast.success('Order status updated successfully');
-  } catch (error) {
-    console.error('Error updating order status:', error);
+    toast.success('✅ Order status updated');
+  } catch (err) {
+    console.error('❌ Error updating status:', err);
     toast.error('Failed to update order status');
   }
 };
+
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);

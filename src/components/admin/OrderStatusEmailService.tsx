@@ -1,30 +1,39 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
 
 export interface OrderEmailData {
   orderId: string;
   customerEmail: string;
   customerName: string;
   status: string;
-  orderItems: any[];
+  orderItems: any[]; // Ensure it's array, not string
   totalAmount: number;
   shippingAddress?: any;
+  paymentMethod?: string; // razorpay / cod etc.
 }
 
-export const sendOrderStatusEmail = async (orderData: OrderEmailData): Promise<boolean> => {
+export const sendOrderStatusEmail = async (
+  orderData: OrderEmailData,
+  
+): Promise<boolean> => {
+
   try {
-    console.log('🚀 Attempting to send order status email:', orderData);
-    
-    if (!orderData.customerEmail || orderData.customerEmail === 'N/A' || orderData.customerEmail.trim() === '') {
+    console.log('🚀 Sending order status email:', orderData);
+
+    if (
+      !orderData.customerEmail ||
+      orderData.customerEmail === 'N/A' ||
+      orderData.customerEmail.trim() === ''
+    ) {
       console.warn('❌ No valid customer email provided:', orderData.customerEmail);
-      toast.error('Cannot send email - no valid customer email address');
+      toast.error('No valid customer email to send status update');
       return false;
     }
 
-    const loadingToast = toast.loading('📧 Sending email notification...');
+    const loadingToast = toast.loading('📧 Sending order email...');
+    
 
-    console.log('📡 Invoking send-order-notification function...');
     const { data, error } = await supabase.functions.invoke('send-order-notification', {
       body: {
         orderId: orderData.orderId,
@@ -34,15 +43,8 @@ export const sendOrderStatusEmail = async (orderData: OrderEmailData): Promise<b
         orderItems: orderData.orderItems || [],
         totalAmount: orderData.totalAmount,
         shippingAddress: orderData.shippingAddress,
-        businessEmail: 'b3f.prints.pages.dev@gmail.com',
-        emailType: 'status_update',
-        orderDetails: {
-          orderNumber: orderData.orderId,
-          items: orderData.orderItems,
-          total: orderData.totalAmount,
-          status: orderData.status,
-          shippingAddress: orderData.shippingAddress
-        }
+        paymentMethod: orderData.paymentMethod,
+        emailType: 'status_update'
       }
     });
 
@@ -50,18 +52,16 @@ export const sendOrderStatusEmail = async (orderData: OrderEmailData): Promise<b
 
     if (error) {
       console.error('❌ Supabase function error:', error);
-      toast.error(`Failed to send email: ${error.message}`);
+      toast.error(`Failed to send status email: ${error.message}`);
       return false;
     }
 
-    console.log('✅ Order status email sent successfully:', data);
-    toast.success(`✅ Order details email sent to ${orderData.customerEmail}`, {
-      duration: 5000
-    });
+    toast.success(`✅ Email sent to ${orderData.customerEmail}`);
+    console.log('hgfffnnn');
     return true;
   } catch (error) {
-    console.error('💥 Failed to send order status email:', error);
-    toast.error('❌ Failed to send order details email');
+    console.error('💥 Failed to send status email:', error);
+    toast.error('❌ Failed to send status email');
     return false;
   }
 };
@@ -81,47 +81,39 @@ export async function notifyOrderStatusChange(
     state: string;
     zipCode: string;
     country: string;
-  }
+  },
+  paymentMethod?: string
 ) {
-  if (!customerEmail || customerEmail === 'N/A' || customerEmail.trim() === '') {
-    console.warn('⚠️ Invalid customer email provided:', customerEmail);
-    toast.warning('Cannot send email notification - no valid email address');
-    return false;
-  }
-
   const emailData: OrderEmailData = {
     orderId,
     customerEmail: customerEmail.trim(),
     customerName: shippingAddress.name || 'Customer',
     status: newStatus,
-    orderItems: orderItems || [],
-    totalAmount: totalAmount || 0,
-    shippingAddress
+    orderItems,
+    totalAmount,
+    shippingAddress,
+    paymentMethod
   };
 
-  const success = await sendOrderStatusEmail(emailData);
-
-  if (success) {
-    console.log('✅ Order details email notification sent successfully');
-  } else {
-    console.log('❌ Order details email notification failed');
-  }
-
-  return success;
+  return await sendOrderStatusEmail(emailData);
 }
 
-
-export const sendOrderConfirmationEmail = async (orderData: OrderEmailData): Promise<boolean> => {
+export const sendOrderConfirmationEmail = async (
+  orderData: OrderEmailData
+): Promise<boolean> => {
   try {
-    console.log('🎉 Sending order confirmation email with full details:', orderData);
-    
-    if (!orderData.customerEmail || orderData.customerEmail === 'N/A' || orderData.customerEmail.trim() === '') {
-      console.warn('❌ No valid customer email provided for confirmation');
-      toast.error('Cannot send confirmation email - no valid email address');
+    console.log('🎉 Sending order confirmation email:', orderData);
+
+    if (
+      !orderData.customerEmail ||
+      orderData.customerEmail === 'N/A' ||
+      orderData.customerEmail.trim() === ''
+    ) {
+      toast.error('No valid customer email for confirmation');
       return false;
     }
 
-    const loadingToast = toast.loading('📧 Sending order confirmation with details...');
+    const loadingToast = toast.loading('📧 Sending confirmation email...');
 
     const { data, error } = await supabase.functions.invoke('send-order-notification', {
       body: {
@@ -132,34 +124,23 @@ export const sendOrderConfirmationEmail = async (orderData: OrderEmailData): Pro
         orderItems: orderData.orderItems || [],
         totalAmount: orderData.totalAmount,
         shippingAddress: orderData.shippingAddress,
-        businessEmail: 'b3f.prints.pages.dev@gmail.com',
-        emailType: 'confirmation',
-        orderDetails: {
-          orderNumber: orderData.orderId,
-          items: orderData.orderItems,
-          total: orderData.totalAmount,
-          status: 'confirmed',
-          shippingAddress: orderData.shippingAddress
-        }
+        paymentMethod: orderData.paymentMethod,
+        emailType: 'confirmation'
       }
     });
 
     toast.dismiss(loadingToast);
 
     if (error) {
-      console.error('❌ Error sending order confirmation email:', error);
-      toast.error(`Failed to send confirmation email: ${error.message}`);
+      toast.error(`Confirmation email failed: ${error.message}`);
       return false;
     }
 
-    console.log('✅ Order confirmation email with details sent successfully:', data);
-    toast.success(`✅ Order confirmation with details sent to ${orderData.customerEmail}`, {
-      duration: 5000
-    });
+    toast.success(`✅ Confirmation sent to ${orderData.customerEmail}`);
     return true;
   } catch (error) {
-    console.error('💥 Failed to send order confirmation email:', error);
-    toast.error('❌ Failed to send order confirmation email');
+    console.error('💥 Confirmation email error:', error);
+    toast.error('❌ Failed to send confirmation email');
     return false;
   }
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
@@ -52,7 +53,7 @@ const ProductDetailsPage = () => {
                   )
                   .map((v: any) => ({
                     size: v.size,
-                    stock: String(v.stock ?? 0)  // ✅ Convert string to number here
+                    stock: Number(v.stock ?? 0)
                   }) as ProductVariant)
               : [],
           };

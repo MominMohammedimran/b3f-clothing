@@ -20,7 +20,7 @@ const ProductVariantDisplay: React.FC<ProductVariantDisplayProps> = ({
 }) => {
   const getVariantStock = (size: string) => {
     const variant = variants.find(v => v.size.toLowerCase() === size.toLowerCase());
-    return variant ? variant.stock : stock || 0;
+    return variant ? Number(variant.stock) : stock || 0;
   };
 
   const availableSizes = sizes.length > 0 ? sizes : ['S', 'M', 'L', 'XL'];

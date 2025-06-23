@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,6 +9,8 @@ interface DesignProduct {
   price: number;
   image: string;
   code: string;
+  description: string;
+  category: string;
   variants?: { size: string; stock: number }[];
 }
 
@@ -23,7 +26,7 @@ export const useDesignProducts = () => {
 
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, price, image, code, variants')
+        .select('id, name, price, image, code, description, category, variants')
         .ilike('code', '%print%')
         .limit(10);
 
@@ -44,6 +47,8 @@ export const useDesignProducts = () => {
             price: product.price,
             image: product.image || 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-print.webp',
             code: product.code,
+            description: product.description || '',
+            category: product.category || 'custom-print',
             variants: Array.isArray(product.variants) ? (product.variants as {size :string; stock:number}  []):[]
           };
         });
@@ -68,21 +73,27 @@ export const useDesignProducts = () => {
       name: 'T-shirt',
       price: 200,
       image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-print.webp',
-      code: 'TSHIRT_PRINT'
+      code: 'TSHIRT_PRINT',
+      description: 'Custom printed t-shirt',
+      category: 'custom-print'
     },
     mug: {
       id: 'default-mug',
       name: 'Mug',
       price: 200,
       image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/mug-print.webp',
-      code: 'MUG_PRINT'
+      code: 'MUG_PRINT',
+      description: 'Custom printed mug',
+      category: 'custom-print'
     },
     cap: {
       id: 'default-cap',
       name: 'Cap',
       price: 150,
       image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-print.webp',
-      code: 'CAP_PRINT'
+      code: 'CAP_PRINT',
+      description: 'Custom printed cap',
+      category: 'custom-print'
     }
   });
 

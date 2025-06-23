@@ -21,25 +21,25 @@ const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view }) => {
         return {
           ...style,
           top: view === 'back' ? '110px' : '130px',
-          left: view === 'back' ? '115px' : '120px',
+          left: view === 'back' ? '82px' : '87px',
           width: '72px',
-          height: '95px',
+          height: '89px',
         };
       case 'mug':
         return {
           ...style,
           top: '103px',
-          left: '92px',
-          width: '100px',
-          height: '120px',
+          left: '62px',
+          width: '96px',
+          height: '118px',
         };
       case 'cap':
         return {
           ...style,
-          top: '90px',
-          left: '108px',
+          top: '92px',
+          left: '78px',
           width: '95px',
-          height: '60px',
+          height: '58px',
         };
       default:
         return {

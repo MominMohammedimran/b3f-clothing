@@ -5,7 +5,7 @@ import SEOHelmet from '../components/seo/SEOHelmet';
 import { useSEO } from '../hooks/useSEO';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../integrations/supabase/client';
-import { Order } from '../lib/types';
+import { Order, CartItem } from '../lib/types';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -46,17 +46,62 @@ const OrderHistory = () => {
 
         if (error) throw error;
 
-        let transformedOrders: Order[] = (data || []).map(order => ({
-          id: order.id,
-          orderNumber: order.order_number,
-          items: Array.isArray(order.items) ? order.items : [],
-          total: order.total,
-          reward_points: order.reward_points || 0,
-          status: order.status,
-          payment_status: order.payment_status,
-          deliveryFee: order.delivery_fee,
-          createdAt: order.created_at
-        }));
+        let transformedOrders: Order[] = (data || []).map((order: any) => {
+          // Parse items as CartItem[]
+          let parsedItems: CartItem[] = [];
+          try {
+            if (Array.isArray(order.items)) {
+              parsedItems = order.items.map((item: any) => ({
+                id: item.id || '',
+                product_id: item.product_id || '',
+                productId: item.productId,
+                name: item.name || '',
+                image: item.image,
+                price: item.price || 0,
+                sizes: Array.isArray(item.sizes) ? item.sizes : [],
+                color: item.color,
+                metadata: item.metadata
+              }));
+            }
+          } catch (e) {
+            console.error('Error parsing order items:', e);
+            parsedItems = [];
+          }
+
+          // Ensure status is properly typed
+          const validStatuses = ['processing', 'confirmed', 'shipped', 'delivered', 'cancelled', 'pending'] as const;
+          const orderStatus = validStatuses.includes(order.status as any) ? order.status : 'pending';
+
+          return {
+            id: order.id,
+            orderNumber: order.order_number,
+            order_number: order.order_number,
+            userId: order.user_id,
+            user_id: order.user_id,
+            userEmail: order.user_email || '',
+            user_email: order.user_email || '',
+            items: parsedItems,
+            total: order.total,
+            reward_points: order.reward_points || 0,
+            status: orderStatus,
+            paymentMethod: order.payment_method || 'unknown',
+            payment_method: order.payment_method || 'unknown',
+            shippingAddress: order.shipping_address,
+            shipping_address: order.shipping_address,
+            deliveryFee: order.delivery_fee,
+            delivery_fee: order.delivery_fee,
+            createdAt: order.created_at,
+            created_at: order.created_at,
+            updatedAt: order.updated_at,
+            updated_at: order.updated_at,
+            date: order.created_at,
+            cancellationReason: order.cancellation_reason || null,
+            cancellation_reason: order.cancellation_reason || null,
+            payment_details: order.payment_details || null,
+            payment_status: order.payment_status || 'pending',
+            order_status: order.order_status || order.status || 'pending'
+          };
+        });
 
         setOrders(transformedOrders);
       } catch (error) {

@@ -6,7 +6,6 @@ import { useImage } from '@/context/ImageContext';
 import { useText } from '@/context/TextContext';
 import { useEmoji } from '@/context/EmojiContext';
 import BoundaryRestrictor from './BoundaryRestrictor';
-import CanvasControls from './CanvasControls';
 import BoundaryBox from '../customization/BoundaryBox';
 import CanvasBackground from './CanvasBackground';
 
@@ -115,49 +114,46 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           centeredRotation: true,
         });
 
-fabric.Object.prototype.controls.mtr = new fabric.Control({
-  x: 0,
-  y: -0.5,
-  offsetY: -30,
-  cursorStyle: 'crosshair',
-  actionHandler: fabric.controlsUtils.rotationWithSnapping,
-  cornerSize: 28,
-  render: (ctx, left, top, styleOverride, fabricObject) => {
-    ctx.save();
-    ctx.translate(left, top);
+        fabric.Object.prototype.controls.mtr = new fabric.Control({
+          x: 0,
+          y: -0.5,
+          offsetY: -30,
+          cursorStyle: 'crosshair',
+          actionHandler: fabric.controlsUtils.rotationWithSnapping,
+          cornerSize: 28,
+          render: (ctx, left, top, styleOverride, fabricObject) => {
+            ctx.save();
+            ctx.translate(left, top);
 
-    // Outer circle
-    ctx.beginPath();
-    ctx.arc(0, 0, 10, 0, 2 * Math.PI, false);
-    ctx.fillStyle = '#4169E1';
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'white';
-    ctx.stroke();
-    ctx.closePath();
+            // Outer circle
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, 2 * Math.PI, false);
+            ctx.fillStyle = '#4169E1';
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+            ctx.closePath();
 
-    // Draw a refresh arrow
-    ctx.beginPath();
-    ctx.arc(0, 0, 6, Math.PI * 0.2, Math.PI * 1.4, false); // Partial arc
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.closePath();
+            // Draw a refresh arrow
+            ctx.beginPath();
+            ctx.arc(0, 0, 6, Math.PI * 0.2, Math.PI * 1.4, false);
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.closePath();
 
-    // Arrowhead
-    ctx.beginPath();
-    ctx.moveTo(4, -6);
-    ctx.lineTo(8, -8);
-    ctx.lineTo(6, -8);
-    ctx.fillStyle = 'white';
-    ctx.fill();
+            // Arrowhead
+            ctx.beginPath();
+            ctx.moveTo(4, -6);
+            ctx.lineTo(8, -8);
+            ctx.lineTo(6, -8);
+            ctx.fillStyle = 'white';
+            ctx.fill();
 
-    ctx.restore();
-  }
-});
-
-
-
+            ctx.restore();
+          }
+        });
 
         // Set up event listeners for undo/redo functionality
         newCanvas.on('object:added', () => saveState());
@@ -311,8 +307,13 @@ fabric.Object.prototype.controls.mtr = new fabric.Control({
 
     return () => {
       clearTimeout(timer);
-      if (canvas) {
-        canvas.dispose();
+      // Safe canvas disposal
+      if (canvas && canvas.getElement && canvas.getElement()) {
+        try {
+          canvas.dispose();
+        } catch (error) {
+          console.warn('Canvas disposal error (safe to ignore):', error);
+        }
       }
     };
   }, []);
@@ -557,13 +558,6 @@ fabric.Object.prototype.controls.mtr = new fabric.Control({
 
   return (
     <div className="design-canvas-container">
-      <CanvasControls
-        onUndo={props.undo || handleUndo}
-        onRedo={props.redo || handleRedo}
-        onClear={props.clearCanvas || handleClear}
-        canUndo={undoStack.length > 1}
-        canRedo={redoStack.length > 0}
-      />
       <div className="relative justify-items-center">
         <canvas
           ref={canvasRef}

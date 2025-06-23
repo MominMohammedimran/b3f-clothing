@@ -20,40 +20,43 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   onQuantityChange
 }) => {
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-2xl border-2 border-blue-200 shadow-lg">
-      <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-        👕 Select Sizes & Quantities
+    <div className=" p-8 rounded-2xl border-2 border-blue-200 shadow-lg">
+      <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">
+         Select Sizes & Quantities
       </h3>
       
       {/* Size Selection Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {product.variants?.map((variant) => (
-          <div 
-            key={variant.size} 
-            className={`p-6 rounded-xl border-3 cursor-pointer transition-all duration-300 transform hover:scale-105 ${
-              selectedSizes.includes(variant.size)
-                ? 'border-blue-500 bg-blue-100 shadow-lg scale-105' 
-                : 'border-gray-300 hover:border-blue-300 bg-white shadow-md'
-            }`}
-            onClick={() => onSizeToggle(variant.size)}
-          >
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 mb-2">{variant.size}</div>
-              <div className={`text-sm font-semibold mb-2 ${
-                variant.stock > 10 ? 'text-green-600' : 
-                variant.stock > 5 ? 'text-yellow-600' : 
-                'text-red-600'
-              }`}>
-                📦 {variant.stock} in stock
-              </div>
-              {selectedSizes.includes(variant.size) && (
-                <div className="text-blue-600 font-bold text-sm animate-pulse">
-                  ✓ SELECTED
+      <div className="grid grid-cols-3 gap-5 mb-8">
+        {product.variants?.map((variant) => {
+          const stockNumber = Number(variant.stock);
+          return (
+            <div 
+              key={variant.size} 
+              className={`p-2 rounded-xl border-3 cursor-pointer transition-all duration-300 transform hover:scale-105 ${
+                selectedSizes.includes(variant.size)
+                  ? 'border-blue-500 bg-blue-100 shadow-lg scale-105' 
+                  : 'border-gray-300 hover:border-blue-300 bg-white shadow-md'
+              }`}
+              onClick={() => onSizeToggle(variant.size)}
+            >
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600 mb-2">{variant.size}</div>
+                <div className={`text-sm font-semibold mb-2 ${
+                  stockNumber > 10 ? 'text-green-600' : 
+                  stockNumber > 5 ? 'text-yellow-600' : 
+                  'text-red-600'
+                }`}>
+                 {stockNumber} in stock
                 </div>
-              )}
+                {selectedSizes.includes(variant.size) && (
+                  <div className="text-blue-600 font-bold text-sm animate-pulse">
+                    ✓ SELECTED
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Quantity Controls for Selected Sizes */}
@@ -62,7 +65,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
           <h4 className="text-lg font-bold text-gray-700 text-center">📊 Set Quantities:</h4>
           {selectedSizes.map(size => {
             const variant = product.variants?.find(v => v.size === size);
-            const maxStock = variant?.stock || 50;
+            const maxStock = Number(variant?.stock || 50);
             
             return (
               <div key={size} className="flex items-center justify-between p-4 bg-white rounded-xl border-2 border-gray-200 shadow-sm">

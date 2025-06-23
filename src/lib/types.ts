@@ -79,7 +79,7 @@ export interface UserProfile {
 
 export interface ProductVariant {
   size: string;
-  stock:string;
+  stock: number;
 }
 
 export interface Product {

@@ -19,31 +19,29 @@ const ImageUploader: React.FC = () => {
       return;
     }
 
-    // Create an image element to check dimensions
+    // Create an image element to resize
     const img = new Image();
     img.onload = () => {
-      // Check image dimensions
-      if (img.width !== 150 || img.height !== 150) {
-        toast.error('Image must be exactly 150x150 pixels', {
-          description: `Your image is ${img.width}x${img.height}. Please resize it to 150x150 pixels.`,
-          action: {
-            label: 'Learn More',
-            onClick: () => {
-              toast.info('Use any image editor to resize your image to 150x150 pixels for best results');
-            }
-          }
-        });
+      // Create canvas to resize image to 150x150
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        toast.error('Failed to process image');
         return;
       }
 
-      // Convert to data URL for use in canvas
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setSelectedImage(dataUrl);
-        toast.success('Image uploaded successfully!');
-      };
-      reader.readAsDataURL(file);
+      // Set canvas dimensions to 150x150
+      canvas.width = 150;
+      canvas.height = 150;
+
+      // Draw and resize image to fit 150x150
+      ctx.drawImage(img, 0, 0, 150, 150);
+
+      // Convert to data URL
+      const resizedDataUrl = canvas.toDataURL('image/png', 0.9);
+      setSelectedImage(resizedDataUrl);
+      toast.success('Image processed and ready to use!');
     };
 
     img.onerror = () => {
@@ -70,9 +68,9 @@ const ImageUploader: React.FC = () => {
         <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
         <div className="text-sm text-blue-800">
           <p className="font-medium">Image Requirements:</p>
-          <p>• Dimensions: Exactly 150x150 pixels</p>
           <p>• Format: JPG, PNG, GIF, WebP</p>
           <p>• File size: Under 5MB</p>
+          <p>• Images will be automatically resized for optimal printing</p>
         </div>
       </div>
 
@@ -82,11 +80,11 @@ const ImageUploader: React.FC = () => {
         variant="outline"
       >
         <Upload className="w-4 h-4 mr-2" />
-        Upload Image (150x150px)
+        Upload Image
       </Button>
       
       <p className="text-xs text-gray-500 text-center">
-        Please upload image with dimensions 150x150px
+        Images are automatically optimized for design printing
       </p>
 
       <input

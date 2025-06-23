@@ -25,8 +25,11 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
           amount={orderData.total || 0}
           cartItems={orderData.cartItems || []}
           shippingAddress={orderData.shippingAddress || {}}
+          RewardPoints={0}
           onSuccess={onSuccess}
           onError={onFailure}
+          onRemoveSize={() => {}}
+          onRemoveItem={() => {}}
         />
       );
     

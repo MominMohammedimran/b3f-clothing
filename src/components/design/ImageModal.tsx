@@ -23,29 +23,40 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, onClose, onAddImage }) 
       return;
     }
 
+    // Create an image element to resize
     const img = new Image();
     img.onload = () => {
-      if (img.width !== 150 || img.height !== 150) {
-        toast.error('Image must be exactly 150x150 pixels', {
-          description: `Your image is ${img.width}x${img.height}. Please resize it to 150x150 pixels.`
-        });
+      // Create canvas to resize image to 150x150
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        toast.error('Failed to process image');
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setSelectedImage(dataUrl);
-      };
-      reader.readAsDataURL(file);
+      // Set canvas dimensions to 150x150
+      canvas.width = 150;
+      canvas.height = 150;
+
+      // Draw and resize image to fit 150x150
+      ctx.drawImage(img, 0, 0, 150, 150);
+
+      // Convert to data URL
+      const resizedDataUrl = canvas.toDataURL('image/png', 0.9);
+      setSelectedImage(resizedDataUrl);
+      toast.success('Image processed and ready to use!');
     };
 
     img.onerror = () => {
       toast.error('Failed to load image. Please try again.');
     };
 
+    // Create object URL to load the image
     const objectUrl = URL.createObjectURL(file);
     img.src = objectUrl;
+
+    // Clean up
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   };
 
@@ -68,11 +79,11 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, onClose, onAddImage }) 
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
             <Upload className="mx-auto h-12 w-12 text-gray-400" />
             <p className="mt-2 text-sm text-gray-600">
-              Upload image (150x150px required)
+              Upload image in PNG, JPG, WebP
             </p>
             <input
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
               onChange={handleImageUpload}
               className="mt-2"
             />

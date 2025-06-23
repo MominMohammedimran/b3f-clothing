@@ -80,7 +80,7 @@ const ProductCustomizer: React.FC<ProductCustomizerProps> = ({ product }) => {
 
   const handleQuantityChange = (size: string, newQuantity: number) => {
     const variant = product.variants?.find(v => v.size === size);
-    const maxStock = variant?.stock || 50;
+    const maxStock = Number(variant?.stock || 50);
     
     if (newQuantity >= 1 && newQuantity <= maxStock) {
       setQuantities(prev => ({ ...prev, [size]: newQuantity }));

@@ -8,8 +8,9 @@ import { CartItem } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import { createOrder } from '@/services/paymentService';
 import { makePayment } from '@/services/paymentServices/razorpay/RazorpayService';
-import { Loader2, CreditCard, Gift } from 'lucide-react';
+import { Loader2, CreditCard, Gift ,X} from 'lucide-react';
 import { sendOrderConfirmationEmail } from '@/components/admin/OrderStatusEmailService';
+import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 interface RazorpayCheckoutProps {
   cartItems: CartItem[];
   amount: number;
@@ -37,6 +38,8 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
   const [loading, setLoading] = useState(false);
   const [rewardPointsToUse, setRewardPointsToUse] = useState(RewardPoints);
   const [finalAmount, setFinalAmount] = useState(amount);
+   const { settings: deliverySettings, loading: settingsLoading } = useDeliverySettings();
+    const deliveryFee = deliverySettings?.delivery_fee || 100;
 const navigate = useNavigate();
   useEffect(() => {
     const discountedAmount = Math.max(0, amount - rewardPointsToUse);
@@ -220,6 +223,64 @@ const navigate = useNavigate();
   return (
     <div className="space-y-6">
       {/* Reward Points Section */}
+      <div className="space-y-3 mb-4 border-b pb-4">
+<h3 className=" font-semibold text-center text-gray-800">Order Items</h3>
+
+{cartItems.map((item, idx) => (
+<div
+ key={item.id || idx} className="flex flex-col sm:flex-row sm:items-start gap-3 border rounded-md p-2 bg-white shadow-sm"
+>
+ <img
+ src={item.image || '/placeholder.svg'}
+ alt={item.name}
+ className="w-14 h-14 object-cover rounded border"
+ />
+
+ <div className="flex-1 text-sm text-gray-700 space-y-1">
+ <div className="flex justify-between items-center">
+ <p className="font-medium text-gray-900">{item.name}</p>
+<button
+ onClick={() => onRemoveItem(item.id)}
+ className="text-red-500 text-xs hover:text-red-700"
+ >
+ Remove
+ </button>
+ </div>
+
+ <p className="text-xs">Item Price: ₹{item.price}</p>
+ <p className="text-xs">Delivery Fee: ₹{deliveryFee}</p>
+<p className="font-semibold text-xs text-green-700">
+ Total: ₹{item.price + deliveryFee}
+</p>
+
+{Array.isArray(item.sizes) ? (
+ <div className="flex flex-wrap gap-1">
+{item.sizes.map((s: any) => (
+ <div
+ key={s.size}
+ className="flex items-center gap-1 px-2 py-0.5 border rounded bg-gray-100 text-xs"
+ >
+ <span>{s.size}</span>
+ <span className="text-gray-500">× {s.quantity}</span>
+ <button
+ onClick={() => onRemoveSize(item.id, s.size)}
+ className="text-red-500 hover:text-red-700"
+ >
+ <X className="w-3 h-3" />
+ </button>
+ </div>
+))}
+</div>
+ ) : (
+<div className="text-xs text-gray-600">
+Size: N/A
+</div>
+ )}
+</div>
+ </div>
+))}
+</div>
+
       {availableRewardPoints > 0 && (
         <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200">
           <div className="flex items-center gap-2 mb-3">

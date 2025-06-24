@@ -95,7 +95,7 @@ serve(async (req: Request) => {
 
           ${
             shippingAddress?.zipCode
-              ? `<p style="margin-top:16px;">Estimated Delivery: <strong>3–5 Days</strong><br/>Track here: <a href="https://b3f-prints.pages.dev/track-order" target="_blank">Track Order</a></p>`
+              ? `<p style="margin-top:16px;">Estimated Delivery : <strong>7–10 Days</strong><br/>Track here: <a href="https://b3f-prints.pages.dev/orders" target="_blank">Track Order</a></p>`
               : ""
           }
 

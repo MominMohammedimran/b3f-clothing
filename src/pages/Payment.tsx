@@ -119,32 +119,13 @@ toast.error("Failed to remove size");
           <div className="space-y-6">
             {/* Order Summary */}
             <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
+              <h2 className="text-lg font-semibold text-center mb-4">Order Summary</h2>
 
  
 
 
               {/* Reward Points */}
-              {userProfile?.reward_points > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold mb-2">Use Reward Points</h3>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={0}
-                      max={Math.min(userProfile.reward_points, finalTotal)}
-                      value={rewardPointsUsed}
-                      onChange={(e) => {
-                        const val = Number(e.target.value) || 0;
-                        setRewardPointsUsed(Math.min(val, userProfile.reward_points, finalTotal));
-                      }}
-                      className="border rounded px-3 py-2 w-24"
-                      placeholder="0"
-                    />
-                    <span className="text-sm text-gray-600">points</span>
-                  </div>
-                </div>
-              )}
+            
 
               {/* Razorpay Checkout */}
               <div>

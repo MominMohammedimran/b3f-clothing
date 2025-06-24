@@ -9,7 +9,7 @@ export interface Order {
   user_email?: string;
   items: CartItem[];
   total: number;
-  status: 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'pending';
+  status: 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'pending' | 'refunded' | 'failed';
   paymentMethod: string;
   payment_method: string;
   shippingAddress: any;

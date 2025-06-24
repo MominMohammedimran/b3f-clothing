@@ -1,3 +1,4 @@
+
 import React,{ useState }  from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,6 +32,8 @@ interface CustomizationSidebarProps {
   onQuantityChange: (newQuantity: number) => void;
   productId: string;
   upi_input: string;
+  quantities: Record<string, number>;
+  onQuantityChangeForSize: (size: string, quantity: number) => void;
 }
 
 const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
@@ -52,7 +55,9 @@ const CustomizationSidebar: React.FC<CustomizationSidebarProps> = ({
   quantity,
   onQuantityChange,
   productId,
-  upi_input
+  upi_input,
+  quantities,
+  onQuantityChangeForSize
 }) => {
 const [adding, setAdding] = useState(false); 
   const product = products[activeProduct];
@@ -119,9 +124,9 @@ const [adding, setAdding] = useState(false);
         <ProductVariantSelector
           product={product}
           selectedSizes={selectedSizes}
-          quantities={{}}
+          quantities={quantities}
           onSizeToggle={onSizeToggle}
-          onQuantityChange={() => {}}
+          onQuantityChange={onQuantityChangeForSize}
         />
       )}
 

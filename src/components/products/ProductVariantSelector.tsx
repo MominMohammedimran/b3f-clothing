@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Minus } from 'lucide-react';
@@ -17,94 +16,115 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   selectedSizes,
   quantities,
   onSizeToggle,
-  onQuantityChange
+  onQuantityChange,
 }) => {
   return (
-    <div className=" p-8 rounded-2xl border-2 border-blue-200 shadow-lg">
-      <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">
-         Select Sizes & Quantities
+    <div className="p-6 sm:p-8 border-2 border-blue-200 rounded-2xl shadow-md bg-white max-w-3xl mx-auto">
+      <h3 className="text-2xl font-bold text-blue-800 mb-6 text-center">
+        Select Size and Quantity
       </h3>
-      
-      {/* Size Selection Grid */}
-      <div className="grid grid-cols-3 gap-5 mb-8">
+
+      {/* Size Selection */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5 mb-8">
         {product.variants?.map((variant) => {
-          const stockNumber = Number(variant.stock);
+          const isSelected = selectedSizes.includes(variant.size);
+          const stock = Number(variant.stock);
+          const isOutOfStock = stock === 0;
+
           return (
-            <div 
-              key={variant.size} 
-              className={`p-2 rounded-xl border-3 cursor-pointer transition-all duration-300 transform hover:scale-105 ${
-                selectedSizes.includes(variant.size)
-                  ? 'border-blue-500 bg-blue-100 shadow-lg scale-105' 
-                  : 'border-gray-300 hover:border-blue-300 bg-white shadow-md'
-              }`}
-              onClick={() => onSizeToggle(variant.size)}
+            <div
+              key={variant.size}
+              onClick={() => {
+                if (!isOutOfStock) onSizeToggle(variant.size);
+              }}
+              className={`p-4 border-2 rounded-xl text-center transition-all duration-300 shadow-sm
+                ${isOutOfStock
+                  ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : isSelected
+                  ? 'border-blue-500 bg-blue-50 shadow-md scale-105 cursor-pointer'
+                  : 'border-gray-300 hover:border-blue-300 cursor-pointer'}
+              `}
             >
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600 mb-2">{variant.size}</div>
-                <div className={`text-sm font-semibold mb-2 ${
-                  stockNumber > 10 ? 'text-green-600' : 
-                  stockNumber > 5 ? 'text-yellow-600' : 
-                  'text-red-600'
-                }`}>
-                 {stockNumber} in stock
-                </div>
-                {selectedSizes.includes(variant.size) && (
-                  <div className="text-blue-600 font-bold text-sm animate-pulse">
-                    ✓ SELECTED
-                  </div>
-                )}
-              </div>
+              <p className="text-xl font-bold">{variant.size}</p>
+              <p
+                className={`text-sm mt-1 font-medium ${
+                  stock > 10
+                    ? 'text-green-600'
+                    : stock > 3
+                    ? 'text-yellow-600'
+                    : stock === 0
+                    ? 'text-red-500'
+                    : 'text-red-600'
+                }`}
+              >
+                {stock === 0 ? '🚫 Out of Stock' : `${stock} in stock`}
+              </p>
+              {!isOutOfStock && isSelected && (
+                <p className="mt-2 text-sm font-semibold text-blue-700 animate-pulse">
+                  ✓ Selected
+                </p>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Quantity Controls for Selected Sizes */}
+      {/* Quantity Controls */}
       {selectedSizes.length > 0 && (
-        <div className="space-y-4 mb-6">
-          <h4 className="text-lg font-bold text-gray-700 text-center">📊 Set Quantities:</h4>
-          {selectedSizes.map(size => {
-            const variant = product.variants?.find(v => v.size === size);
-            const maxStock = Number(variant?.stock || 50);
-            
-            return (
-              <div key={size} className="flex items-center justify-between p-4 bg-white rounded-xl border-2 border-gray-200 shadow-sm">
-                <span className="font-bold text-lg text-gray-700">Size {size}:</span>
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onQuantityChange(size, (quantities[size] || 1) - 1)}
-                    disabled={(quantities[size] || 1) <= 1}
-                    className="h-10 w-10 p-0 border-2 border-gray-400 hover:border-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <Minus className="h-5 w-5" />
-                  </Button>
-                  
-                  <div className="bg-blue-100 border-2 border-blue-300 rounded-lg px-6 py-2 min-w-[80px] text-center">
-                    <span className="font-bold text-xl text-blue-700">{quantities[size] || 1}</span>
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onQuantityChange(size, (quantities[size] || 1) + 1)}
-                    disabled={(quantities[size] || 1) >= maxStock}
-                    className="h-10 w-10 p-0 border-2 border-gray-400 hover:border-green-500 hover:bg-green-50 transition-colors"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </Button>
-                  
-                  <div className="text-right min-w-[100px]">
-                    <span className="text-sm text-gray-600">Subtotal: </span>
-                    <span className="font-bold text-lg text-green-600">
-                      ₹{(product.price * (quantities[size] || 1)).toFixed(2)}
+        <div className="space-y-4">
+          <h4 className="text-base font-semibold text-center text-gray-700">Set Quantity</h4>
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {selectedSizes.map((size) => {
+              const variant = product.variants?.find((v) => v.size === size);
+              const stock = Number(variant?.stock || 0);
+              const quantity = quantities[size] || 1;
+
+              return (
+                <div
+                  key={size}
+                  className="flex flex-col items-center gap-2 p-3 border rounded-lg bg-gray-50 shadow-sm"
+                >
+                  {/* Size Label */}
+                  <p className="font-medium text-gray-800 text-sm">
+                    Size: <span className="text-blue-600 font-semibold">{size}</span>
+                  </p>
+
+                  {/* Quantity Controls */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-6 w-6 text-red-500"
+                      onClick={() => onQuantityChange(size, quantity - 1)}
+                      disabled={quantity <= 1}
+                    >
+                      <Minus className="w-3 h-3" />
+                    </Button>
+                    <span className="px-3 py-1 bg-white border rounded-md text-blue-700 font-bold text-sm">
+                      {quantity}
                     </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-6 w-6 text-green-600"
+                      onClick={() => onQuantityChange(size, quantity + 1)}
+                      disabled={quantity >= stock}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
                   </div>
+
+                  {/* Subtotal */}
+                  <p className="text-xs text-gray-600 font-medium mt-1">
+                    Subtotal:{' '}
+                    <span className="text-green-700 font-semibold">
+                      ₹{(product.price * quantity).toFixed(2)}
+                    </span>
+                  </p>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

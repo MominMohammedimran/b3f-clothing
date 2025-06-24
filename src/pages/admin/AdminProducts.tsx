@@ -27,7 +27,7 @@ interface Product {
   variants?: { size: string; stock: number }[];
   created_at: string;
   productId?: string;
-  images?: any;
+  images: string[]; // multiple image URLs
   tags?: any;
   colors?: any;
   sizes?: any;
@@ -40,6 +40,7 @@ const AdminProducts = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -50,7 +51,8 @@ const AdminProducts = () => {
     category: '',
     stock: '',
     code: '',
-    variants: [] as { size: string; stock: number }[]
+    variants: [] as { size: string; stock: number }[],
+    images: [] as string[],
   });
 
   useEffect(() => {
@@ -60,49 +62,44 @@ const AdminProducts = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       if (error) throw error;
-      
       if (data) {
-        const transformedProducts: Product[] = data.map((dbProduct: any) => ({
-          id: dbProduct.id,
-          name: dbProduct.name,
-          description: dbProduct.description || '',
-          price: dbProduct.price,
-          original_price: dbProduct.original_price,
-          discount_percentage: dbProduct.discount_percentage || 0,
-          image: dbProduct.image,
-          category: dbProduct.category,
-          stock: dbProduct.stock || 0,
-          code: dbProduct.code,
-          variants: Array.isArray(dbProduct.variants) ? dbProduct.variants : [],
-          created_at: dbProduct.created_at,
-          productId: dbProduct.productId || dbProduct.id,
-          images: dbProduct.images,
-          tags: dbProduct.tags,
-          colors: dbProduct.colors,
-          sizes: dbProduct.sizes,
-          updated_at: dbProduct.updated_at
+        const transformedProducts = data.map((p: any) => ({
+          ...p,
+          images: Array.isArray(p.images) ? p.images : [],
+          variants: Array.isArray(p.variants) ? p.variants : [],
         }));
         setProducts(transformedProducts);
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('Failed to fetch products');
+      console.error('Fetch error:', error);
+      toast.error('Failed to load products');
     } finally {
       setLoading(false);
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      original_price: '',
+      discount_percentage: '',
+      image: '',
+      category: '',
+      stock: '',
+      code: '',
+      variants: [],
+      images: [],
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-      const productData = {
+      const payload = {
         name: formData.name,
         description: formData.description || null,
         price: parseFloat(formData.price),
@@ -112,64 +109,28 @@ const AdminProducts = () => {
         category: formData.category || null,
         stock: formData.stock ? parseInt(formData.stock) : 0,
         code: formData.code || null,
-        variants: formData.variants.length > 0 ? formData.variants : null,
+        variants: formData.variants,
         productId: editingProduct?.productId || `product_${Date.now()}`,
-        images: [],
-        tags: [],
-        colors: [],
-        sizes: []
-        // Removed rating field as it doesn't exist in the database
+        images: formData.images,
       };
 
       if (editingProduct) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', editingProduct.id);
-
-        if (error) {
-          console.error('Update error:', error);
-          throw new Error(error.message || 'Failed to update product');
-        }
-        toast.success('Product updated successfully');
+        const { error } = await supabase.from('products').update(payload).eq('id', editingProduct.id);
+        if (error) throw error;
+        toast.success('Product updated');
       } else {
-        const { error } = await supabase
-          .from('products')
-          .insert([productData]);
-
-        if (error) {
-          console.error('Insert error:', error);
-          throw new Error(error.message || 'Failed to create product');
-        }
-        toast.success('Product created successfully');
+        const { error } = await supabase.from('products').insert([payload]);
+        if (error) throw error;
+        toast.success('Product created');
       }
 
       setShowCreateDialog(false);
-      setEditingProduct(null);
       resetForm();
+      setEditingProduct(null);
       fetchProducts();
     } catch (error: any) {
-      console.error('Error saving product:', error);
-      const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
-      toast.error('Failed to save product: ' + errorMessage);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      toast.success('Product deleted successfully');
-      fetchProducts();
-    } catch (error: any) {
-      console.error('Error deleting product:', error);
-      toast.error('Failed to delete product');
+      console.error(error);
+      toast.error('Error saving product');
     }
   };
 
@@ -185,289 +146,157 @@ const AdminProducts = () => {
       category: product.category || '',
       stock: product.stock?.toString() || '',
       code: product.code || '',
-      variants: product.variants || []
+      variants: product.variants || [],
+      images: product.images || [],
     });
     setShowCreateDialog(true);
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      original_price: '',
-      discount_percentage: '',
-      image: '',
-      category: '',
-      stock: '',
-      code: '',
-      variants: []
-    });
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this product?')) return;
+    try {
+      await supabase.from('products').delete().eq('id', id);
+      toast.success('Deleted successfully');
+      fetchProducts();
+    } catch (error) {
+      toast.error('Failed to delete');
+    }
   };
 
   const addVariant = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      variants: [...prev.variants, { size: '', stock: 0 }]
+      variants: [...prev.variants, { size: '', stock: 0 }],
     }));
   };
 
   const removeVariant = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      variants: prev.variants.filter((_, i) => i !== index)
+      variants: prev.variants.filter((_, i) => i !== index),
     }));
   };
 
   const updateVariant = (index: number, field: 'size' | 'stock', value: string | number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      variants: prev.variants.map((variant, i) => 
-        i === index ? { ...variant, [field]: value } : variant
-      )
+      variants: prev.variants.map((v, i) =>
+        i === index ? { ...v, [field]: value } : v
+      ),
     }));
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.code?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-     <ModernAdminLayout title="Products">
+    <ModernAdminLayout title="Products">
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h2 className="text-xl sm:text-2xl font-bold">Products</h2>
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold">Products</h2>
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm} className="w-full sm:w-auto">
-                <Plus className="mr-2 h-4 w-4" />
+              <Button onClick={resetForm}>
+                <Plus className="w-4 h-4 mr-2" />
                 Add Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+            <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>
-                  {editingProduct ? 'Edit Product' : 'Create New Product'}
+                  {editingProduct ? 'Edit Product' : 'Create Product'}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Form Fields */}
+                <div><Label>Name</Label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required /></div>
+                <div><Label>Description</Label><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
+                <div><Label>Price</Label><Input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} required /></div>
+                <div><Label>Original Price</Label><Input type="number" value={formData.original_price} onChange={(e) => setFormData({ ...formData, original_price: e.target.value })} /></div>
+                <div><Label>Discount (%)</Label><Input type="number" value={formData.discount_percentage} onChange={(e) => setFormData({ ...formData, discount_percentage: e.target.value })} /></div>
+                <div><Label>Category</Label><Input value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} /></div>
+                <div><Label>Code</Label><Input value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
+                <div><Label>Stock</Label><Input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} /></div>
+
+                {/* Main Image */}
                 <div>
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
+                  <Label>Main Image</Label>
+                  <Input value={formData.image} onChange={(e) => setFormData({ ...formData, image: e.target.value })} />
+                  {formData.image && <img src={formData.image} className="w-28 h-28 mt-2 object-cover rounded border shadow" />}
                 </div>
+
+                {/* Multiple Images */}
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label>Image URLs (comma-separated)</Label>
                   <Textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    value={formData.images.join(', ')}
+                    onChange={(e) => setFormData({ ...formData, images: e.target.value.split(',').map(url => url.trim()) })}
                   />
+                  {formData.images.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+                      {formData.images.map((img, i) => (
+                        <img key={i} src={img} className="h-24 w-full object-cover rounded border shadow" />
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Variants */}
                 <div>
-                  <Label htmlFor="price">Price</Label>
-                  <Input
-                    id="price"
-                    name="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    required
-                  />
+                  <Label>Variants</Label>
+                  {formData.variants.map((variant, index) => (
+                    <div key={index} className="flex items-center gap-2 mb-2">
+                      <Input value={variant.size} onChange={(e) => updateVariant(index, 'size', e.target.value)} placeholder="Size" />
+                      <Input type="number" value={variant.stock} onChange={(e) => updateVariant(index, 'stock', e.target.value)} placeholder="Stock" />
+                      <Button size="sm" variant="destructive" onClick={() => removeVariant(index)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={addVariant}><Plus className="h-4 w-4" /></Button>
                 </div>
-                <div>
-                  <Label htmlFor="original_price">Original Price</Label>
-                  <Input
-                    id="original_price"
-                    name="original_price"
-                    type="number"
-                    value={formData.original_price}
-                    onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="discount_percentage">Discount Percentage</Label>
-                  <Input
-                    id="discount_percentage"
-                    name="discount_percentage"
-                    type="number"
-                    value={formData.discount_percentage}
-                    onChange={(e) => setFormData({ ...formData, discount_percentage: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="image">Image</Label>
-                  <Input
-                    id="image"
-                    name="image"
-                    type="text"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
-                    name="category"
-                    type="text"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="stock">Stock</Label>
-                  <Input
-                    id="stock"
-                    name="stock"
-                    type="number"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="code">Code</Label>
-                  <Input
-                    id="code"
-                    name="code"
-                    type="text"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="variants">Variants</Label>
-                  <div className="space-y-2">
-                    {formData.variants.map((variant, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <Input
-                          type="text"
-                          value={variant.size}
-                          onChange={(e) => updateVariant(index, 'size', e.target.value)}
-                        />
-                        <Input
-                          type="number"
-                          value={variant.stock}
-                          onChange={(e) => updateVariant(index, 'stock', e.target.value)}
-                        />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => removeVariant(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={addVariant}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-3">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => {
-                      setShowCreateDialog(false);
-                      setEditingProduct(null);
-                      resetForm();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingProduct ? 'Update Product' : 'Create Product'}
-                  </Button>
+
+                <div className="flex justify-end gap-3">
+                  <Button type="button" variant="outline" onClick={() => { resetForm(); setShowCreateDialog(false); setEditingProduct(null); }}>Cancel</Button>
+                  <Button type="submit">{editingProduct ? 'Update' : 'Create'}</Button>
                 </div>
               </form>
             </DialogContent>
           </Dialog>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <Input
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-        </div>
+        {/* Search */}
+        <Input placeholder="Search products..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
 
+        {/* Product Cards */}
         {loading ? (
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
+          <div className="text-center py-10">Loading...</div>
         ) : (
           <div className="grid gap-4">
             {filteredProducts.map((product) => (
               <Card key={product.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4">
-                      <img
-                        src={product.image || '/placeholder.svg'}
-                        alt={product.name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                      <div>
-                        <h3 className="text-lg font-semibold">{product.name}</h3>
-                        <p className="text-sm text-gray-600">Code: {product.code}</p>
-                        <p className="text-sm text-gray-600">Category: {product.category}</p>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <span className="text-lg font-bold">₹{product.price}</span>
-                          {product.original_price && product.original_price > product.price && (
-                            <span className="text-sm text-gray-500 line-through">₹{product.original_price}</span>
-                          )}
-                          {product.discount_percentage && (
-                            <Badge variant="destructive">{product.discount_percentage}% OFF</Badge>
-                          )}
-                        </div>
-                        <div className="mt-2">
-                          <p className="text-sm text-gray-600">
-                            <strong>Stock:</strong> {product.stock} units
-                          </p>
-                        </div>
+                <CardContent className="flex items-start justify-between p-4">
+                  <div className="flex gap-4">
+                    <img src={product.image || '/placeholder.svg'} className="w-16 h-16 object-cover rounded" />
+                    <div>
+                      <h3 className="text-lg font-semibold">{product.name}</h3>
+                      <p className="text-sm text-gray-500">Code: {product.code}</p>
+                      <p className="text-sm text-gray-500">Category: {product.category}</p>
+                      <div className="flex gap-2 items-center mt-1">
+                        <span className="text-lg font-bold">₹{product.price}</span>
+                        {product.original_price && <span className="text-sm line-through text-gray-400">₹{product.original_price}</span>}
+                        {product.discount_percentage && <Badge variant="destructive">{product.discount_percentage}% OFF</Badge>}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(product)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(product.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleEdit(product)}><Edit className="h-4 w-4" /></Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(product.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
-            
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                {searchTerm ? 'No products found matching your search.' : 'No products found. Add your first product!'}
-              </div>
-            )}
+            {filteredProducts.length === 0 && <div className="text-center text-gray-500 py-10">No products found</div>}
           </div>
         )}
       </div>

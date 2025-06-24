@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
@@ -126,6 +127,25 @@ const OrderHistory = () => {
     }
   };
 
+  const getStatusBadgeClass = (status: string, paymentStatus: string) => {
+    if (paymentStatus !== 'paid') return 'bg-red-100 text-red-800';
+    
+    switch (status) {
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'shipped': return 'bg-blue-100 text-blue-800';
+      case 'processing': return 'bg-yellow-100 text-yellow-800';
+      case 'refunded': return 'bg-orange-100 text-orange-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      case 'cancelled': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string, paymentStatus: string) => {
+    if (paymentStatus !== 'paid') return 'Payment Pending';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -164,15 +184,27 @@ const OrderHistory = () => {
 
                   <div className="text-right space-y-1">
                     <p className="font-semibold">{formatPrice(order.total)}</p>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      order.payment_status === 'paid'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {order.payment_status === 'paid' ? order.status : 'Payment Pending'}
+                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(order.status, order.payment_status)}`}>
+                      {getStatusText(order.status, order.payment_status)}
                     </span>
                   </div>
                 </div>
+
+                {/* Order Status Notes */}
+                {(order.status === 'refunded' || order.status === 'failed' || order.cancellation_reason) && (
+                  <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md">
+                    <p className="text-sm font-medium text-yellow-800">
+                      {order.status === 'refunded' && 'Order Refunded'}
+                      {order.status === 'failed' && 'Order Failed'}
+                      {order.status === 'cancelled' && 'Order Cancelled'}
+                    </p>
+                    {order.cancellation_reason && (
+                      <p className="text-sm text-yellow-700 mt-1">
+                        Note: {order.cancellation_reason}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Items Display */}
                 <div className="space-y-2">

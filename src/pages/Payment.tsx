@@ -47,13 +47,13 @@ const Payment = () => {
 
 
   const onRemoveSize = async (itemId: string, size: string) => {
-  try {
-    // Assuming you use Supabase or local update
-    await removeSizeFromCart(itemId, size); // <- You need to have this function in context
-    toast.success(`Size ${size} removed from item`);
-  } catch (err) {
-    toast.error("Failed to remove size");
-  }
+try {
+// Assuming you use Supabase or local update
+ await removeSizeFromCart(itemId, size); // <- You need to have this function in context
+toast.success(`Size ${size} removed from item`);
+} catch (err) {
+toast.error("Failed to remove size");
+}
 };
 
 

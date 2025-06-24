@@ -88,27 +88,11 @@ const RewardPoints = () => {
         </div>
       </div>
       
-      <div className="space-y-4">
+     {/* <div className="space-y-4">
         <h3 className="text-lg font-medium">Rewards History</h3>
         
-        {rewardPoints > 0 ? (
-          <div className="divide-y border rounded-lg">
-            <div className="p-4 flex justify-between items-center">
-              <div>
-                <div className="font-medium">Purchase Reward</div>
-                <div className="text-sm text-gray-500">Order #ORD-123456</div>
-              </div>
-              <div className="text-green-600 font-semibold">+{rewardPoints} points</div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8 border rounded-lg bg-gray-50">
-            <Award size={48} className="mx-auto text-gray-300 mb-2" />
-            <h3 className="font-medium text-gray-700">No rewards yet</h3>
-            <p className="text-sm text-gray-500 mt-1">Complete purchases to earn points</p>
-          </div>
-        )}
-      </div>
+       
+      </div>*/}
     </div>
   );
 };

@@ -119,7 +119,7 @@ const AdminDashboard = () => {
   );
 
   return (
-     <ModernAdminLayout title="Dashboard">
+     <ModernAdminLayout title="Dashboard" >
       <div className="bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="bg-white p-4 border-b">

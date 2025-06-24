@@ -96,12 +96,13 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
           ondismiss: () => {
             setLoading(false);
             toast.error("Payment cancelled");
+            navigate('/orders')
           }
         },
         handler: async (paymentRes: any) => {
           try {
             const { error: updateError } = await supabase.rpc('update_payment_status', {
-              p_order_id: orderId,
+              p_order_id: orderNumber,
               p_payment_status: 'paid',
               p_order_status: 'pending'
             });
@@ -111,7 +112,7 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
             toast.success("Payment successful! Sending confirmation email...");
 
             await sendOrderConfirmationEmail({
-              orderId,
+              orderId:orderNumber,
               customerEmail: currentUser.email,
               customerName: data.shipping_address?.fullName || 'Customer',
               status: 'confirmed',

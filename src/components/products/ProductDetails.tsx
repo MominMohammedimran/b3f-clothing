@@ -25,6 +25,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   const { cartItems, removeSizeFromCart } = useCart();
 
   let productVariants: { size: string; stock: string }[] = [];
+
   if (typeof product.variants === 'string') {
     try {
       productVariants = JSON.parse(product.variants);
@@ -47,6 +48,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   }, [cartItems, product.id]);
 
   const handleSizeToggle = (size: string) => {
+    const variant = productVariants.find((v) => v.size === size);
+    const stock = variant?.stock ? parseInt(variant.stock) : 0;
+    if (stock === 0) return;
+
     setSelectedSizes((prev) => {
       const exists = prev.find((s) => s.size === size);
       if (exists) {
@@ -71,10 +76,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     }
   };
 
-  const totalPrice = selectedSizes.reduce(
-    (sum, item) => sum + item.quantity * product.price,
-    0
-  );
+  const totalPrice = selectedSizes.reduce((sum, item) => {
+    const variant = productVariants.find((v) => v.size === item.size);
+    const stock = variant?.stock ? parseInt(variant.stock) : 0;
+    return stock > 0 ? sum + item.quantity * product.price : sum;
+  }, 0);
 
   return (
     <div className="space-y-6 bg-white p-4 md:p-6 rounded-xl shadow-md">
@@ -100,18 +106,23 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
             );
             const inCart = cartItem?.sizes.some((s) => s.size === size);
             const variant = productVariants.find((v) => v.size === size);
-            const stock = variant?.stock ?? 'N/A';
+            const stock = variant?.stock ? parseInt(variant.stock) : 0;
 
             return (
               <div key={size} className="relative">
                 <button
                   onClick={() => handleSizeToggle(size)}
+                  disabled={stock === 0}
                   className={`w-full px-3 py-2 rounded-lg border text-sm font-medium text-center
-                  ${selected ? 'bg-blue-100 border-blue-500 text-blue-800' : 'border-gray-300'}
-                  ${inCart ? 'ring-2 ring-green-400' : ''}`}
+                    ${selected ? 'bg-blue-100 border-blue-500 text-blue-800' : 'border-gray-300 hover:border-blue-400'}
+                    ${inCart ? 'ring-2 ring-green-400' : ''}
+                    ${stock === 0 ? 'cursor-not-allowed opacity-50' : ''}
+                  `}
                 >
                   <div className="font-semibold">{size}</div>
-                  <div className="text-xs text-gray-600">Qty: {stock}</div>
+                  <div className="text-xs text-gray-600">
+                    {stock === 0 ? 'Out of stock' : `Qty: ${stock}`}
+                  </div>
                   {inCart && (
                     <div className="mt-1">
                       <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
@@ -137,9 +148,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
               const variant = productVariants.find(
                 (v) => v.size === sizeItem.size
               );
-              const maxStock = variant?.stock
-                ? parseInt(variant.stock)
-                : 0;
+              const maxStock = variant?.stock ? parseInt(variant.stock) : 0;
               const cartItem = cartItems.find(
                 (item) => item.product_id === product.id
               );
@@ -152,7 +161,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                 <div
                   key={sizeItem.size}
                   className={`flex flex-col p-4 w-[140px] bg-white rounded-xl border shadow-sm ${
-                    inCartQty ? 'border-green-400 bg-green-50' : 'border-gray-200'
+                    inCartQty
+                      ? 'border-green-400 bg-green-50'
+                      : 'border-gray-200'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -183,7 +194,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                   </div>
 
                   <div className="text-xs text-gray-600 mb-1">
-                    Stock: {variant?.stock ?? 'N/A'}
+                    Stock: {maxStock}
                   </div>
 
                   {inCartQty && (
@@ -192,15 +203,24 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                     </div>
                   )}
 
-                  <ProductQuantitySelector
-                    quantity={sizeItem.quantity}
-                    maxQuantity={maxStock}
-                    onChange={(qty) => handleQuantityChange(sizeItem.size, qty)}
-                  />
-
-                  <div className="mt-2 text-sm font-semibold text-gray-900">
-                    ₹{(product.price * sizeItem.quantity).toFixed(2)}
-                  </div>
+                  {maxStock > 0 ? (
+                    <>
+                      <ProductQuantitySelector
+                        quantity={sizeItem.quantity}
+                        maxQuantity={maxStock}
+                        onChange={(qty) =>
+                          handleQuantityChange(sizeItem.size, qty)
+                        }
+                      />
+                      <div className="mt-2 text-sm font-semibold text-gray-900">
+                        ₹{(product.price * sizeItem.quantity).toFixed(2)}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-red-500 mt-2 font-medium">
+                      Out of Stock
+                    </p>
+                  )}
                 </div>
               );
             })}

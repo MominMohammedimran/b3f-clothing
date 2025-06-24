@@ -486,6 +486,8 @@ const DesignTool = () => {
                 onQuantityChange={setQuantity}
                 productId={activeProduct}
                 upi_input=""
+                quantities={quantities}
+                onQuantityChangeForSize={handleQuantityChange}
               />
             </div>
           </div>

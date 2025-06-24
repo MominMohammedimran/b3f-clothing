@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React,{useEffect,useState} from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/context/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,8 +29,10 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import AdminBottomNavigation from './AdminBottomNavigation';
-
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 interface ModernAdminLayoutProps {
+
   children: React.ReactNode;
   title: string;
   subtitle?: string;
@@ -37,6 +40,7 @@ interface ModernAdminLayoutProps {
 }
 
 const ModernAdminLayout: React.FC<ModernAdminLayoutProps> = ({
+ 
   children,
   title,
   subtitle,
@@ -44,7 +48,28 @@ const ModernAdminLayout: React.FC<ModernAdminLayoutProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  
+  const [ordersNum, setOrdersNum] = useState(0);
+
+  useEffect(() => {
+    fetchOrderCount();
+  }, []);
+
+  const fetchOrderCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) throw error;
+
+      setOrdersNum(count || 0);
+    } catch (error) {
+      toast.error('Unable to fetch order count');
+      console.error(error);
+      setOrdersNum(0); // fallback
+    }
+  };
+
   const sidebarItems = [
     { icon: Home, label: 'Dashboard', path: '/admin', exact: true },
     { icon: ShoppingCart, label: 'Orders', path: '/admin/orders' },
@@ -59,11 +84,21 @@ const ModernAdminLayout: React.FC<ModernAdminLayoutProps> = ({
     }
     return location.pathname.startsWith(path);
   };
-
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    navigate('/admin/signin');
+  const { currentUser, signOut } = useAuth();
+  const handleLogout = async() => {
+    
+   try {
+      await signOut();
+      toast.success('Signed out successfully');
+      navigate('/admin/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    }
   };
+  const redirectToOrders=()=>{
+    navigate('/admin/orders')
+  }
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -131,22 +166,29 @@ const ModernAdminLayout: React.FC<ModernAdminLayoutProps> = ({
         
         <h1 className="text-lg font-semibold text-gray-900 truncate">{title}</h1>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative hover:bg-blue-50">
-              <Bell size={20} />
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500">
-                3
-              </Badge>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut size={16} className="mr-2" />
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+     <div className="flex items-center gap-3">
+  {/* 🔔 Notification Bell with Badge */}
+  <Button 
+  onClick={redirectToOrders} variant="ghost" size="icon" className="relative hover:bg-blue-50">
+    <Bell size={20} />
+    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500">
+      {ordersNum}
+    </Badge>
+  </Button>
+
+  {/* 🚪 Logout Icon Button */}
+  <Button
+    variant="ghost"
+    size="icon"
+    className="hover:bg-red-50 text-red-600"
+    onClick={handleLogout}
+    title="Sign Out"
+  >
+    <LogOut size={20} />
+  </Button>
+</div>
+
+
       </div>
 
       {/* Main Content */}

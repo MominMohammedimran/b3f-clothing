@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { Search, Download, Eye, Trash2 } from 'lucide-react';
 import OrderDetailsDialog from '../../components/admin/OrderDetailsDialog';
 import AdminOrderDownload from '../../components/admin/AdminOrderDownload';
 import AdminDownloadDesign from '../../components/admin/AdminDownloadDesign';
+import PaymentStatusUpdateDialog from '../../components/admin/PaymentStatusUpdateDialog';
 import ModernAdminLayout from '../../components/admin/ModernAdminLayout';
 import { notifyOrderStatusChange } from '../../components/admin/OrderStatusEmailService';
 
@@ -28,11 +28,14 @@ interface Order {
 }
 
 const AdminOrders: React.FC = () => {
+  
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
+  const [showPaymentUpdate, setShowPaymentUpdate] = useState(false);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -99,64 +102,72 @@ const AdminOrders: React.FC = () => {
     }
   };
 
- // Relevant changes only shown here for brevity
+  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          order_status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
 
-const handleStatusUpdate = async (orderId: string, newStatus: string) => {
-  try {
-    const { error } = await supabase
-      .from('orders')
-      .update({
-        order_status: newStatus,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', orderId);
+      if (error) throw error;
 
-    if (error) throw error;
+      const updatedOrder = orders.find(order => order.id === orderId);
 
-    const updatedOrder = orders.find(order => order.id === orderId);
+      if (updatedOrder) {
+        const shipping = updatedOrder.shipping_address;
+        const emailToSend = shipping?.email || updatedOrder.user_email;
 
-    if (updatedOrder) {
-      const shipping = updatedOrder.shipping_address;
-      const emailToSend = shipping?.email || updatedOrder.user_email;
-
-      if (!emailToSend || emailToSend === 'N/A') {
-        toast.warning('⚠️ No email found for this customer');
-      } else {
-        await notifyOrderStatusChange(
-          updatedOrder.order_number,
-          newStatus,
-          emailToSend,
-          updatedOrder.items || [],
-          updatedOrder.total || 0,
-          {
-            name: shipping?.fullName || 'Customer',
-            phone: shipping?.phone || '',
-            email: emailToSend,
-            address: shipping?.address || '',
-            city: shipping?.city || '',
-            state: shipping?.state || '',
-            zipCode: shipping?.zipCode || '',
-            country: shipping?.country || ''
-          },
-          updatedOrder.payment_method
-        );
+        if (!emailToSend || emailToSend === 'N/A') {
+          toast.warning('⚠️ No email found for this customer');
+        } else {
+          await notifyOrderStatusChange(
+            updatedOrder.order_number,
+            newStatus,
+            emailToSend,
+            updatedOrder.items || [],
+            updatedOrder.total || 0,
+            {
+              name: shipping?.fullName || 'Customer',
+              phone: shipping?.phone || '',
+              email: emailToSend,
+              address: shipping?.address || '',
+              city: shipping?.city || '',
+              state: shipping?.state || '',
+              zipCode: shipping?.zipCode || '',
+              country: shipping?.country || ''
+            },
+            updatedOrder.payment_method
+          );
+        }
       }
+
+      // Update state locally
+      setOrders(prev =>
+        prev.map(order =>
+          order.id === orderId ? { ...order, order_status: newStatus } : order
+        )
+      );
+
+      toast.success('✅ Order status updated');
+    } catch (err) {
+      console.error('❌ Error updating status:', err);
+      toast.error('Failed to update order status');
     }
+  };
 
-    // Update state locally
-    setOrders(prev =>
-      prev.map(order =>
-        order.id === orderId ? { ...order, order_status: newStatus } : order
-      )
-    );
+  const handlePaymentUpdate = (order: Order) => {
+    setSelectedOrderForPayment(order);
+    setShowPaymentUpdate(true);
+  };
 
-    toast.success('✅ Order status updated');
-  } catch (err) {
-    console.error('❌ Error updating status:', err);
-    toast.error('Failed to update order status');
-  }
-};
-
+  const handlePaymentUpdateComplete = () => {
+    setShowPaymentUpdate(false);
+    setSelectedOrderForPayment(null);
+    fetchOrders(); // Refresh orders after payment update
+  };
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
@@ -201,6 +212,40 @@ const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     a.download = `orders-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const downloadPreviewImage = async (order: Order) => {
+    try {
+      // Find custom printed items with preview images
+      const customItems = order.items?.filter((item: any) => 
+        item.name?.toLowerCase().includes('custom printed') && 
+        (item.metadata?.previewImage || item.metadata?.designData)
+      );
+
+      if (!customItems || customItems.length === 0) {
+        toast.error('No preview images found for this order');
+        return;
+      }
+
+      for (const item of customItems) {
+        const previewUrl = item.metadata?.previewImage || item.metadata?.designData?.previewUrl;
+        
+        if (previewUrl) {
+          // Create a temporary link and trigger download
+          const link = document.createElement('a');
+          link.href = previewUrl;
+          link.download = `${order.order_number}_${item.name.replace(/\s+/g, '_')}_preview.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+
+      toast.success('Preview images downloaded');
+    } catch (error) {
+      console.error('Error downloading preview images:', error);
+      toast.error('Failed to download preview images');
+    }
   };
 
   const hasCustomPrinted = (order: Order) => {
@@ -261,6 +306,7 @@ const handleStatusUpdate = async (orderId: string, newStatus: string) => {
                     <TableHead className="font-semibold">Date</TableHead>
                     <TableHead className="font-semibold">Customer</TableHead>
                     <TableHead className="font-semibold">Payment</TableHead>
+                    <TableHead className="font-semibold">Payment Update</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold text-right">Total</TableHead>
                     <TableHead className="font-semibold text-center">Actions</TableHead>
@@ -276,6 +322,16 @@ const handleStatusUpdate = async (orderId: string, newStatus: string) => {
                         <Badge variant={order.payment_status === 'paid' ? 'default' : 'destructive'} className="text-xs">
                           {order.payment_status || 'N/A'}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePaymentUpdate(order)}
+                          className="text-xs px-2 py-1 h-8"
+                        >
+                          Update Payment
+                        </Button>
                       </TableCell>
                       <TableCell>
                         <Badge variant={order.order_status === 'delivered' ? 'default' : 'secondary'} className="text-xs">
@@ -295,7 +351,18 @@ const handleStatusUpdate = async (orderId: string, newStatus: string) => {
                           </Button>
                           <AdminOrderDownload order={order} />
                           {hasCustomPrinted(order) && (
-                            <AdminDownloadDesign order={order} />
+                            <>
+                              <AdminDownloadDesign order={order} />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => downloadPreviewImage(order)}
+                                className="text-xs px-2 py-1 h-8"
+                                title="Download Preview Image"
+                              >
+                                Preview
+                              </Button>
+                            </>
                           )}
                           {(order.order_status || order.status) !== 'delivered' && (
                             <Button
@@ -330,6 +397,15 @@ const handleStatusUpdate = async (orderId: string, newStatus: string) => {
             onOpenChange={(open) => setShowOrderDetails(open)}
             onStatusUpdate={handleStatusUpdate}
             onDeleteOrder={() => handleDeleteOrder(selectedOrder.id)}
+          />
+        )}
+
+        {showPaymentUpdate && selectedOrderForPayment && (
+          <PaymentStatusUpdateDialog
+            isOpen={showPaymentUpdate}
+            onClose={() => setShowPaymentUpdate(false)}
+            order={selectedOrderForPayment}
+            onUpdate={handlePaymentUpdateComplete}
           />
         )}
       </div>

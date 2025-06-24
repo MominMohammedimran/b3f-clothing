@@ -165,44 +165,51 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Improved signOut function
   const signOut = async () => {
-    try {
-      setLoading(true);
-      
-      // Clean up all auth state
-      cleanupAuthState();
-      
-      // Then sign out from Supabase with global scope
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      
-      if (error) throw error;
-      
-      // Clear user data
-      setCurrentUser(null);
-      setSession(null);
-      setUserProfile(null);
-      
-      toast.success('Signed out successfully');
-      
-      // Force page reload for a clean state
-      window.location.href = '/signin';
-    } catch (error: any) {
-      console.error('Error signing out:', error);
-      toast.error('Error signing out: ' + (error.message || 'Unknown error'));
-      
-      // Try harder to clean up state if signout fails
-      setCurrentUser(null);
-      setSession(null);
-      setUserProfile(null);
-      cleanupAuthState();
-      
-      // Force redirect
-      window.location.href = '/signin';
-      
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+
+    // Clean up local auth state
+    cleanupAuthState();
+
+    // Sign out from Supabase (global sign-out)
+    const { error } = await supabase.auth.signOut({ scope: 'global' });
+    if (error) throw error;
+
+    // Clear user-related state
+    setCurrentUser(null);
+    setSession(null);
+    setUserProfile(null);
+
+    toast.success('Signed out successfully');
+
+    // Determine redirect path
+    const currentPath = window.location.pathname;
+    const isAdmin = currentPath.startsWith('/admin');
+
+    // Redirect based on user type
+    window.location.href = isAdmin ? '/admin/login' : '/signin';
+
+  } catch (error: any) {
+    console.error('Error signing out:', error);
+    toast.error('Error signing out: ' + (error.message || 'Unknown error'));
+
+    // Force cleanup again just in case
+    setCurrentUser(null);
+    setSession(null);
+    setUserProfile(null);
+    cleanupAuthState();
+
+    // Fallback redirect
+    const currentPath = window.location.pathname;
+    const isAdmin = currentPath.startsWith('/admin');
+    window.location.href = isAdmin ? '/admin/login' : '/signin';
+
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Add refreshUserProfile function
   const refreshUserProfile = async () => {

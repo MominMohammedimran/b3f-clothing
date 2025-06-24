@@ -11,6 +11,7 @@ import OrdersHistory from '../../components/account/OrdersHistory';
 import AddressSettings from '../../components/account/AddressSettings';
 import AppSettings from '../../components/account/AppSettings';
 import RewardPoints from '../../components/account/RewardPoints';
+import ChangePasswordForm from './ChangePasswordForm';
 
 interface UserProfileInfoProps {
   profile: any;
@@ -59,13 +60,39 @@ const UserProfileInfo: React.FC<UserProfileInfoProps> = ({ profile }) => {
   
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className='pb-8'>
-              <TabsList className="grid   w-[50%] m-auto mb-8">
-               <TabsTrigger value="rewards" className="  text-center md:block mb-2">Rewards</TabsTrigger>
-                
-              </TabsList>
+              <TabsList
+  className="grid grid-cols-3 gap-2 w-full sm:w-[90%] md:w-[70%] mx-auto mb-8 bg-gray-100 rounded-xl p-1 shadow-sm"
+>
+   <TabsTrigger
+    value="profile"
+    className="text-sm sm:text-base py-1 px-4 rounded-lg transition-all data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-600"
+  >
+    👤 Profile
+  </TabsTrigger>
+  <TabsTrigger
+    value="rewards"
+    className="text-sm  sm:text-base py-1 px-4 rounded-lg transition-all data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-600"
+  >
+    🎁 Rewards
+  </TabsTrigger>
+ 
+  <TabsTrigger
+    value="security"
+    className="text-sm sm:text-base py-2 px-4 rounded-lg transition-all data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-600"
+  >
+    🔐 Security
+  </TabsTrigger>
+</TabsList>
+
            
                 <TabsContent value="rewards">
                 <RewardPoints />
+              </TabsContent>
+              <TabsContent value="profile">
+                <ProfileSettings />
+              </TabsContent>
+              <TabsContent value="security">
+                <ChangePasswordForm />
               </TabsContent>
             </Tabs>
   );

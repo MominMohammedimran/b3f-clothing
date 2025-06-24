@@ -30,7 +30,7 @@ export const createOrder = async (orderData: OrderData) => {
       metadata: item.metadata || null,
     }));
 
-    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const orderNumber = `B3f-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     const { data, error } = await supabase
       .from('orders')

@@ -106,7 +106,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       {/* Size Selection */}
       <div>
         <h3 className="text-lg font-semibold mb-2">Select Sizes</h3>
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
           {availableSizes.map((size) => {
             const selected = selectedSizes.some((s) => s.size === size);
             const cartItem = cartItems.find((item) => item.product_id === product.id);
@@ -119,8 +119,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                 key={size}
                 onClick={() => handleSizeToggle(size)}
                 disabled={stock === 0}
-                className={`rounded-lg border px-3 py-2 text-sm font-medium text-center transition-all
-                  ${selected ? 'bg-blue-100 border-blue-500 text-blue-800' : 'border-gray-300 hover:border-blue-400'}
+                className={`rounded-lg border px-1 py-1 text-xs font-medium text-center transition-all
+                  ${selected ? ' border-blue-500 text-blue-800' : 'border-gray-300 hover:border-blue-400'}
                   ${inCart ? 'ring-2 ring-green-400' : ''}
                   ${stock === 0 ? 'cursor-not-allowed opacity-50' : ''}`}
               >
@@ -129,8 +129,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                   {stock === 0 ? 'Out of stock' : `Qty: ${stock}`}
                 </div>
                 {inCart && (
-                  <div className="mt-1">
-                    <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                  <div className="mt-1 mb-1">
+                    <span className="inline-block bg-green-100 text-green-700 text-xs px-1 py-0.5 rounded-square">
                       In Cart
                     </span>
                   </div>
@@ -145,7 +145,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       {selectedSizes.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Quantities</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {selectedSizes.map((sizeItem) => {
               const variant = productVariants.find((v) => v.size === sizeItem.size);
               const maxStock = variant?.stock ? parseInt(variant.stock) : 0;
@@ -156,7 +156,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
               return (
                 <div
                   key={sizeItem.size}
-                  className={`p-4 bg-white rounded-xl border shadow-sm ${
+                  className={`p-2 bg-white rounded-xl border shadow-sm ${
                     inCartQty ? 'border-green-400 bg-green-50' : 'border-gray-200'
                   }`}
                 >
@@ -168,7 +168,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                       removingSize === sizeItem.size ? (
                         <div className="flex items-center gap-2 text-gray-500 text-sm">
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Removing from cart...</span>
+                          <span>removing..</span>
                         </div>
                       ) : (
                         <button

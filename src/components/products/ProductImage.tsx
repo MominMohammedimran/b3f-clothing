@@ -24,13 +24,13 @@ const ProductImage = ({ image, name, additionalImages = [] }: ProductImageProps)
   
   return (
     <div className="bg-white p-4 pt-0 rounded-lg shadow ">
-      <div className="relative mb-4 align-middle"
+      <div className="relative rounded-lg border overflow-hidden aspect-[4/5] flex items-center justify-center bg-white"
 >
         <img 
           src={images[currentImageIndex] || '/placeholder.svg'} 
           alt={name} 
-          className="w-full object-fit rounded-md  h-46 sm:h-50 md:h-65 lg:h-[530px] "
-          onError={(e) => {
+           className="max-w-full max-h-full object-contain transition-transform duration-300"
+        onError={(e) => {
             (e.target as HTMLImageElement).src = '/placeholder.svg';
           }}
         />

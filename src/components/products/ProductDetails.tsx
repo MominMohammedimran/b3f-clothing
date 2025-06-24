@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { XCircle } from 'lucide-react';
+import { XCircle, Loader2 } from 'lucide-react';
 import { Product } from '@/lib/types';
 import ProductQuantitySelector from './ProductQuantitySelector';
 import ProductActionButtons from './ProductActionButtons';
@@ -22,6 +22,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
 }) => {
   const [selectedSizes, setSelectedSizes] = useState<SizeWithQuantity[]>([]);
   const [showPopupForSize, setShowPopupForSize] = useState<string | null>(null);
+  const [removingSize, setRemovingSize] = useState<string | null>(null);
   const { cartItems, removeSizeFromCart } = useCart();
 
   let productVariants: { size: string; stock: string }[] = [];
@@ -68,12 +69,19 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     );
   };
 
-  const handleRemoveFromCartOnly = async (size: string) => {
+  const handleRemoveFromCartOnly = async (
+    e: React.MouseEvent,
+    size: string
+  ) => {
+    e.stopPropagation();
+    setRemovingSize(size);
     const cartItem = cartItems.find((item) => item.product_id === product.id);
     if (cartItem) {
       await removeSizeFromCart(cartItem.id, size);
       toast.success(`Size ${size} removed from cart`);
+      setSelectedSizes((prev) => prev.filter((s) => s.size !== size));
     }
+    setTimeout(() => setRemovingSize(null), 1000);
   };
 
   const totalPrice = selectedSizes.reduce((sum, item) => {
@@ -95,43 +103,39 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         <p className="text-gray-700 leading-relaxed">{product.description}</p>
       )}
 
-      {/* Sizes Section */}
+      {/* Size Selection */}
       <div>
         <h3 className="text-lg font-semibold mb-2">Select Sizes</h3>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {availableSizes.map((size) => {
             const selected = selectedSizes.some((s) => s.size === size);
-            const cartItem = cartItems.find(
-              (item) => item.product_id === product.id
-            );
+            const cartItem = cartItems.find((item) => item.product_id === product.id);
             const inCart = cartItem?.sizes.some((s) => s.size === size);
             const variant = productVariants.find((v) => v.size === size);
             const stock = variant?.stock ? parseInt(variant.stock) : 0;
 
             return (
-              <div key={size} className="relative">
-                <button
-                  onClick={() => handleSizeToggle(size)}
-                  disabled={stock === 0}
-                  className={`w-full px-3 py-2 rounded-lg border text-sm font-medium text-center
-                    ${selected ? 'bg-blue-100 border-blue-500 text-blue-800' : 'border-gray-300 hover:border-blue-400'}
-                    ${inCart ? 'ring-2 ring-green-400' : ''}
-                    ${stock === 0 ? 'cursor-not-allowed opacity-50' : ''}
-                  `}
-                >
-                  <div className="font-semibold">{size}</div>
-                  <div className="text-xs text-gray-600">
-                    {stock === 0 ? 'Out of stock' : `Qty: ${stock}`}
+              <button
+                key={size}
+                onClick={() => handleSizeToggle(size)}
+                disabled={stock === 0}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium text-center transition-all
+                  ${selected ? 'bg-blue-100 border-blue-500 text-blue-800' : 'border-gray-300 hover:border-blue-400'}
+                  ${inCart ? 'ring-2 ring-green-400' : ''}
+                  ${stock === 0 ? 'cursor-not-allowed opacity-50' : ''}`}
+              >
+                <div className="font-semibold">{size}</div>
+                <div className="text-xs text-gray-600">
+                  {stock === 0 ? 'Out of stock' : `Qty: ${stock}`}
+                </div>
+                {inCart && (
+                  <div className="mt-1">
+                    <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                      In Cart
+                    </span>
                   </div>
-                  {inCart && (
-                    <div className="mt-1">
-                      <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
-                        In Cart
-                      </span>
-                    </div>
-                  )}
-                </button>
-              </div>
+                )}
+              </button>
             );
           })}
         </div>
@@ -140,86 +144,79 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       {/* Quantity Section */}
       {selectedSizes.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">
-            Quantities
-          </h3>
-          <div className="flex flex-wrap gap-4 py-2">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Quantities</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {selectedSizes.map((sizeItem) => {
-              const variant = productVariants.find(
-                (v) => v.size === sizeItem.size
-              );
+              const variant = productVariants.find((v) => v.size === sizeItem.size);
               const maxStock = variant?.stock ? parseInt(variant.stock) : 0;
-              const cartItem = cartItems.find(
-                (item) => item.product_id === product.id
-              );
-              const cartSizeInfo = cartItem?.sizes?.find(
-                (s) => s.size === sizeItem.size
-              );
+              const cartItem = cartItems.find((item) => item.product_id === product.id);
+              const cartSizeInfo = cartItem?.sizes?.find((s) => s.size === sizeItem.size);
               const inCartQty = cartSizeInfo?.quantity;
 
               return (
                 <div
                   key={sizeItem.size}
-                  className={`flex flex-col p-4 w-[140px] bg-white rounded-xl border shadow-sm ${
-                    inCartQty
-                      ? 'border-green-400 bg-green-50'
-                      : 'border-gray-200'
+                  className={`p-4 bg-white rounded-xl border shadow-sm ${
+                    inCartQty ? 'border-green-400 bg-green-50' : 'border-gray-200'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold">
-                      {sizeItem.size}
+                      Size: {sizeItem.size}
                     </span>
-                    <div className="flex items-center gap-2">
-                      {inCartQty && (
-                        <img
-                          src="https://cdn-icons-png.flaticon.com/512/10967/10967145.png"
-                          alt="Remove from cart"
-                          title="Remove from cart"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowPopupForSize(sizeItem.size);
-                          }}
-                          className="w-5 h-4 cursor-pointer filter grayscale hover:grayscale-0 hover:brightness-110 hover:drop-shadow-md"
-                        />
-                      )}
-                      <button
-                        className="text-red-500"
-                        onClick={() => handleSizeToggle(sizeItem.size)}
-                        title="Remove size"
-                      >
-                        <XCircle className="w-5 h-5" />
-                      </button>
-                    </div>
+                    {inCartQty ? (
+                      removingSize === sizeItem.size ? (
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Removing from cart...</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => handleRemoveFromCartOnly(e, sizeItem.size)}
+                          className="flex items-center text-sm text-red-600 hover:text-red-700"
+                        >
+                          <img
+                            src="https://cdn-icons-png.flaticon.com/512/10967/10967145.png"
+                            className="w-4 h-4 mr-1"
+                            alt="Remove"
+                          />
+                    
+                        </button>
+                        
+                      )
+                    ) : null}
                   </div>
 
-                  <div className="text-xs text-gray-600 mb-1">
-                    Stock: {maxStock}
-                  </div>
+                  <ProductQuantitySelector
+                    quantity={sizeItem.quantity}
+                    maxQuantity={maxStock}
+                    onChange={(qty) => handleQuantityChange(sizeItem.size, qty)}
+                  />
 
                   {inCartQty && (
-                    <div className="text-xs text-green-700 mb-1">
+                    <div className="text-xs text-green-700 mt-1">
                       In Cart: {inCartQty}
                     </div>
                   )}
 
-                  {maxStock > 0 ? (
-                    <>
-                      <ProductQuantitySelector
-                        quantity={sizeItem.quantity}
-                        maxQuantity={maxStock}
-                        onChange={(qty) =>
-                          handleQuantityChange(sizeItem.size, qty)
-                        }
-                      />
-                      <div className="mt-2 text-sm font-semibold text-gray-900">
-                        ₹{(product.price * sizeItem.quantity).toFixed(2)}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-red-500 mt-2 font-medium">
-                      Out of Stock
-                    </p>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Stock: {maxStock}
+                  </div>
+
+                  <div className="text-sm font-semibold text-right text-gray-800 mt-2">
+                    ₹{(product.price * sizeItem.quantity).toFixed(2)}
+                  </div>
+
+                  {!inCartQty && (
+                    <div className="flex justify-end mt-2">
+                      <button
+                        className="flex items-center text-sm text-red-500 hover:text-red-600"
+                        onClick={() => handleSizeToggle(sizeItem.size)}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Remove
+                      </button>
+                    </div>
                   )}
                 </div>
               );

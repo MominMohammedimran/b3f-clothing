@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Trash2, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Trash2, RotateCcw, Share } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import Layout from '../components/layout/Layout';
@@ -14,6 +14,7 @@ import ProductSelector from '../components/design/ProductSelector';
 import DesignCanvas from '../components/design/DesignCanvas';
 import CustomizationSidebar from '../components/design/CustomizationSidebar';
 import ProductVariantSelector from '../components/products/ProductVariantSelector';
+import ShareModal from '../components/products/ShareModal';
 import { useDesignCanvas } from '@/hooks/useDesignCanvas';
 import { useDesignToolInventory } from '@/hooks/useDesignToolInventory';
 import { useDesignProducts } from '@/hooks/useDesignProducts';
@@ -29,6 +30,7 @@ const DesignTool = () => {
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [emojiSearch, setEmojiSearch] = useState('');
   const [filteredEmojis, setFilteredEmojis] = useState<string[]>([]);
   const [isDualSided, setIsDualSided] = useState(false);
@@ -373,6 +375,14 @@ const DesignTool = () => {
     }
   };
 
+  // Create a mock product for sharing
+  const currentDesignProduct = {
+    id: `design-${activeProduct}`,
+    name: `Custom ${products[activeProduct]?.name || 'Product'}`,
+    price: getTotalPrice(),
+    image: '/placeholder.svg'
+  };
+
   if (productsLoading) {
     return (
       <Layout>
@@ -398,7 +408,7 @@ const DesignTool = () => {
               <span className="text-sm font-medium">Back</span>
             </Link>
             <h1 className="text-xl md:text-2xl font-bold text-gray-800">Design Your Product</h1>
-            <div className="w-20"></div>
+            
           </div>
          
           <ProductSelector
@@ -432,7 +442,7 @@ const DesignTool = () => {
               />
 
               {/* Action Buttons */}
-              <div className="mt-4 flex justify-center gap-3">
+              <div className="mt-4 flex justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -447,11 +457,19 @@ const DesignTool = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleClearCanvas}
-                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700 border-orange-300 hover:border-orange-400"
+                  className="flex items-center gap-2 text-purple-600 hover:text-purple-700 border-purple-300 hover:border-purple-400"
                 >
                   <RotateCcw size={16} />
                   Clear Canvas
                 </Button>
+                <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowShareModal(true)}
+              className="flex items-center  text-green-600 hover:text-green-700 border-black-300 hover:border-black-400"
+            >
+              <Share className="h-4 w-4" />
+            </Button>
               </div>
              
               {isDualSided && activeProduct === 'tshirt' && (
@@ -512,6 +530,12 @@ const DesignTool = () => {
             addEmojiToCanvas(emoji);
             setIsEmojiModalOpen(false);
           }}
+        />
+
+        <ShareModal 
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          product={products[activeProduct]}
         />
       </DesignContextProviders>
     </Layout>

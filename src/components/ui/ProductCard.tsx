@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { PenTool, Search}  from 'lucide-react';
 import { Product } from '@/lib/types';
 
 interface ProductCardProps {
@@ -81,7 +81,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     <div className="mt-auto">
       {isPrinted ? (
         <Button className="w-full" onClick={handleCustomize}>
-          Customize
+          <PenTool className="h-5 w-5 mr-2" /> Customize
         </Button>
       ) : (
         <Button
@@ -89,8 +89,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
           onClick={handleAddToCart}
           disabled={product.stock <= 0}
         >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
+          <Search className="h-5 w-5 mr-2" />
+          {product.stock <= 0 ? 'Out of Stock' : 'See Product'}
         </Button>
       )}
     </div>

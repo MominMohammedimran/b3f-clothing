@@ -56,7 +56,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     
     return (
       <div className="mt-4">
-        <h3 className="text-sm font-medium mb-2">Select Size:</h3>
+        <h3 className="text-s text-center font-medium mb-2">Select Size:</h3>
         <div className="flex flex-wrap gap-2">
           {Object.entries(sizes).map(([size, quantity]) => (
             <button

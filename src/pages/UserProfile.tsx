@@ -113,7 +113,6 @@ const UserProfile = () => {
             name={defaultProfile.display_name}
             email={defaultProfile.email}
             createdAt={defaultProfile.created_at}
-            onEdit={() => {}}
             onSignOut={handleSignOut}
             signingOut={signingOut}
           />
@@ -135,7 +134,6 @@ const UserProfile = () => {
               name={profile?.display_name || profile?.first_name}
               email={profile?.email}
               createdAt={profile?.created_at}
-              onEdit={() => {}}
               onSignOut={handleSignOut}
               signingOut={signingOut}
             />

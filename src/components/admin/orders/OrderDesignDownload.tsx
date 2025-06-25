@@ -7,14 +7,17 @@ import { toast } from 'sonner';
 interface OrderDesignDownloadProps {
   items: any[];
   orderNumber: string;
+  shippingAddress?: any;
 }
 
-const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderNumber }) => {
+const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderNumber, shippingAddress }) => {
   const designItems = items.filter(item => 
     item.metadata?.previewImage || 
     item.metadata?.designData || 
     item.metadata?.backImage ||
-    (item.product_id && item.product_id.includes('custom-'))
+    (item.product_id && item.product_id.includes('custom-')) ||
+    item.name.toLowerCase().includes('custom') ||
+    item.name.toLowerCase().includes('printed')
   );
 
   const createPrintReadyImage = async (item: any, side: 'front' | 'back' = 'front'): Promise<string> => {
@@ -105,27 +108,45 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
           ctx.fillStyle = '#1F2937';
           ctx.font = 'bold 36px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(`Order: ${orderNumber}`, canvas.width / 2, canvas.height - 200);
+          ctx.fillText(`Order: ${orderNumber}`, canvas.width / 2, canvas.height - 300);
           
           ctx.font = '28px Arial';
-          ctx.fillText(`Product: ${item.name}`, canvas.width / 2, canvas.height - 150);
-          ctx.fillText(`Side: ${side.charAt(0).toUpperCase() + side.slice(1)}`, canvas.width / 2, canvas.height - 100);
+          ctx.fillText(`Product: ${item.name}`, canvas.width / 2, canvas.height - 250);
+          ctx.fillText(`Side: ${side.charAt(0).toUpperCase() + side.slice(1)}`, canvas.width / 2, canvas.height - 200);
           
-          if (item.size) {
-            ctx.fillText(`Size: ${item.size}`, canvas.width / 2, canvas.height - 50);
+          if (item.sizes && item.sizes.length > 0) {
+            ctx.fillText(`Sizes: ${item.sizes.map((s: any) => `${s.size}(${s.quantity})`).join(', ')}`, canvas.width / 2, canvas.height - 150);
           }
 
-          // Add print guidelines text
-          ctx.fillStyle = '#6B7280';
-          ctx.font = '20px Arial';
-          ctx.textAlign = 'left';
-          ctx.fillText('Print Guidelines:', 100, 150);
-          ctx.font = '16px Arial';
-          ctx.fillText('• Print at 300 DPI for best quality', 100, 180);
-          ctx.fillText('• Maintain aspect ratio when scaling', 100, 210);
-          ctx.fillText('• Blue dashed line shows design placement area', 100, 240);
-          ctx.fillText('• White background ensures proper printing', 100, 270);
-          
+          // Add shipping address if available
+          if (shippingAddress) {
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Shipping Address:', 100, canvas.height - 100);
+            ctx.font = '16px Arial';
+            let yPos = canvas.height - 70;
+            
+            if (shippingAddress.fullName || (shippingAddress.firstName && shippingAddress.lastName)) {
+              ctx.fillText(`Name: ${shippingAddress.fullName || `${shippingAddress.firstName} ${shippingAddress.lastName}`}`, 100, yPos);
+              yPos += 25;
+            }
+            if (shippingAddress.addressLine1 || shippingAddress.street) {
+              ctx.fillText(`Address: ${shippingAddress.addressLine1 || shippingAddress.street}`, 100, yPos);
+              yPos += 25;
+            }
+            if (shippingAddress.city && shippingAddress.state) {
+              ctx.fillText(`City: ${shippingAddress.city}, State: ${shippingAddress.state}`, 100, yPos);
+              yPos += 25;
+            }
+            if (shippingAddress.postalCode || shippingAddress.zipCode) {
+              ctx.fillText(`Pincode: ${shippingAddress.postalCode || shippingAddress.zipCode}`, 100, yPos);
+              yPos += 25;
+            }
+            if (shippingAddress.phone) {
+              ctx.fillText(`Phone: ${shippingAddress.phone}`, 100, yPos);
+            }
+          }
+
           const dataUrl = canvas.toDataURL('image/png', 1.0);
           resolve(dataUrl);
         };
@@ -286,30 +307,30 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
   const downloadDesign = async (item: any, side: 'front' | 'back' = 'front') => {
     try {
       toast.info('Generating print-ready file...', {
-        description: 'Creating high-resolution template with white background'
+        description: 'Creating high-resolution template with design preview'
       });
 
       const printReadyImage = await createPrintReadyImage(item, side);
       
       const link = document.createElement('a');
-      link.download = `${orderNumber}-${item.name.replace(/[^a-zA-Z0-9]/g, '_')}-${side}-PRINT_READY.png`;
+      link.download = `${orderNumber}-${item.name.replace(/[^a-zA-Z0-9]/g, '_')}-${side}-DESIGN_PREVIEW.png`;
       link.href = printReadyImage;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      toast.success('Print-ready file downloaded!', {
-        description: 'High-resolution template with white background ready for printing'
+      toast.success('Design preview downloaded!', {
+        description: 'High-resolution template with shipping details ready'
       });
     } catch (error) {
-      console.error('Error creating print-ready file:', error);
-      toast.error('Failed to create print-ready file');
+      console.error('Error creating design preview:', error);
+      toast.error('Failed to create design preview');
     }
   };
 
   const downloadAllDesigns = async () => {
     try {
-      toast.info('Generating all print files...', {
+      toast.info('Generating all design previews...', {
         description: 'This may take a moment'
       });
 
@@ -328,7 +349,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
         }
       }
       
-      toast.success(`Downloaded ${designItems.length} print-ready files!`);
+      toast.success(`Downloaded ${designItems.length} design previews!`);
     } catch (error) {
       console.error('Error downloading all designs:', error);
       toast.error('Failed to download all files');
@@ -346,7 +367,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
   return (
     <div className="mt-4 pt-4 border-t">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-medium text-gray-900">Custom Print Files</h4>
+        <h4 className="text-sm font-medium text-gray-900">Custom Design Downloads</h4>
         <Button
           onClick={downloadAllDesigns}
           variant="default"
@@ -355,7 +376,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
         >
           <Download className="h-4 w-4 mr-2" />
           <Printer className="h-4 w-4 mr-1" />
-          Download All ({designItems.length})
+          Download All Designs ({designItems.length})
         </Button>
       </div>
       
@@ -365,7 +386,11 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
             <div className="flex items-center justify-between mb-2">
               <p className="font-medium text-sm text-blue-900">{item.name}</p>
               <div className="flex items-center space-x-1 text-xs text-blue-600">
-                {item.size && <span className="bg-blue-100 px-2 py-1 rounded">Size: {item.size}</span>}
+                {item.sizes && item.sizes.length > 0 && (
+                  <span className="bg-blue-100 px-2 py-1 rounded">
+                    Sizes: {item.sizes.map((s: any) => `${s.size}(${s.quantity})`).join(', ')}
+                  </span>
+                )}
                 {item.metadata?.view && <span className="bg-blue-100 px-2 py-1 rounded">{item.metadata.view}</span>}
               </div>
             </div>
@@ -380,7 +405,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
                     className="bg-white hover:bg-blue-50 border-blue-200"
                   >
                     <Download className="h-3 w-3 mr-1" />
-                    Download Front
+                    Download Design
                   </Button>
                   {item.metadata?.previewImage && (
                     <Button
@@ -412,7 +437,7 @@ const OrderDesignDownload: React.FC<OrderDesignDownloadProps> = ({ items, orderN
       </div>
       
       <div className="mt-3 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
-        💡 Print-ready files include white backgrounds, product templates, design placement guides, and high-resolution designs optimized for production.
+        💡 Design previews include product templates, design elements, shipping address, and high-resolution output for production.
       </div>
     </div>
   );

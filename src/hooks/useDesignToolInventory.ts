@@ -52,76 +52,18 @@ export const useDesignToolInventory = () => {
     }
   }, []);
 
+  // This function just updates local state for UI purposes
+  // Actual inventory will only be updated after successful payment
   const updateInventory = useCallback(async (productId: string, size: string, quantityChange: number) => {
-    try {
-      const productCodes = {
-        'tshirt': ['TSHIRT001', 'TSHIRT_PRINT'],
-        'mug': ['MUG001', 'MUG_PRINT'],
-        'cap': ['CAP001', 'CAP_PRINT']
-      };
-
-      const codes = productCodes[productId as keyof typeof productCodes] || [productId.toUpperCase()];
-      
-      let updated = false;
-      
-      for (const code of codes) {
-        const { data: products, error: fetchError } = await supabase
-          .from('products')
-          .select('id, variants')
-          .ilike('code', code)
-          .limit(1);
-
-        if (fetchError || !products || products.length === 0) continue;
-
-        const product = products[0];
-        const productData = product as any;
-        let variants = Array.isArray(productData.variants) ? [...productData.variants] : [];
-        
-        const variantIndex = variants.findIndex((v: any) => 
-          v.size?.toLowerCase() === size.toLowerCase()
-        );
-        
-        if (variantIndex >= 0) {
-          variants[variantIndex].stock = Math.max(0, variants[variantIndex].stock + quantityChange);
-        } else {
-          variants.push({
-            size: size.toLowerCase(),
-            stock: Math.max(0, quantityChange)
-          });
-        }
-
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({ 
-            variants: variants,
-            updated_at: new Date().toISOString()
-          } as any)
-          .eq('id', product.id);
-
-        if (!updateError) {
-          updated = true;
-          break;
-        }
+    setSizeInventory(prev => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        [size.toLowerCase()]: Math.max(0, (prev[productId]?.[size.toLowerCase()] || 0) + quantityChange)
       }
-
-      if (updated) {
-        setSizeInventory(prev => ({
-          ...prev,
-          [productId]: {
-            ...prev[productId],
-            [size.toLowerCase()]: Math.max(0, (prev[productId]?.[size.toLowerCase()] || 0) + quantityChange)
-          }
-        }));
-        return true;
-      } else {
-        throw new Error('No matching product found for inventory update');
-      }
-      
-    } catch (error) {
-      console.error('Error updating inventory:', error);
-      toast.error('Failed to update inventory');
-      return false;
-    }
+    }));
+    
+    return true;
   }, []);
 
   return {

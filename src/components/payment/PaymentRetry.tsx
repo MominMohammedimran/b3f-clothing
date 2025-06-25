@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, X } from 'lucide-react';
+import { useNavigate,Link } from 'react-router-dom';
+import { Loader2, X ,ArrowLeft} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 import { sendOrderConfirmationEmail } from '@/components/admin/OrderStatusEmailService';
@@ -147,6 +147,12 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
 
   return (
     <div className="max-w-md mx-auto p-6">
+      <div className="flex items-center mb-6">
+                <Link to="/orders" className="mr-2">
+                  <ArrowLeft size={24} className="text-blue-600 hover:text-blue-800" />
+                </Link>
+                <h1 className="text-xl sm:text-2xl font-bold text-blue-600">Orders</h1>
+              </div>
       <Card>
         <CardHeader>
           <CardTitle className="text-center">Retry Payment</CardTitle>

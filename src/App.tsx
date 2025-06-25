@@ -9,7 +9,7 @@ import { CartProvider } from './context/CartContext';
 import Preloader from './Preloader';
 import AppRoutes from './routes';
 import { initializeSecurity } from './utils/securityUtils';
-
+import { ActiveProductProvider } from '@/context/ActiveProductContext';
 const queryClient = new QueryClient();
 
 function App() {
@@ -36,10 +36,13 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <CartProvider>
+            <ActiveProductProvider>
+
             <TooltipProvider>
               <AppRoutes />
               <Toaster position="top-right" />
             </TooltipProvider>
+            </ActiveProductProvider>
           </CartProvider>
         </AuthProvider>
       </QueryClientProvider>

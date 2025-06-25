@@ -1,11 +1,11 @@
-import React from 'react';
+import React ,{useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PenTool, Search}  from 'lucide-react';
 import { Product } from '@/lib/types';
-
+import { useActiveProduct } from '@/context/ActiveProductContext';
 interface ProductCardProps {
   product: Product;
   onAddToCart?: (product: Product) => void;
@@ -20,30 +20,48 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onClick
 }) => {
   const navigate = useNavigate();
-
-  const isPrinted = product.name.toLowerCase().includes('printed');
-
-  const handleCardClick = () => {
-    if (isPrinted) {
-      navigate('/design-tool');
-    } else if (onClick) {
-      onClick(product);
-    } else if (onViewDetails) {
-      onViewDetails(product);
-    }
-  };
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation();
+const { activeProduct, setActiveProduct } = useActiveProduct();
+ const name=product.name;
   
-  onClick(product);
-    
-  };
+// 🔍 Detect product type from name
+const detectProductType = (name: string): string => {
+  const lower = name.toLowerCase();
+  if (lower.includes('t-shirt') || lower.includes('tshirt')) return 'tshirt';
+  if (lower.includes('cup') || lower.includes('mug')) return 'mug';
+  if (lower.includes('cap') || lower.includes('hat')) return 'cap';
+  return 'tshirt'; // default fallback
+};
 
-  const handleCustomize = (e: React.MouseEvent) => {
-    e.stopPropagation();
+const isPrinted = product.name.toLowerCase().includes('printed');
+
+// 🟦 When user clicks the card
+const handleCardClick = () => {
+  if (isPrinted) {
+    const type = detectProductType(product.name);
+    console.log(type)
+    setActiveProduct(type); // ✅ set before navigate
     navigate('/design-tool');
-  };
+  } else if (onClick) {
+    onClick(product);
+  } else if (onViewDetails) {
+    onViewDetails(product);
+  }
+};
+
+// 🛒 Add to cart button
+const handleAddToCart = (e: React.MouseEvent) => {
+  e.stopPropagation();
+  onClick(product);
+};
+
+// 🎨 Customize button
+const handleCustomize = (e: React.MouseEvent) => {
+  e.stopPropagation();
+  const type = detectProductType(product.name);
+  setActiveProduct(type); // ✅ set before navigate
+  navigate('/design-tool');
+};
+
 
   return (
     

@@ -41,15 +41,15 @@ export const useOrderTracking = () => {
           user_email: order.user_email || '',
           items: Array.isArray(order.items) ? order.items : [],
           total: Number(order.total),
-          status: order.status as 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'pending',
+          status: order.order_status as 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'pending',
           paymentMethod: order.payment_method,
           payment_method: order.payment_method,
           shippingAddress: typeof order.shipping_address === 'string' 
             ? JSON.parse(order.shipping_address) 
             : order.shipping_address,
           shipping_address: order.shipping_address,
-          deliveryFee: Number(order.delivery_fee || 0),
-          delivery_fee: Number(order.delivery_fee || 0),
+          deliveryFee: Number(order.delivery_fee || 100),
+          delivery_fee: Number(order.delivery_fee || 100),
           createdAt: order.created_at,
           created_at: order.created_at,
           updatedAt: order.updated_at,

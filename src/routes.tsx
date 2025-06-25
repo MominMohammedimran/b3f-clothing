@@ -37,7 +37,7 @@ import AdminUserOrderHistory from './pages/admin/AdminUserOrderHistory';
 import AdminProfiles from './pages/admin/AdminProfiles';
 import AdminNotFound from './pages/admin/AdminNotFound';
 import AdminWebsiteUsers from './pages/admin/AdminWebsiteUsers';
-
+import ThankYou from './components/ui/ThankYou'
 // Legal pages
 import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 import TermsConditions from './pages/legal/TermsConditions';
@@ -78,6 +78,7 @@ const AppRoutes = () => {
         <Route path="/design-tool/:productkey" element={<DesignTool />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/wishlist" element={<Wishlist />} />
+ <Route path="/thank-you" element={<ThankYou/>} />
 
         {/* Legal pages */}
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />

@@ -19,11 +19,11 @@ import { useDesignCanvas } from '@/hooks/useDesignCanvas';
 import { useDesignToolInventory } from '@/hooks/useDesignToolInventory';
 import { useDesignProducts } from '@/hooks/useDesignProducts';
 import { validateObjectsWithinBoundary, showBoundaryValidationError, moveObjectsIntoBoundary } from '@/components/design/BoundaryValidator';
-
+import { useActiveProduct } from '@/context/ActiveProductContext';
 const DesignTool = () => {
   const navigate = useNavigate();
   const params = useParams();
-  const [activeProduct, setActiveProduct] = useState<string>('tshirt');
+ const { activeProduct, setActiveProduct } = useActiveProduct();
   const [productView, setProductView] = useState<string>('front');
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -40,7 +40,7 @@ const DesignTool = () => {
   const { addToCart } = useCart();
   const { sizeInventory, fetchProductInventory, updateInventory } = useDesignToolInventory();
   const { products, loading: productsLoading } = useDesignProducts();
- 
+ console.log('add',activeProduct)
   const emojis = [
     '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
     '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',

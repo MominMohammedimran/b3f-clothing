@@ -54,9 +54,9 @@ const AdminDashboard = () => {
       const monthlyOrders = processOrderData(orderData || []);
 
       setStats({
-        orders: orderCount || 3,
-        products: productCount || 1,
-        customers: customerCount || 2,
+        orders: orderCount || 0,
+        products: productCount || 0,
+        customers: customerCount || 0,
         orderData: monthlyOrders
       });
     } catch (error) {

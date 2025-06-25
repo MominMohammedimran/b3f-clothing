@@ -132,7 +132,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
 
       <div>
         <h3 className="text-lg font-semibold mb-2">Select Sizes</h3>
-        <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
           {availableSizes.map((size) => {
             const variant = productVariants.find((v) => v.size === size);
             const stock = variant?.stock ?? 0;
@@ -144,7 +144,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   key={size}
   onClick={() => toggleSize(size)}
   disabled={stock === 0 && !selected}
-  className={`rounded-lg border px-2 py-1 text-xs text-center transition-all
+  className={`rounded-lg border   px-2 py-2 sm:px-3 sm:py-3 md:px-4 md:py-4
+4 text-xs text-center transition-all
     ${selected ? 'border-blue-500 text-blue-800 bg-blue-50' : 'border-gray-300 hover:border-blue-400'}
     ${inCart ? 'ring-2 ring-green-400' : ''}
     ${stock === 0 ? 'opacity-50' : ''}`}
@@ -163,7 +164,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   {/* out-of-stock message just below */}
   {stock === 0 && (
     <p className="text-[11px] text-red-600 font-semibold mt-0.5">
-      🚫 Out&nbsp;of&nbsp;Stock
+      🚫 No&nbsp;Stock
     </p>
   )}
 

@@ -37,7 +37,8 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   onClick={() => {
     if (stock > 0) onSizeToggle(variant.size);
   }}
-  className={`p-2 border-2 rounded text-center transition-all duration-300
+  className={`  px-2 py-2 sm:px-3 sm:py-3 md:px-4 md:py-4
+ border-2 rounded text-center transition-all duration-300
     ${stock === 0
       ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
       : isSelected
@@ -45,7 +46,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       : 'border-gray-300 hover:border-blue-400 cursor-pointer'}
   `}
 >
-  <p className="text-lg font-bold">{variant.size}</p>
+  <p className="text-sm font-bold">{variant.size}</p>
 
   {/* always show numeric stock */}
   <p className="text-xs font-medium text-gray-700 mt-1">
@@ -58,7 +59,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   {/* out-of-stock line */}
   {stock === 0 && (
     <p className="text-[11px] text-red-600 font-semibold mt-0.5">
-      🚫 Out&nbsp;of&nbsp;Stock
+      🚫 No&nbsp;Stock
     </p>
   )}
 

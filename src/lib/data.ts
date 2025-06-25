@@ -2,45 +2,51 @@
 import { Product, Category } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
-// Resolved product list
-export let products: Product[] = [];
+// lib/data/products.ts
 
-async function getProducts() {
+let _products: Product[] = [];
+let loaded = false;
+
+async function fetchProductsOnce() {
+  if (loaded) return _products;
+
   const { data, error } = await supabase.from('products').select('*');
 
   if (error) {
     console.error('Error fetching products:', error);
-    return;
+    return [];
   }
 
-  products = (data || []).map((product: any, index: number) => {
-    const variants = Array.isArray(product.variants) ? product.variants : [];
+  _products = (data || []).map((product: any) => ({
+    id: product.id?.toString(),
+    productId: product.product_id?.toString() ?? product.id?.toString(),
+    code: product.code || '',
+    name: product.name || '',
+    price: product.price || 0,
+    originalPrice: product.original_price || 0,
+    discountPercentage: product.discount_percentage || 0,
+    image: product.image || '',
+    images: product.images || [],
+    rating: product.rating || 0,
+    category: product.category || '',
+    tags: product.tags || [],
+    sizes: product.sizes || [],
+    description: product.description || '',
+    stock: product.stock || 0,
+    variants: Array.isArray(product.variants) ? product.variants : [],
+  }));
 
-    // ✅ Debug log to check if variants are coming from Supabase
-  
-    return {
-      id: product.id?.toString(),
-      productId: product.product_id?.toString() ?? product.id?.toString(),
-      code: product.code || '',
-      name: product.name || '',
-      price: product.price || 0,
-      originalPrice: product.original_price || 0,
-      discountPercentage: product.discount_percentage || 0,
-      image: product.image || '',
-      images: product.images || [],
-      rating: product.rating || 0,
-      category: product.category || '',
-      tags: product.tags || [],
-      sizes: product.sizes || [],
-      description: product.description || '',
-      stock: product.stock || 0,
-      variants:product.variants||[]
-   
-    };
-  });
+  loaded = true;
+  return _products;
 }
 
-getProducts();
+// 🔁 Export a dynamic getter instead of plain array
+export const products: Product[] = [];
+
+fetchProductsOnce().then((result) => {
+  products.splice(0, products.length, ...result); // fill exported array with real data
+});
+
 
 export const categories: Category[] = [
   {

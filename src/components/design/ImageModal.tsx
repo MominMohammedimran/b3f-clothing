@@ -81,6 +81,12 @@ const ImageModal: React.FC<ImageModalProps> = ({ isOpen, onClose, onAddImage }) 
             <p className="mt-2 text-sm text-gray-600">
               Upload image in PNG, JPG, WebP
             </p>
+           <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+  For best print results, please upload a high-quality image.
+  <br />
+  Recommended size: <span className="font-medium text-gray-800">150px height × 150px width</span>
+</p>
+
             <input
               type="file"
               accept="image/png,image/jpeg,image/jpg,image/webp"

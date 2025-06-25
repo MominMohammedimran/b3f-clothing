@@ -81,7 +81,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 pt-0 mb-2">
-      <h2 className="text-lg font-semibold mb-3">Select Product</h2>
+      <h2 className="text-lg text-center font-semibold mb-3">Select Product</h2>
       {isLoading ? (
         <div className="flex justify-center py-6">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

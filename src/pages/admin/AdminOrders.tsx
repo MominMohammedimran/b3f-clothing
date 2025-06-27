@@ -94,7 +94,7 @@ const AdminOrders: React.FC = () => {
       });
 
       if (error) throw error;
-      console.log('Status update email sent successfully');
+      console.log('Status update email sent successfully',data);
       toast.success('Status update email sent to customer');
     } catch (emailError) {
       console.error('Failed to send status update email:', emailError);

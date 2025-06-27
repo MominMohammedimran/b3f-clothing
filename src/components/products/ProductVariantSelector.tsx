@@ -25,7 +25,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       </h3>
 
       {/* Size Selection */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-5 mb-8">
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-2 gap-5 mb-8">
         {product.variants?.map((variant) => {
           const stock = Number(variant.stock ?? 0);
           const isSelected = selectedSizes.includes(variant.size);
@@ -35,7 +35,7 @@ const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
             <div
   key={variant.size}
   onClick={() => {
-    if (stock > 0) onSizeToggle(variant.size);
+    if (stock > 0) onSizeToggle(variant.size)
   }}
   className={`  px-2 py-2 sm:px-3 sm:py-3 md:px-4 md:py-4
  border-2 rounded text-center transition-all duration-300

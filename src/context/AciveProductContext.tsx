@@ -1,16 +1,15 @@
-// src/context/ActiveProductContext.tsx
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-const ActiveProductContext = createContext<{
+interface ActiveProductContextProps {
   activeProduct: string;
   setActiveProduct: (value: string) => void;
-}>({
-  activeProduct: 'tshirt',
-  setActiveProduct: () => {},
-});
+}
 
-export const ActiveProductProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeProduct, setActiveProduct] = useState('tshirt');
+const ActiveProductContext = createContext<ActiveProductContextProps | undefined>(undefined);
+
+export const ActiveProductProvider = ({ children }: { children: ReactNode }) => {
+  const [activeProduct, setActiveProduct] = useState<string>('tshirt');
+
   return (
     <ActiveProductContext.Provider value={{ activeProduct, setActiveProduct }}>
       {children}
@@ -18,4 +17,10 @@ export const ActiveProductProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-export const useActiveProduct = () => useContext(ActiveProductContext);
+export const useActiveProduct = () => {
+  const context = useContext(ActiveProductContext);
+  if (!context) {
+    throw new Error('useActiveProduct must be used within ActiveProductProvider');
+  }
+  return context;
+};

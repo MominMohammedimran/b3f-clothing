@@ -27,7 +27,7 @@ const CategoryItem = ({ category }: CategoryItemProps) => {
         to={isDesignCategory ? '/design-tool' : `/search?category=${nameLower}`}
         className="flex flex-col items-center relative"
       >
-        <div className="category-circle pinkbg w-20 h-20 mb-2 bg-pink-100 relative rounded-full flex items-center justify-center">
+        <div className="category-circle pinkbg w-20 h-20 mb-2 bg-[yellow] relative rounded-full flex items-center justify-center">
           <img
             src={category.image || '/lovable-uploads/placeholder.svg'}
             alt={`hero-categorie${category.name}`}

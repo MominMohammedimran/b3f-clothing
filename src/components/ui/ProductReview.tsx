@@ -1,4 +1,5 @@
 
+
 import { useState } from 'react';
 import { Star } from 'lucide-react';
 import { toast } from "sonner";
@@ -40,12 +41,12 @@ const ProductReview = ({ productId, onSubmit }: ProductReviewProps) => {
   };
 
   return (
-    <div className="bg-gray-50 p-4 rounded-lg">
-      <h3 className="text-lg font-bold mb-4">Write a Review</h3>
+    <div className="bg-slate-100 p-6 rounded-lg shadow-sm ring-1 ring-gray-200">
+      <h3 className="text-lg font-bold text-gray-900 mb-4">Write a Review</h3>
       
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label className="block mb-2 text-sm font-medium">Your Rating</label>
+          <label className="block mb-2 text-sm font-medium text-gray-800">Your Rating</label>
           <div className="flex">
             {[1, 2, 3, 4, 5].map(value => (
               <button
@@ -71,13 +72,13 @@ const ProductReview = ({ productId, onSubmit }: ProductReviewProps) => {
         </div>
         
         <div className="mb-4">
-          <label htmlFor="review" className="block mb-2 text-sm font-medium">
+          <label htmlFor="review" className="block mb-2 text-sm font-medium text-gray-800">
             Your Review
           </label>
           <textarea
             id="review"
             rows={4}
-            className="w-full p-2 border rounded-md resize-none"
+            className="w-full p-3 border border-gray-300 rounded-lg resize-none bg-gray-50 text-gray-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Share your experience with this product..."
             value={review}
             onChange={(e) => setReview(e.target.value)}
@@ -86,7 +87,7 @@ const ProductReview = ({ productId, onSubmit }: ProductReviewProps) => {
         
         <button
           type="submit"
-          className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors shadow-sm ring-1 ring-blue-600"
         >
           Submit Review
         </button>
@@ -96,3 +97,4 @@ const ProductReview = ({ productId, onSubmit }: ProductReviewProps) => {
 };
 
 export default ProductReview;
+

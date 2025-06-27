@@ -71,7 +71,16 @@ const ProductViewSelector: React.FC<ProductViewSelectorProps> = ({
             onClick={() => onViewChange('front')}
           />
         </div>
-      )}
+      ) : (<div className="flex justify-center mb-4">
+          <img
+            src="https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-sub-images/cap-plain.webp"
+            alt="Photo"
+            className="h-20 object-contain cursor-pointer border border-blue-300 rounded p-1"
+            onClick={() => onViewChange('front')}
+          />
+        </div>)
+      
+      }
       
       {/* Size selector */}
       <div className="mt-6">

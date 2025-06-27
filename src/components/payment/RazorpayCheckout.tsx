@@ -11,6 +11,8 @@ import { makePayment } from '@/services/paymentServices/razorpay/RazorpayService
 import { Loader2, CreditCard, Gift ,X} from 'lucide-react';
 import { sendOrderConfirmationEmail } from '@/components/admin/OrderStatusEmailService';
 import { useDeliverySettings } from '@/hooks/useDeliverySettings';
+import { updateInventoryFromPaidOrders } from '@/hooks/useProductInventory';
+
 interface RazorpayCheckoutProps {
   cartItems: CartItem[];
   amount: number;
@@ -171,6 +173,7 @@ const navigate = useNavigate();
             };
 
             await createOrder(orderData);
+            await updateInventoryFromPaidOrders()
 
             // Update user's reward points if used
             if (rewardPointsToUse > 0 && userProfile) {

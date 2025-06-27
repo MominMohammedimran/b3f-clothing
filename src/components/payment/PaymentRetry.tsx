@@ -8,6 +8,7 @@ import { Loader2, X ,ArrowLeft} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDeliverySettings } from '@/hooks/useDeliverySettings';
 import { sendOrderConfirmationEmail } from '@/components/admin/OrderStatusEmailService';
+import { updateInventoryFromPaidOrders } from '@/hooks/useProductInventory';
 
 interface PaymentRetryProps {
   orderId: string;
@@ -108,6 +109,9 @@ const PaymentRetry: React.FC<PaymentRetryProps> = ({ orderId, amount, orderNumbe
             });
 
             if (updateError) throw updateError;
+           if (!updateError) {
+            await updateInventoryFromPaidOrders(); // ✅ Reduce inventory
+               }
 
             toast.success("Payment successful! Sending confirmation email...");
 

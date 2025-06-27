@@ -1,7 +1,8 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { addInventoryUpdateListener } from './useProductInventory';
 
 export const useDesignToolInventory = () => {
   const [sizeInventory, setSizeInventory] = useState<Record<string, Record<string, number>>>({});
@@ -52,19 +53,99 @@ export const useDesignToolInventory = () => {
     }
   }, []);
 
-  // This function just updates local state for UI purposes
-  // Actual inventory will only be updated after successful payment
-  const updateInventory = useCallback(async (productId: string, size: string, quantityChange: number) => {
-    setSizeInventory(prev => ({
-      ...prev,
-      [productId]: {
-        ...prev[productId],
-        [size.toLowerCase()]: Math.max(0, (prev[productId]?.[size.toLowerCase()] || 0) + quantityChange)
-      }
-    }));
+  // Listen for inventory updates and refetch when they occur
+  useEffect(() => {
+    const unsubscribe = addInventoryUpdateListener(() => {
+      fetchProductInventory();
+    });
     
-    return true;
-  }, []);
+    return () => {
+      unsubscribe();
+    };
+  }, [fetchProductInventory]);
+
+  // Updated to actually save to database
+  const updateInventory = useCallback(async (productType: string, size: string, newQuantity: number) => {
+    try {
+      // Find the product in the database
+      const { data: products, error: fetchError } = await supabase
+        .from('products')
+        .select('id, variants')
+        .ilike('code', `%${productType}%print%`);
+
+      if (fetchError) throw fetchError;
+
+      if (!products || products.length === 0) {
+        toast.error(`No ${productType} product found`);
+        return false;
+      }
+
+      // Update each matching product
+      for (const product of products) {
+        // Safely handle variants - ensure it's an array and properly typed
+        let variants: Array<{size: string, stock: number}> = [];
+        
+        if (product.variants) {
+          if (Array.isArray(product.variants)) {
+            // Type cast and filter valid variants
+            variants = (product.variants as any[])
+              .filter((v: any) => v && typeof v === 'object' && typeof v.size === 'string' && typeof v.stock === 'number')
+              .map((v: any) => ({ size: v.size, stock: v.stock }));
+          }
+        }
+        
+        const variantIndex = variants.findIndex(
+          (v) => v.size?.toLowerCase() === size.toLowerCase()
+        );
+
+        if (variantIndex >= 0) {
+          variants[variantIndex] = {
+            ...variants[variantIndex],
+            stock: Math.max(0, newQuantity)
+          };
+        } else {
+          variants.push({
+            size: size.toLowerCase(),
+            stock: Math.max(0, newQuantity)
+          });
+        }
+
+        // Update the product in database
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ 
+            variants: variants as any,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', product.id);
+
+        if (updateError) throw updateError;
+      }
+
+      // Update local state
+      setSizeInventory(prev => ({
+        ...prev,
+        [productType]: {
+          ...prev[productType],
+          [size.toLowerCase()]: Math.max(0, newQuantity)
+        }
+      }));
+
+      // Notify other hooks about the update
+      const { addInventoryUpdateListener } = await import('./useProductInventory');
+      const notifyInventoryUpdate = () => {
+        // This will trigger refetch in all listening hooks
+        fetchProductInventory();
+      };
+      notifyInventoryUpdate();
+
+      return true;
+    } catch (error) {
+      console.error('Error updating inventory:', error);
+      toast.error('Failed to update inventory');
+      return false;
+    }
+  }, [fetchProductInventory]);
 
   return {
     sizeInventory,

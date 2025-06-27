@@ -21,6 +21,8 @@ import { useDesignProducts } from '@/hooks/useDesignProducts';
 import { validateObjectsWithinBoundary, showBoundaryValidationError, moveObjectsIntoBoundary } from '@/components/design/BoundaryValidator';
 import { useActiveProduct } from '@/context/ActiveProductContext';
 const DesignTool = () => {
+  
+
   const navigate = useNavigate();
   const params = useParams();
  const { activeProduct, setActiveProduct } = useActiveProduct();
@@ -40,7 +42,7 @@ const DesignTool = () => {
   const { addToCart } = useCart();
   const { sizeInventory, fetchProductInventory, updateInventory } = useDesignToolInventory();
   const { products, loading: productsLoading } = useDesignProducts();
- console.log('add',activeProduct)
+ 
   const emojis = [
     '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
     '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
@@ -399,7 +401,7 @@ const DesignTool = () => {
     <Layout>
       <DesignContextProviders>
         <div className="container-custom px-4">
-          <div className="flex items-center justify-between mb-6 mt-10">
+          <div className="flex flex-cols items-center gap-10 mb-6 mt-10">
             <Link
               to="/"
               className="flex items-center text-blue-600 hover:text-blue-800"
@@ -407,7 +409,7 @@ const DesignTool = () => {
               <ArrowLeft className="mr-1" size={20} />
               <span className="text-sm font-medium">Back</span>
             </Link>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-800">Design Your Product</h1>
+            <h1 className="flex text-xl  md:text-2xl font-bold text-gray-800">Design Your Product</h1>
             
           </div>
          

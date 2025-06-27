@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { } from '@/hooks/useProductInventory';
 
 interface Order {
   id: string;
@@ -65,6 +65,12 @@ const PaymentStatusUpdateDialog: React.FC<PaymentStatusUpdateDialogProps> = ({
       if (error) throw error;
 
       toast.success('Payment status updated successfully');
+      
+      // Update inventory if payment status changed to 'paid'
+      if (paymentStatus === 'paid') {
+        await updateInventoryFromPaidOrders();
+      }
+      
       onUpdate();
       onClose();
     } catch (error) {

@@ -29,6 +29,10 @@ const Index = () => {
     description: 'Design and order custom printed products including t-shirts, mugs, caps and more. Professional quality printing with fast delivery.',
     keywords: 'custom printing, t-shirts, mugs, caps, design, personalized products'
   });
+// src/index.tsx or App.tsx
+if (!localStorage.getItem('activeProduct')) {
+  localStorage.setItem('activeProduct', 'tshirt');
+}
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -79,7 +83,7 @@ const Index = () => {
     <Layout>
       <SEOHelmet {...seoData} />
       
-      <div className="container-custom mt-10">
+      <div className="container-custom mt-10 ">
         <div className="mt-8 mb-6 animate-fade-in">
           <ScrollArea className="w-full">
             <Banner images={bannerImages} />

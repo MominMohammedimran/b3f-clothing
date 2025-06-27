@@ -25,6 +25,14 @@ const BoundaryBox: React.FC<BoundaryBoxProps> = ({ productType, view }) => {
           width: '78px',
           height: '95px',
         };
+        case 'photo':
+        return {
+          ...style,
+          top: view === 'back' ? '110px' : '130px',
+          left: view === 'back' ? '105px' : '108px',
+          width: '78px',
+          height: '95px',
+        };
       case 'mug':
         return {
           ...style,

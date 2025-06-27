@@ -4,7 +4,7 @@ import { Phone, Mail, MapPin, Instagram, FileLock,RefreshCcw,AtSign, FileText, T
 
 const Footer = () => {
   return (
-    <div className="bg-gray-100">
+    <div className="bg-[rgb(175,235,248)]">
       <div className="container-custom py-8">
         {/* Contact Info */}
         <div className="space-y-4 mb-8">
@@ -43,12 +43,13 @@ const Footer = () => {
         {/* Legal Pages Links */}
         <div className="mb-6 grid grid-cols-2 gap-3">
          <a href="/privacy-policy" className="text-sm flex items-center hover:text-blue-600 transition-colors">
-             <FileLock size={16} className="mr-2" />
-              <span>Privacy Policy</span>
+            <FileLock size={16} className="mr-2" />
+            <span>Privacy Policy</span>
            </a>
         <a href="/terms-conditions" className="text-sm flex items-center hover:text-blue-600 transition-colors">
-               <FileText size={16} className="mr-2" />
-               <span>Terms & Conditions</span>
+              <FileText size={16} className="mr-2" />
+
+              <span>Terms & Conditions</span>
           </a>
 
           <Link to="/cancellation-refund" className="text-sm flex items-center hover:text-blue-600 transition-colors">

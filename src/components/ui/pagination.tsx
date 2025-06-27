@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 
@@ -49,9 +50,13 @@ const PaginationLink = ({
     aria-current={isActive ? "page" : undefined}
     className={cn(
       buttonVariants({
-        variant: isActive ? "outline" : "ghost",
+        variant: isActive ? "default" : "ghost",
         size,
       }),
+      isActive 
+        ? "bg-blue-600 text-white shadow-sm ring-1 ring-blue-600" 
+        : "bg-gray-50 text-gray-800 hover:bg-gray-100 ring-1 ring-gray-200",
+      "rounded-lg",
       className
     )}
     {...props}
@@ -66,7 +71,7 @@ const PaginationPrevious = ({
   <PaginationLink
     aria-label="Go to previous page"
     size="default"
-    className={cn("gap-1 pl-2.5", className)}
+    className={cn("gap-1 pl-2.5 bg-slate-100 text-gray-800 hover:bg-slate-200 ring-1 ring-gray-200 rounded-lg shadow-sm", className)}
     {...props}
   >
     <ChevronLeft className="h-4 w-4" />
@@ -82,7 +87,7 @@ const PaginationNext = ({
   <PaginationLink
     aria-label="Go to next page"
     size="default"
-    className={cn("gap-1 pr-2.5", className)}
+    className={cn("gap-1 pr-2.5 bg-slate-100 text-gray-800 hover:bg-slate-200 ring-1 ring-gray-200 rounded-lg shadow-sm", className)}
     {...props}
   >
     <span>Next</span>
@@ -97,7 +102,7 @@ const PaginationEllipsis = ({
 }: React.ComponentProps<"span">) => (
   <span
     aria-hidden
-    className={cn("flex h-9 w-9 items-center justify-center", className)}
+    className={cn("flex h-9 w-9 items-center justify-center bg-gray-50 text-gray-500 rounded-lg", className)}
     {...props}
   >
     <MoreHorizontal className="h-4 w-4" />
@@ -115,3 +120,4 @@ export {
   PaginationNext,
   PaginationPrevious,
 }
+

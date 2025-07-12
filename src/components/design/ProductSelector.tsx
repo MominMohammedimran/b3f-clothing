@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { formatIndianRupees } from '@/utils/currency';
 
@@ -24,9 +23,10 @@ export interface ProductSelectorProps {
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
   products = {
-    tshirt: { name: 'T-Shirt', price: 249, image: '/lovable-uploads/design-tool-page/tshirt-print.png' },
-    mug: { name: 'Mug', price: 199, image: '/lovable-uploads/design-tool-page/mug-print.png' },
-    cap: { name: 'Cap', price: 179, image: '/lovable-uploads/design-tool-page/cap-print.png' },
+    tshirt: { name: 'T-Shirt', price: 249, image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/product_images/print-images/tshirt-print/tshirt-print.webp' },
+    mug: { name: 'Mug', price: 199, image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/product_images/print-images/mug-print/mug-print.webp' },
+    cap: { name: 'Cap', price: 179, image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/product_images/print-images/cap-print/cap-print.webp' },
+    photo_frame: { name: 'Photo Frame', price: 299, image: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=300&h=300' },
   },
   activeProduct = 'tshirt',
   isDualSided = false,
@@ -47,11 +47,11 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
       onProductSelect(id);
     }
   };
-
+console.log(products)
   // If using the new inventory-based approach
   const renderSizeOptions = () => {
     if (!inventory || !selectedProduct) return null;
-    
+
     const sizes = inventory[selectedProduct] || {};
     
     return (
@@ -88,31 +88,26 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-3">
-
-            
+          <div className="grid grid-cols-4 gap-3">
             {Object.entries(products).map(([id, product]) => (
-  <button
-    key={id}
-    onClick={() => handleProductSelection(id)}
-    className={`flex flex-col items-center p-2 sm:p-3 rounded-md border transition ${
-      (selectedProduct || activeProduct) === id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-    }`}
-  >
-    <div className="w-12 h-10 sm:w-14 sm:h-12 bg-gray-100 rounded-md flex items-center justify-center mb-1 sm:mb-2">
-      <img src={product.image} alt={product.name} className="max-w-full max-h-full object-contain" />
-    </div>
-    <span className="text-xs sm:text-sm font-medium text-center leading-snug w-24 sm:w-28 break-words">
-      {product.name}
-    </span>
-    <span className="text-[14px] sm:text-s text-green-800">
-      {formatIndianRupees(isDualSided && id === 'tshirt' ? 300 : product.price)}
-    </span>
-  </button>
-))}
-
-
-
+              <button
+                key={id}
+                onClick={() => handleProductSelection(id)}
+                className={`flex flex-col items-center p-2 sm:p-3 rounded-md border transition ${
+                  (selectedProduct || activeProduct) === id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                }`}
+              >
+                <div className="w-12 h-10 sm:w-14 sm:h-12 bg-gray-100 rounded-md flex items-center justify-center mb-1 sm:mb-2">
+                  <img src={product.image} alt={product.name} className="max-w-full max-h-full object-contain" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-center leading-snug w-24 sm:w-28 break-words">
+                  {product.name}
+                </span>
+                <span className="text-[14px] sm:text-s text-green-800">
+                  {formatIndianRupees(isDualSided && id === 'tshirt' ? 300 : product.price)}
+                </span>
+              </button>
+            ))}
           </div>
           
           {/* Render size options if using the inventory-based approach */}

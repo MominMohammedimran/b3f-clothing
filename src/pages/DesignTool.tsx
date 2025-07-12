@@ -20,12 +20,11 @@ import { useDesignToolInventory } from '@/hooks/useDesignToolInventory';
 import { useDesignProducts } from '@/hooks/useDesignProducts';
 import { validateObjectsWithinBoundary, showBoundaryValidationError, moveObjectsIntoBoundary } from '@/components/design/BoundaryValidator';
 import { useActiveProduct } from '@/context/ActiveProductContext';
-const DesignTool = () => {
-  
 
+const DesignTool = () => {
   const navigate = useNavigate();
   const params = useParams();
- const { activeProduct, setActiveProduct } = useActiveProduct();
+  const { activeProduct, setActiveProduct } = useActiveProduct();
   const [productView, setProductView] = useState<string>('front');
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -41,8 +40,54 @@ const DesignTool = () => {
   const { currentUser } = useAuth();
   const { addToCart } = useCart();
   const { sizeInventory, fetchProductInventory, updateInventory } = useDesignToolInventory();
-  const { products, loading: productsLoading } = useDesignProducts();
+  const { products: apiProducts, loading: productsLoading } = useDesignProducts();
  
+  // Define products with variants for proper size/quantity display
+  const products = {
+    tshirt: { 
+      id: 'tshirt',
+      name: 'T-Shirt', 
+      price: 249, 
+      image:' https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/product_images/print-images/tshirt-print/tshirt-print.webp',
+      variants: [
+        { size: 'S', stock: sizeInventory.tshirt?.s || 0 },
+        { size: 'M', stock: sizeInventory.tshirt?.m || 0 },
+        { size: 'L', stock: sizeInventory.tshirt?.l || 0},
+        { size: 'XL', stock: sizeInventory.tshirt?.xl || 0 },
+        { size: 'XXL', stock: sizeInventory.tshirt?.xxl ||0 }
+      ]
+    },
+    mug: { 
+      id: 'mug',
+      name: 'Mug', 
+      price: 199, 
+      image:' https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/product_images/print-images/mug-print/mug-print.webp',
+      variants: [
+        { size: 'Standard', stock: sizeInventory.mug?.standard || 0 }
+      ]
+    },
+    cap: { 
+      id: 'cap',
+      name: 'Cap', 
+      price: 179, 
+      image:' https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/product_images/print-images/cap-print/cap-print.webp',
+      variants: [
+        { size: 'Standard', stock: sizeInventory.cap?.standard || 0 }
+      ]
+    },
+    photo_frame: { 
+      id: 'photo_frame',
+      name: 'Photo Frame', 
+      price: 299, 
+      image: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=300&h=300',
+      variants: [
+        { size: '8X12inch', stock: 0 },
+        { size: '12x16inch', stock: 0 },
+        { size: '5x7 inch', stock: 0 }
+      ]
+    }
+  };
+
   const emojis = [
     '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
     '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
@@ -91,6 +136,9 @@ const DesignTool = () => {
         setActiveProduct('mug');
       } else if (params.productCode.includes('CAP')) {
         setActiveProduct('cap');
+      } else if (params.productCode.includes('PHOTO_FRAME')) {
+        setActiveProduct('photo_frame');
+        setProductView('8X12inch');
       }
     }
   }, [params.productCode]);
@@ -115,7 +163,14 @@ const DesignTool = () => {
   const handleProductChange = (productId: string) => {
     if (products[productId]) {
       setActiveProduct(productId);
-      setProductView('front');
+      
+      // Set default view based on product type
+      if (productId === 'photo_frame') {
+        setProductView('8X12inch');
+      } else {
+        setProductView('front');
+      }
+      
       setSelectedSizes([]);
       setQuantities({});
       setIsDualSided(false);
@@ -125,8 +180,21 @@ const DesignTool = () => {
     }
   };
 
+  const getCanvasDimensions = (view: string) => {
+    switch(view) {
+      case '8X12inch':
+        return { width: 300, height:350 };
+      case '12x16inch':
+        return { width: 300, height: 320 };
+      case '5x7 inch':
+        return { width: 300, height: 3200 };
+      default:
+        return { width: 300, height: 320 };
+    }
+  };
+
   const handleViewChange = (view: string) => {
-    if (canvas && isDualSided) {
+    if (canvas && isDualSided && activeProduct === 'tshirt') {
       if (productView === 'front') {
         const frontDataUrl = canvas.toDataURL({ format: 'webp', quality: 0.9 });
         setFrontDesign(frontDataUrl);
@@ -139,6 +207,14 @@ const DesignTool = () => {
     }
    
     setProductView(view);
+
+    // Handle canvas resizing for photo_frame
+    if (activeProduct === 'photo_frame' && canvas) {
+      const dimensions = getCanvasDimensions(view);
+      canvas.setWidth(dimensions.width);
+      canvas.setHeight(dimensions.height);
+      canvas.renderAll();
+    }
    
     setTimeout(() => {
       if (view === 'front' && frontDesign && isDualSided) {
@@ -262,7 +338,7 @@ const DesignTool = () => {
       const previewDataUrl = canvas.toDataURL({
         format: 'png',
         quality: 1.0,
-        multiplier: 1
+        multiplier: activeProduct === 'photo_frame' ? 2 : 1
       });
       
       return previewDataUrl;
@@ -342,7 +418,7 @@ const DesignTool = () => {
      
       const customProduct = {
         product_id: `custom-${activeProduct}-${Date.now()}`,
-        name: `Custom ${products[activeProduct]?.name || 'Product'}${isDualSided ? ' (Dual-Sided)' : ''}`,
+        name: `Custom ${products[activeProduct]?.name || 'Product'}${isDualSided ? ' (Dual-Sided)' : ''}${activeProduct === 'photo_frame' ? ` (${productView})` : ''}`,
         price: totalPrice,
         image: previewImage || '/placeholder.svg',
         sizes: selectedSizes.map(size => ({ size, quantity: quantities[size] || 1 })),
@@ -351,7 +427,8 @@ const DesignTool = () => {
           backImage: isDualSided ? backDesign : null,
           designData: canvasJSON,
           previewImage: previewImage,
-          selectedSizes: selectedSizes
+          selectedSizes: selectedSizes,
+          frameSize: activeProduct === 'photo_frame' ? productView : null
         }
       };
      

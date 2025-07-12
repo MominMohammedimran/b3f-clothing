@@ -29,6 +29,7 @@ const detectProductType = (name: string): string => {
   if (lower.includes('t-shirt') || lower.includes('tshirt')) return 'tshirt';
   if (lower.includes('cup') || lower.includes('mug')) return 'mug';
   if (lower.includes('cap') || lower.includes('hat')) return 'cap';
+    if (lower.includes('photo frame') || lower.includes('frame')) return 'photo_frame';
   return 'tshirt'; // default fallback
 };
 
@@ -72,7 +73,7 @@ const handleCustomize = (e: React.MouseEvent) => {
         <img
           src={product.image}
           alt={product.name}
-          className="w-full h-36 sm:h-40 md:h-50 lg:h-60 object-cover rounded-md"
+          className="w-full h-45 sm:h-50 md:h-65 lg:h-70 object-fit rounded-md"
         />
         {product.discountPercentage && (
           <Badge className="absolute top-2 left-2 bg-red-500">

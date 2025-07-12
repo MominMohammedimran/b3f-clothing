@@ -64,16 +64,12 @@ export const categories: Category[] = [
     name: 'Cap Print',
     image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/cap-print.webp'
   },
-  {
+   {
     id: '4',
-    name: 'Pant', 
-    image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/pant.webp'
+    name: 'Photo print',
+    image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/cap-print.webp'
   },
-  {
-    id: '5',
-    name: 'Shirt',
-    image: 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/hero-categorie/shirt.webp'
-  }
+  
 ];
 
 // Mock orders data for OrdersHistory component

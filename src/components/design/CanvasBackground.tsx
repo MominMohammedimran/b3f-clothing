@@ -30,6 +30,9 @@ const CanvasBackground: React.FC<CanvasBackgroundProps> = ({
         case 'cap':
           imagePath = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-sub-images/cap-plain.webp';
           break;
+            case 'photo':
+          imagePath = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/cap-sub-images/cap-plain.webp';
+          break;
         default:
           imagePath = 'https://cmpggiyuiattqjmddcac.supabase.co/storage/v1/object/public/product-images/design-tool-page/tshirt-sub-images/tshirt-front.webp';
       }

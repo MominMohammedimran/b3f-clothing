@@ -51,6 +51,23 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
   const setUndoStack = props.setUndoStack || setLocalUndoStack;
   const setRedoStack = props.setRedoStack || setLocalRedoStack;
 
+  // Get canvas dimensions based on product and view
+  const getCanvasDimensions = (productType?: string, view?: string) => {
+    if (productType === 'photo_frame') {
+       switch(view) {
+      case '8X12inch':
+        return { width: 300, height:350 };
+      case '12x16inch':
+        return { width: 300, height: 320 };
+      case '5x7 inch':
+        return { width: 300, height: 320 };
+      default:
+        return { width: 300, height: 320 };
+    }
+    }
+    return { width: 300, height: 320 };
+  };
+
   // Save state function for undo/redo
   const saveState = () => {
     if (canvas) {
@@ -75,10 +92,12 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           canvas.dispose();
         }
 
+        const dimensions = getCanvasDimensions(props.activeProduct, props.productView);
+        
         const newCanvas = new fabric.Canvas(canvasElement, {
           backgroundColor: 'black',
-          height: 320,
-          width: 300,
+          height: dimensions.height,
+          width: dimensions.width,
           preserveObjectStacking: true,
           selection: true,
           renderOnAddRemove: true,
@@ -316,7 +335,7 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
         }
       }
     };
-  }, []);
+  }, [props.activeProduct, props.productView]);
 
   useEffect(() => {
     if (!canvas || !canvasReady) return;
@@ -556,6 +575,8 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
     }
   };
 
+  const boundaryId = `design-boundary-${props.activeProduct || 'tshirt'}`;
+
   return (
     <div className="design-canvas-container">
       <div className="relative justify-items-center">
@@ -584,7 +605,7 @@ const DesignCanvas: React.FC<DesignCanvasProps> = (props) => {
           productType={props.activeProduct || 'tshirt'}
           view={props.productView || 'front'}
         />
-        <BoundaryRestrictor canvas={canvas} boundaryId="design-boundary" />
+        <BoundaryRestrictor canvas={canvas} boundaryId={boundaryId} />
       </div>
     </div>
   );

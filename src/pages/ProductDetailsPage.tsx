@@ -70,6 +70,8 @@ const ProductDetailsPage = () => {
     fetchProduct();
   }, [productId]);
 
+  console.log(product)
+
   if (loading) {
     return (
       <Layout>
